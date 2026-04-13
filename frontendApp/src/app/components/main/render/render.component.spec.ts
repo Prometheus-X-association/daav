@@ -1,11 +1,12 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { MatTabsModule } from '@angular/material/tabs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RenderComponent } from './render.component';
 import { LoadingService } from 'src/app/services/loading.service';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
 describe('RenderComponent', () => {
   let component: RenderComponent;
@@ -13,13 +14,15 @@ describe('RenderComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ RenderComponent ],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, MatTabsModule, BrowserAnimationsModule],
-      providers: [
-        { provide: LoadingService, useValue: jasmine.createSpyObj('LoadingService', ['show', 'hide']) }
-      ],
-      schemas: [NO_ERRORS_SCHEMA]
-    }).compileComponents();
+    declarations: [RenderComponent],
+    schemas: [NO_ERRORS_SCHEMA],
+    imports: [IonicModule.forRoot(), MatTabsModule, BrowserAnimationsModule],
+    providers: [
+        { provide: LoadingService, useValue: jasmine.createSpyObj('LoadingService', ['show', 'hide']) },
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting()
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(RenderComponent);
     component = fixture.componentInstance;

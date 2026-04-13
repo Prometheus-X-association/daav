@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { PTXDashboardComponent } from './ptxdashboard.component';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
 describe('PTXDashboardComponent', () => {
   let component: PTXDashboardComponent;
@@ -9,8 +10,9 @@ describe('PTXDashboardComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, PTXDashboardComponent]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), PTXDashboardComponent],
+    providers: [provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(PTXDashboardComponent);
     component = fixture.componentInstance;
