@@ -9,8 +9,9 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 
 // Stub du composant datasets-modal pour éviter le problème de propriété read-only
 @Component({
-  selector: 'app-datasets-modal',
-  template: ''
+    selector: 'app-datasets-modal',
+    template: '',
+    standalone: false
 })
 class DatasetsModalStubComponent {
   @Input() dataset: Dataset | null = null;

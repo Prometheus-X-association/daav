@@ -46,12 +46,10 @@ interface DataExchangeResponse{
 }
 
 @Component({
-  selector: 'app-ptxdashboard',
-  templateUrl: './ptxdashboard.component.html',
-  styleUrls: ['./ptxdashboard.component.scss'],
-  imports: [CommonModule, IonicModule],
-  standalone: true
-
+    selector: 'app-ptxdashboard',
+    templateUrl: './ptxdashboard.component.html',
+    styleUrls: ['./ptxdashboard.component.scss'],
+    imports: [CommonModule, IonicModule]
 })
 export class PTXDashboardComponent  extends DashboardComponent implements OnInit{
 

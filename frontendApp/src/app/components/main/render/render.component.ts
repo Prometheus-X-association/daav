@@ -9,9 +9,10 @@ import { MatTab } from '@angular/material/tabs';
 import { isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
 
 @Component({
-  selector: 'app-render',
-  templateUrl: './render.component.html',
-  styleUrls: ['./render.component.scss'],
+    selector: 'app-render',
+    templateUrl: './render.component.html',
+    styleUrls: ['./render.component.scss'],
+    standalone: false
 })
 
 export class RenderComponent implements OnInit, OnChanges {

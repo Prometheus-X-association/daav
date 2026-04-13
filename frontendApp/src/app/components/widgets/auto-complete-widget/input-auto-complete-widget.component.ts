@@ -46,9 +46,10 @@ export class InputAutoCompleteControl
 
 
 @Component({
-  selector: 'app-input-auto-complete-widget',
-  templateUrl: './input-auto-complete-widget.component.html',
-  styleUrls: ['./input-auto-complete-widget.component.scss'],
+    selector: 'app-input-auto-complete-widget',
+    templateUrl: './input-auto-complete-widget.component.html',
+    styleUrls: ['./input-auto-complete-widget.component.scss'],
+    standalone: false
 })
 export class InputAutoCompleteWidgetComponent  implements OnChanges {
 

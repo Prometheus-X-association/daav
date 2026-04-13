@@ -11,14 +11,15 @@ import { ClassicPreset } from "rete";
 import { KeyValue } from "@angular/common";
 
 @Component({
-  selector: 'app-transform-node',
-  templateUrl: 'nodes.component.html',
-  styleUrls: ['nodes.component.scss'],
-  // eslint-disable-next-line @angular-eslint/no-host-metadata-property
-  host: {
-    "data-testid": "node",
-    "class": " node transform-node"
-  }
+    selector: 'app-transform-node',
+    templateUrl: 'nodes.component.html',
+    styleUrls: ['nodes.component.scss'],
+    // eslint-disable-next-line @angular-eslint/no-host-metadata-property
+    host: {
+        "data-testid": "node",
+        "class": " node transform-node"
+    },
+    standalone: false
 })
 export class TransformNodeComponent implements OnChanges {
   @Input() data!: ClassicPreset.Node;

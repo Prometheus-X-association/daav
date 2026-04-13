@@ -5,9 +5,10 @@ import { DataFilterControl } from '../widgets/data-filter-widget/data-filter-wid
 
 
 @Component({
-  selector: 'app-data-filter',
-  templateUrl: './data-filter.component.html',
-  styleUrls: ['./data-filter.component.scss'],
+    selector: 'app-data-filter',
+    templateUrl: './data-filter.component.html',
+    styleUrls: ['./data-filter.component.scss'],
+    standalone: false
 })
 export class DataFilterComponent implements OnInit{
 

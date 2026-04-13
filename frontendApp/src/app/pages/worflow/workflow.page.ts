@@ -8,9 +8,10 @@ import { ActivatedRoute } from '@angular/router';
 import { $localize } from '@angular/localize/init';
 
 @Component({
-  selector: 'app-workflow',
-  templateUrl: 'workflow.page.html',
-  styleUrls: ['workflow.page.scss']
+    selector: 'app-workflow',
+    templateUrl: 'workflow.page.html',
+    styleUrls: ['workflow.page.scss'],
+    standalone: false
 })
 export class WorkflowPage implements AfterViewInit {
   workflow: WorkflowEditor;

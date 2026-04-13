@@ -14,9 +14,10 @@ export class ButtonControl extends ClassicPreset.Control {
 }
 
 @Component({
-  selector: 'app-button-widget',
-  templateUrl: './button-widget.component.html',
-  styleUrls: ['./button-widget.component.scss'],
+    selector: 'app-button-widget',
+    templateUrl: './button-widget.component.html',
+    styleUrls: ['./button-widget.component.scss'],
+    standalone: false
 })
 export class ButtonWidgetComponent  {
   @Input() data: ButtonControl;

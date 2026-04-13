@@ -18,15 +18,15 @@ import { Component, Input } from "@angular/core";
 import { ClassicPreset } from "rete";
 
 @Component({
-  selector: 'app-custom-connections',
-  // templateUrl: './connections.component.html',
-  styleUrls: ['./connections.component.scss'],
-  template: `
+    selector: 'app-custom-connections',
+    // templateUrl: './connections.component.html',
+    styleUrls: ['./connections.component.scss'],
+    template: `
     <svg data-testid="connection">
       <path [attr.d]="path" />
     </svg>
   `,
-  // styleUrls: ["./custom-connection.component.sass"]
+    standalone: false
 })
 export class CustomConnectionComponent {
   @Input() data!: ClassicPreset.Connection<

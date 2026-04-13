@@ -40,6 +40,7 @@ export class TextDisplayControl extends ClassicPreset.Control implements textDis
     selector: "app-text-display-widget",
     templateUrl: "./text-display-widget.component.html",
     styleUrls: ['./text-display-widget.component.scss'],
+    standalone: false
 })
 export class TextDisplayWidgetComponent implements OnChanges {
     @Input() data: TextDisplayControl;

@@ -15,10 +15,11 @@ enum Tabs {
   transformation
 }
 @Component({
-  selector: 'app-main',
-  templateUrl: 'main.page.html',
-  styleUrls: ['main.page.scss'],
-  encapsulation: ViewEncapsulation.None
+    selector: 'app-main',
+    templateUrl: 'main.page.html',
+    styleUrls: ['main.page.scss'],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 
 export class MainPage {

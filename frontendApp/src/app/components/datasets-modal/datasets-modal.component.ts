@@ -14,9 +14,10 @@ import { Dataset } from 'src/app/models/dataset';
 import { DatasetService } from 'src/app/services/dataset.service';
 
 @Component({
-  selector: 'app-datasets-modal',
-  templateUrl: './datasets-modal.component.html',
-  styleUrls: ['./datasets-modal.component.scss'],
+    selector: 'app-datasets-modal',
+    templateUrl: './datasets-modal.component.html',
+    styleUrls: ['./datasets-modal.component.scss'],
+    standalone: false
 })
 export class DatasetsModalComponent implements OnChanges {
   @ViewChild('modal') modal: IonModal;

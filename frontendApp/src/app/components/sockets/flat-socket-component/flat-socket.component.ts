@@ -1,9 +1,10 @@
 import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges} from '@angular/core';
 
 @Component({
-  selector: 'app-flat-socket-component',
-  template:'',
-  styleUrls: ['./flat-socket.component.scss'],
+    selector: 'app-flat-socket-component',
+    template: '',
+    styleUrls: ['./flat-socket.component.scss'],
+    standalone: false
 })
 export class FlatSocketComponent  implements OnChanges {
 

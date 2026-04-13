@@ -17,9 +17,10 @@ export class DataMapperControl extends ClassicPreset.Control {
 }
 
 @Component({
-  selector: 'app-data-mapper-widget',
-  templateUrl: './data-mapper-widget.component.html',
-  styleUrls: ['./data-mapper-widget.component.scss'],
+    selector: 'app-data-mapper-widget',
+    templateUrl: './data-mapper-widget.component.html',
+    styleUrls: ['./data-mapper-widget.component.scss'],
+    standalone: false
 })
 export class DataMapperWidgetComponent{
 

@@ -3,9 +3,10 @@ import { DashboardComponent } from '../dashboard/dashboard.component';
 import { DatasetFile } from 'src/app/models/dataset-file';
 
 @Component({
-  selector: 'app-file-dashboard',
-  templateUrl: './file-dashboard.component.html',
-  styleUrls: ['./file-dashboard.component.scss'],
+    selector: 'app-file-dashboard',
+    templateUrl: './file-dashboard.component.html',
+    styleUrls: ['./file-dashboard.component.scss'],
+    standalone: false
 })
 export class FileDashboardComponent extends DashboardComponent implements OnInit {
 
