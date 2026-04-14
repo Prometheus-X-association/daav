@@ -8,19 +8,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-workflow-update-rules-modal',
-  standalone: true,
-  imports: [
-    MatDialogModule,
-    MatCheckboxModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    FormsModule,
-    CommonModule
-  ],
-  templateUrl: './workflow-update-rules-modal.component.html',
-  styleUrls: ['./workflow-update-rules-modal.component.scss']
+    selector: 'app-workflow-update-rules-modal',
+    imports: [
+        MatDialogModule,
+        MatCheckboxModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        FormsModule,
+        CommonModule
+    ],
+    templateUrl: './workflow-update-rules-modal.component.html',
+    styleUrls: ['./workflow-update-rules-modal.component.scss']
 })
 export class WorkflowUpdateRulesModalComponent {
   private dialogRef = inject(MatDialogRef<WorkflowUpdateRulesModalComponent>);

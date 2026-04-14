@@ -15,9 +15,10 @@ export class StatusControl extends ClassicPreset.Control {
 }
 
 @Component({
-  selector: 'app-status-component',
-  templateUrl: './status-component.component.html',
-  styleUrls: ['./status-component.component.scss'],
+    selector: 'app-status-component',
+    templateUrl: './status-component.component.html',
+    styleUrls: ['./status-component.component.scss'],
+    standalone: false
 })
 export class StatusComponentComponent {
   @Input() data: StatusControl;

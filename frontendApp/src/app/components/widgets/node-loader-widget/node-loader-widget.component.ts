@@ -13,9 +13,10 @@ export class NodeLoaderControl extends ClassicPreset.Control {
 }
 
 @Component({
-  selector: 'app-node-loader-widget',
-  templateUrl: './node-loader-widget.component.html',
-  styleUrls: ['./node-loader-widget.component.scss'],
+    selector: 'app-node-loader-widget',
+    templateUrl: './node-loader-widget.component.html',
+    styleUrls: ['./node-loader-widget.component.scss'],
+    standalone: false
 })
 export class NodeLoaderWidgetComponent implements OnChanges {
   @Input() data: NodeLoaderControl;

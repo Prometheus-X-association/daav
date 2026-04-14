@@ -1,9 +1,10 @@
 import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges} from '@angular/core';
 
 @Component({
-  selector: 'app-global-socket-component',
-  template:'',
-  styleUrls: ['./global-socket.component.scss'],
+    selector: 'app-global-socket-component',
+    template: '',
+    styleUrls: ['./global-socket.component.scss'],
+    standalone: false
 })
 export class GlobalSocketComponent  implements OnChanges {
 

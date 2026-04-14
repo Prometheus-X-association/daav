@@ -1,13 +1,14 @@
 import { Component, Input, OnInit, SimpleChanges } from '@angular/core';
-import { FieldMap, QueryBuilderConfig } from 'ngx-angular-query-builder';
+import { FieldMap, QueryBuilderConfig } from 'ngx-query-builder';
 import { DatasetMapper, DataType } from 'src/app/models/data-mapper-types';
 import { DataFilterControl } from '../widgets/data-filter-widget/data-filter-widget.component';
 
 
 @Component({
-  selector: 'app-data-filter',
-  templateUrl: './data-filter.component.html',
-  styleUrls: ['./data-filter.component.scss'],
+    selector: 'app-data-filter',
+    templateUrl: './data-filter.component.html',
+    styleUrls: ['./data-filter.component.scss'],
+    standalone: false
 })
 export class DataFilterComponent implements OnInit{
 

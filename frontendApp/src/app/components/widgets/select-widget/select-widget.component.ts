@@ -35,9 +35,10 @@ export class SelectControl
 }
 
 @Component({
-  selector: 'app-select-widget',
-  templateUrl: './select-widget.component.html',
-  styleUrls: ['./select-widget.component.scss'],
+    selector: 'app-select-widget',
+    templateUrl: './select-widget.component.html',
+    styleUrls: ['./select-widget.component.scss'],
+    standalone: false
 })
 export class SelectWidgetComponent implements OnChanges {
   @Input() data: SelectControl;

@@ -2,8 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { MainPage } from './main.page';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { LoadingService } from '../services/loading.service';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
 describe('MainPage', () => {
   let component: MainPage;
@@ -13,13 +14,15 @@ describe('MainPage', () => {
     const loadingServiceSpy = jasmine.createSpyObj('LoadingService', ['show', 'hide']);
 
     await TestBed.configureTestingModule({
-      declarations: [MainPage],
-      imports: [IonicModule.forRoot(),HttpClientTestingModule],
-      providers: [
-        { provide: LoadingService, useValue: loadingServiceSpy }
-      ],
-      schemas: [CUSTOM_ELEMENTS_SCHEMA]
-    }).compileComponents();
+    declarations: [MainPage],
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    imports: [IonicModule.forRoot()],
+    providers: [
+        { provide: LoadingService, useValue: loadingServiceSpy },
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting()
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(MainPage);
     component = fixture.componentInstance;

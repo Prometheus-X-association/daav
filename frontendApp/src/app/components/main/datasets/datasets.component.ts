@@ -7,9 +7,10 @@ import { DatasetsModalComponent } from '../../datasets-modal/datasets-modal.comp
 import { LoadingService } from 'src/app/services/loading.service';
 
 @Component({
-  selector: 'app-datasets',
-  templateUrl: './datasets.component.html',
-  styleUrls: ['./datasets.component.scss'],
+    selector: 'app-datasets',
+    templateUrl: './datasets.component.html',
+    styleUrls: ['./datasets.component.scss'],
+    standalone: false
 })
 
 export class DatasetsComponent  implements OnInit {

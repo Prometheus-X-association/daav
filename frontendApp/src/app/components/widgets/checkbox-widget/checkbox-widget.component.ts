@@ -28,9 +28,10 @@ export class CheckboxControl
 
 
 @Component({
-  selector: 'app-checkbox-widget',
-  templateUrl: './checkbox-widget.component.html',
-  styleUrls: ['./checkbox-widget.component.scss'],
+    selector: 'app-checkbox-widget',
+    templateUrl: './checkbox-widget.component.html',
+    styleUrls: ['./checkbox-widget.component.scss'],
+    standalone: false
 })
 export class CheckboxWidgetComponent {
   @Input() data: CheckboxControl;

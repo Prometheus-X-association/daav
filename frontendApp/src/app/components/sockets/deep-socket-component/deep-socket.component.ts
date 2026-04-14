@@ -1,9 +1,10 @@
 import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges} from '@angular/core';
 
 @Component({
-  selector: 'app-deep-socket-component',
-  template:'',
-  styleUrls: ['./deep-socket.component.scss'],
+    selector: 'app-deep-socket-component',
+    template: '',
+    styleUrls: ['./deep-socket.component.scss'],
+    standalone: false
 })
 export class DeepSocketComponent  implements OnChanges {
 

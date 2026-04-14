@@ -3,9 +3,9 @@ import { Schemes } from 'src/app/core/workflow-editor';
 import { DataFileBlock } from './data-file-block';
 import { Injector } from '@angular/core';
 import { DatasetService } from 'src/app/services/dataset.service';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 
 describe('DataFileBlock', () => {
@@ -20,11 +20,13 @@ describe('DataFileBlock', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [
-        { provide: DatasetService, useValue: mockDatasetService }
-      ]
-    });
+    imports: [],
+    providers: [
+        { provide: DatasetService, useValue: mockDatasetService },
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting()
+    ]
+});
 
     injector = TestBed.inject(Injector);
 

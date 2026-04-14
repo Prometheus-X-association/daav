@@ -9,10 +9,11 @@ import { StatusNode } from 'src/app/enums/status-node';
 import { DatasetService } from 'src/app/services/dataset.service';
 
 @Component({
-  selector: 'app-transformation',
-  templateUrl: './transformation.component.html',
-  styleUrls: ['../datasets/datasets.component.scss','./transformation.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-transformation',
+    templateUrl: './transformation.component.html',
+    styleUrls: ['../datasets/datasets.component.scss', './transformation.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class TransformationComponent  implements OnInit {
   @Output() transformationView = new EventEmitter<string>();

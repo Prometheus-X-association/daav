@@ -19,9 +19,10 @@ mappings: any;
 
 
 @Component({
-  selector: 'app-json-inputs-widget',
-  templateUrl: './json-inputs-widget.component.html',
-  styleUrls: ['./json-inputs-widget.component.scss'],
+    selector: 'app-json-inputs-widget',
+    templateUrl: './json-inputs-widget.component.html',
+    styleUrls: ['./json-inputs-widget.component.scss'],
+    standalone: false
 })
 export class JsonInputsWidgetComponent   {
   @Input() data: JsonInputsControl;

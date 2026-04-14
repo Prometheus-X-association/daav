@@ -6,9 +6,10 @@ import { Column, ColumnMapping, DatasetMapper } from 'src/app/models/data-mapper
 
 
 @Component({
-  selector: 'app-data-mapper',
-  templateUrl: './data-mapper.component.html',
-  styleUrls: ['./data-mapper.component.scss']
+    selector: 'app-data-mapper',
+    templateUrl: './data-mapper.component.html',
+    styleUrls: ['./data-mapper.component.scss'],
+    standalone: false
 })
 export class DataMapperComponent implements  OnDestroy {
   private destroy$ = new Subject<void>();

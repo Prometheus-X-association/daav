@@ -1,11 +1,12 @@
 import { WorkflowEditor } from './workflow-editor';
 import { Injector, EnvironmentInjector } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Project } from '../models/interfaces/project';
 import { WorkflowService } from '../services/worflow.service';
 import { of } from 'rxjs';
 import { ClassicPreset } from 'rete';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
 describe('WorkflowEditor', () => {
   let injector: Injector;
@@ -16,12 +17,15 @@ describe('WorkflowEditor', () => {
     mockWorkflowService = jasmine.createSpyObj('WorkflowService', ['executeNodeJson', 'saveProject']);
 
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [
-        { provide: WorkflowService, useValue: mockWorkflowService }
-      ],
-      teardown: { destroyAfterEach: false } // Prevent TestBed from destroying injector
-    });
+    teardown: { destroyAfterEach: false } // Prevent TestBed from destroying injector
+    ,
+    imports: [],
+    providers: [
+        { provide: WorkflowService, useValue: mockWorkflowService },
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting()
+    ]
+});
 
     injector = TestBed.inject(Injector);
   });

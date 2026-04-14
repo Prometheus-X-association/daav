@@ -5,9 +5,10 @@ import { ToastController, LoadingController, AlertController } from '@ionic/angu
 import { AuthService } from '../../services/auth.service';
 
 @Component({
-  selector: 'app-reset-password',
-  templateUrl: './reset-password.page.html',
-  styleUrls: ['./reset-password.page.scss'],
+    selector: 'app-reset-password',
+    templateUrl: './reset-password.page.html',
+    styleUrls: ['./reset-password.page.scss'],
+    standalone: false
 })
 export class ResetPasswordPage implements OnInit {
   resetPasswordForm!: FormGroup;

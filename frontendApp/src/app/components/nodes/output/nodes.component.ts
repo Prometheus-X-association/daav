@@ -11,14 +11,15 @@ import { ClassicPreset } from "rete";
 import { KeyValue } from "@angular/common";
 
 @Component({
-  selector: 'app-output-node',
-  templateUrl: 'nodes.component.html',
-  styleUrls: ['nodes.component.scss'],
-  // eslint-disable-next-line @angular-eslint/no-host-metadata-property
-  host: {
-    "data-testid": "node",
-    "class": "node output-node"
-  }
+    selector: 'app-output-node',
+    templateUrl: 'nodes.component.html',
+    styleUrls: ['nodes.component.scss'],
+    // eslint-disable-next-line @angular-eslint/no-host-metadata-property
+    host: {
+        "data-testid": "node",
+        "class": "node output-node"
+    },
+    standalone: false
 })
 export class OutputNodeComponent implements OnChanges {
   @Input() data!: ClassicPreset.Node;
