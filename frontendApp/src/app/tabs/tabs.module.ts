@@ -15,7 +15,8 @@ import { LoadingComponent } from '../components/main/loading/loading.component';
     CommonModule,
     MatProgressSpinnerModule,
     FormsModule,
-    TabsPageRoutingModule
+    TabsPageRoutingModule,
+    LoadingComponent
   ],
   declarations: [TabsPage],
 })
