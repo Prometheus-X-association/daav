@@ -19,18 +19,18 @@ import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { MatInputModule } from "@angular/material/input";
 import { CheckboxWidgetComponent } from "./components/widgets/checkbox-widget/checkbox-widget.component";
 import { DataFilterWidgetComponent } from "./components/widgets/data-filter-widget/data-filter-widget.component";
-import { NgxAngularQueryBuilderModule } from "ngx-angular-query-builder";
-import { DataFilterModule } from "./components/data-filter/data-filter.module";
+import { QueryBuilderModule } from "ngx-query-builder";
 import { JsonInputsWidgetComponent } from "./components/widgets/json-inputs-widget/json-inputs-widget.component";
 import { TextDisplayWidgetComponent } from "./components/widgets/text-display-widget/text-display-widget.component";
 import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor';
 import { CdkAccordionModule } from "@angular/cdk/accordion";
 import { DashboardsModule } from "./components/dashboards/dashboards.module";
 import { UserProfileComponent } from "./components/user-profile/user-profile.component";
+import { DataFilterComponent } from "./components/data-filter/data-filter.component";
 
 @NgModule({
     declarations: [TextDisplayWidgetComponent,CheckboxWidgetComponent,InputAutoCompleteWidgetComponent,ButtonWidgetComponent,SelectWidgetComponent,NodeLoaderWidgetComponent,DataMapperWidgetComponent,HasDatasetsPipe, DataFilterWidgetComponent,JsonInputsWidgetComponent, UserProfileComponent],
-    exports: [DataMapperModule, UserProfileComponent],
-    imports:[FormsModule,ReactiveFormsModule,MatAutocompleteModule,MatTableModule,DataMapperModule, DataFilterModule,MatSelectModule,MatFormFieldModule,CommonModule,IonicModule,MatIconModule,MatButtonModule,MatInputModule,MatCheckboxModule, NgxAngularQueryBuilderModule,JsonEditorComponent,CdkAccordionModule],
+    exports: [DataMapperModule, UserProfileComponent, QueryBuilderModule],
+    imports:[FormsModule,ReactiveFormsModule,MatAutocompleteModule,MatTableModule,DataMapperModule, MatSelectModule,MatFormFieldModule,CommonModule,IonicModule,MatIconModule,MatButtonModule,MatInputModule,MatCheckboxModule, QueryBuilderModule,JsonEditorComponent,CdkAccordionModule],
 })
 export class ComponentsModule {}
