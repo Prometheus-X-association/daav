@@ -15,7 +15,7 @@ RUN npm run build -- --configuration=docker
 FROM nginx:alpine AS prod
 
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY --from=build /app/www /usr/share/nginx/html
+COPY --from=build /app/www/browser /usr/share/nginx/html
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
