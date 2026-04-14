@@ -29,7 +29,6 @@ import { WorkflowPageModule } from '../pages/worflow/workflow.module';
     MatPaginatorModule,
     MatTabsModule,
     ReactiveFormsModule,
-    LoadingComponent,
     NgxJsonViewerModule,
     WorkflowPageModule
   ],
