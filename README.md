@@ -78,6 +78,10 @@ cp .env.example .env  # Configure your variables
 uvicorn app.main:app --reload --port 8000
 ```
 
+On first launch the backend create a default admin user.
+Username: admin, Password: Admin123!
+Change this immediatly with frontend or API.
+
 **API Documentation**: http://localhost:8000/docs
 
 ## 📊 Key Features
