@@ -11,14 +11,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "allowedCommonJsDependencies": [
               "lodash"
            ],
-            "outputPath": {
-              "base": "www"
-            },
+            "outputPath": "www",
             "index": "src/index.html",
             "polyfills": [
               "src/polyfills.ts",
@@ -40,7 +38,7 @@
             ],
             "styles": ["src/theme/variables.scss", "src/global.scss", "src/theme/ptx.scss"],
             "scripts": [],
-            "browser": "src/main.ts"
+            "main": "src/main.ts"
           },
           "configurations": {
             "production": {
@@ -89,6 +87,8 @@
             },
             "development": {
               "optimization": false,
+              "vendorChunk": true,
+              "buildOptimizer": false,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
