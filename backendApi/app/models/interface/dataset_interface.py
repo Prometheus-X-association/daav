@@ -1,10 +1,65 @@
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+import re
+import ipaddress
+from urllib.parse import urlparse
 from bson import ObjectId
-from pydantic import BaseModel, Field, model_serializer, ConfigDict
+from pydantic import BaseModel, Field, model_serializer, ConfigDict, field_validator
 from beanie import Document, PydanticObjectId, UnionDoc, before_event, Insert 
 from datetime import datetime
 from app.enums.type_connection import TypeConnection
 from fastapi_pagination import LimitOffsetPage
+
+# Identifiants SQL : uniquement lettres, chiffres, underscore (max 64 car. - limite MySQL)
+_SQL_IDENTIFIER_RE = re.compile(r'^[A-Za-z0-9_]{1,64}$')
+
+# Noms d'index Elasticsearch : lettres, chiffres, underscore, tiret, point
+_ES_INDEX_RE = re.compile(r'^[a-z0-9_\-\.]{1,255}$')
+
+# Réseaux privés / locaux à bloquer pour prévenir le SSRF
+_PRIVATE_NETWORKS = [
+    ipaddress.ip_network('10.0.0.0/8'),
+    ipaddress.ip_network('172.16.0.0/12'),
+    ipaddress.ip_network('192.168.0.0/16'),
+    ipaddress.ip_network('127.0.0.0/8'),
+    ipaddress.ip_network('169.254.0.0/16'),  # link-local / AWS metadata
+    ipaddress.ip_network('::1/128'),
+    ipaddress.ip_network('fc00::/7'),
+]
+
+def _validate_sql_identifier(value: Optional[str], field_name: str) -> Optional[str]:
+    if value is None:
+        return value
+    if not _SQL_IDENTIFIER_RE.match(value):
+        raise ValueError(
+            f"'{field_name}' contains invalid characters. "
+            "Only alphanumeric characters and underscores are allowed (max 64)."
+        )
+    return value
+
+def _validate_no_ssrf(value: Optional[str], field_name: str) -> Optional[str]:
+    if value is None:
+        return value
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        raise ValueError(f"'{field_name}' is not a valid URL.")
+    if parsed.scheme not in ('http', 'https'):
+        raise ValueError(f"'{field_name}' must use http or https scheme.")
+    hostname = parsed.hostname or ''
+    if hostname.lower() in ('localhost', '0.0.0.0', ''):
+        raise ValueError(f"'{field_name}' must not point to localhost.")
+    try:
+        ip = ipaddress.ip_address(hostname)
+        for network in _PRIVATE_NETWORKS:
+            if ip in network:
+                raise ValueError(
+                    f"'{field_name}' must not point to a private or internal address."
+                )
+    except ValueError as exc:
+        # Re-raise only SSRF-related errors; hostname strings (non-IP) are fine
+        if 'private' in str(exc) or 'internal' in str(exc) or 'localhost' in str(exc):
+            raise
+    return value
 
 class DatasetMetadata(BaseModel):
     fileSize: Optional[str] = None
@@ -64,6 +119,16 @@ class MysqlDataset(Dataset):
     database: Optional[str] = None
     table: Optional[str] = None
 
+    @field_validator('database', mode='before')
+    @classmethod
+    def validate_database(cls, v):
+        return _validate_sql_identifier(v, 'database')
+
+    @field_validator('table', mode='before')
+    @classmethod
+    def validate_table(cls, v):
+        return _validate_sql_identifier(v, 'table')
+
 class MongoDataset(Dataset):
     type: Literal['mongo']
     uri: Optional[str] = None
@@ -78,6 +143,25 @@ class ElasticDataset(Dataset):
     bearerToken: Optional[str] = None
     password: Optional[str] = None
     index: Optional[str] = None
+
+    @field_validator('url', mode='before')
+    @classmethod
+    def validate_url(cls, v):
+        return _validate_no_ssrf(v, 'url')
+
+    @field_validator('index', mode='before')
+    @classmethod
+    def validate_index(cls, v):
+        if v is None:
+            return v
+        if v in ('*', '_all', '.*'):
+            raise ValueError("'index' must not be a wildcard expression.")
+        if not _ES_INDEX_RE.match(v):
+            raise ValueError(
+                "'index' contains invalid characters. "
+                "Only lowercase alphanumeric, underscore, hyphen, and dot are allowed (max 255)."
+            )
+        return v
 
 class PTXDataset(Dataset):
     type: Literal['ptx']
@@ -106,6 +190,16 @@ class ApiDataset(Dataset):
     clientId: Optional[str] = None
     clientSecret: Optional[str] = None
 
+    @field_validator('url', mode='before')
+    @classmethod
+    def validate_url(cls, v):
+        return _validate_no_ssrf(v, 'url')
+
+    @field_validator('authUrl', mode='before')
+    @classmethod
+    def validate_auth_url(cls, v):
+        return _validate_no_ssrf(v, 'authUrl')
+
 DatasetUnion = Annotated[
     Union[MysqlDataset, MongoDataset, ElasticDataset, PTXDataset, FileDataset, ApiDataset],
     Field(discriminator='type')
@@ -119,6 +213,16 @@ class Pagination(BaseModel):
 class DatasetParams(BaseModel):
     database: Optional[str] = None
     table: Optional[str] = None
+
+    @field_validator('database', mode='before')
+    @classmethod
+    def validate_database(cls, v):
+        return _validate_sql_identifier(v, 'database')
+
+    @field_validator('table', mode='before')
+    @classmethod
+    def validate_table(cls, v):
+        return _validate_sql_identifier(v, 'table')
 
 class ConnectionInfo(BaseModel):
     dataset: DatasetUnion

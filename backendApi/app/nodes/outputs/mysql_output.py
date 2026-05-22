@@ -1,4 +1,3 @@
-import asyncio
 import traceback
 from typing import Literal, Optional, Any
 
@@ -6,7 +5,7 @@ import pandas as pd
 from pydantic import ConfigDict
 from sqlalchemy import create_engine
 from app.enums.status_node import StatusNode
-from app.models.interface.dataset_interface import MysqlDataset
+from app.models.interface.dataset_interface import MysqlDataset, _validate_sql_identifier
 from app.models.interface.node_data import NodeDataPandasDf, NodeDataParquet
 from app.nodes.outputs.output_node import OutputNode
 from mysql import connector
@@ -131,6 +130,9 @@ class MysqlOutput(OutputNode):
             raise ValueError("No table selected")
         if (database is None or database == ""):
             raise ValueError("No database selected")
+        # Validate identifiers regardless of source (Pydantic model or workflow JSON)
+        _validate_sql_identifier(database, 'database')
+        _validate_sql_identifier(table, 'table')
         return dataset, database, table, ifExist,createIndex,indexTable
 
     model_config = ConfigDict(

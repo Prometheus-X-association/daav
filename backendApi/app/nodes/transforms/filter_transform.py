@@ -14,6 +14,17 @@ from app.utils.security import PathSecurityValidator
 import logging
 logger = logging.getLogger(__name__)
 
+# Whitelist of allowed comparison operators for numeric values in DuckDB
+_NUMERIC_OPERATORS = {'=', '!=', '<>', '>', '>=', '<', '<='}
+
+# Allowed conjunctions for rule groups
+_ALLOWED_CONJUNCTIONS = {'AND', 'OR'}
+
+
+def _quote_duckdb_identifier(name: str) -> str:
+    """Double-quote a DuckDB column/table identifier, escaping inner double-quotes."""
+    return '"' + name.replace('"', '""') + '"'
+
 class Source(BaseModel):
     id: str
     name: str
@@ -217,40 +228,38 @@ class FilterTransform(TransformNode):
         field = rule['field']
         operator = rule['operator']
         value = rule.get('value')
-        
+
+        # Quote the column identifier to prevent injection
+        quoted_field = _quote_duckdb_identifier(field)
+
         if value is None:
             if operator == '=':
-                return f"{field} IS NULL"
+                return f"{quoted_field} IS NULL"
             elif operator == '!=':
-                return f"{field} IS NOT NULL"
+                return f"{quoted_field} IS NOT NULL"
             else:
-                return "1=0"  
-            
+                return "1=0"
+
         if isinstance(value, (int, float)) or (isinstance(value, str) and value.replace('.', '', 1).isdigit()):
-            if isinstance(value, str) and value.replace('.', '', 1).isdigit():
-                value = value
-            return f"{field} {operator} {value}"
+            if operator not in _NUMERIC_OPERATORS:
+                raise ValueError(f"Unsupported numeric operator: {operator!r}")
+            return f"{quoted_field} {operator} {value}"
         else:
             value = f"'{value}'"
-            
+
             string_operators = {
                 'contains': lambda f, v: f"CONTAINS(LOWER({f}), LOWER({v}))",
                 '=': lambda f, v: f"LOWER({f}) = LOWER({v})",
                 '!=': lambda f, v: f"LOWER({f}) != LOWER({v})",
                 'like': lambda f, v: f"LOWER({f}) LIKE LOWER('%" + v.strip("'") + "%')",
-                'in': lambda f, v: f"{f} IN ({v})", 
+                'in': lambda f, v: f"{f} IN ({v})",
                 'not in': lambda f, v: f"{f} NOT IN ({v})",
             }
-            
+
             if operator in string_operators:
-                if operator == 'like':
-                    return string_operators[operator](field, value)
-                elif operator in ('startswith', 'endswith'):
-                    return string_operators[operator](field, value)
-                else:
-                    return string_operators[operator](field, value)
+                return string_operators[operator](quoted_field, value)
             else:
-                return f"{field} {operator} {value}"
+                raise ValueError(f"Unsupported string operator: {operator!r}")
     
     def process_condition(self, condition):
         """Recursively processes filter conditions to build a SQL WHERE clause.
@@ -264,7 +273,9 @@ class FilterTransform(TransformNode):
         try:
             if "condition" in condition:
                 operator = condition["condition"].upper()
-                
+                if operator not in _ALLOWED_CONJUNCTIONS:
+                    raise ValueError(f"Unsupported conjunction: {operator!r}. Only AND/OR are allowed.")
+
                 rules = [self.process_condition(rule) for rule in condition.get("rules", [])]
                 rules = [rule for rule in rules if rule]
 
@@ -272,14 +283,14 @@ class FilterTransform(TransformNode):
                     return ""
                 if len(rules) == 1:
                     return rules[0]
-                
+
                 return f"({' '.join([rules[0]] + [f'{operator} {r}' for r in rules[1:]])})"
             elif "field" in condition:
                 return self.translateRule(condition)
             else:
-                raise(f"WARNING: Invalid condition {condition}")
+                raise ValueError(f"WARNING: Invalid condition {condition}")
         except Exception as e:
-            raise(f"WARNING: Invalid condition {e}")
+            raise ValueError(f"WARNING: Invalid condition {e}")
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

@@ -236,8 +236,10 @@ class DrupalFilterConverter:
             return f"{field_name} LIKE ?", [like_value]
         
         else:
-            # Standard comparison operators
-            mysql_operator = self.OPERATOR_MAP.get(operator, operator)
+            # Standard comparison operators — reject any operator not in the whitelist
+            if operator not in self.OPERATOR_MAP:
+                raise ValueError(f"Unsupported filter operator: {operator!r}")
+            mysql_operator = self.OPERATOR_MAP[operator]
             return f"{field_name} {mysql_operator} ?", [value]
     
     def _build_simple_condition(self, field_name: str, value: Any) -> Tuple[str, List[Any]]:

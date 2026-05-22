@@ -5,7 +5,7 @@ import pandas as pd
 import traceback
 from pydantic import ConfigDict
 from app.enums.status_node import StatusNode
-from app.models.interface.dataset_interface import MysqlDataset
+from app.models.interface.dataset_interface import MysqlDataset, _validate_sql_identifier
 from app.models.interface.node_data import NodeDataPandasDf, NodeDataParquet
 from app.nodes.inputs.input_node import InputNode
 from app.services.dataset_service import DatasetService
@@ -158,6 +158,9 @@ class DataMysqlBlock(InputNode):
             raise ValueError("No table selected")
         if (database is None or database == ""):
             raise ValueError("No database selected")
+        # Validate identifiers regardless of source (Pydantic model or workflow JSON)
+        _validate_sql_identifier(database, 'database')
+        _validate_sql_identifier(table, 'table')
         return dataset, database, table, parquetSave
 
 

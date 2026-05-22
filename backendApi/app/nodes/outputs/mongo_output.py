@@ -7,7 +7,7 @@ from pydantic import ConfigDict
 from pymongo import MongoClient
 from sqlalchemy import create_engine
 from app.enums.status_node import StatusNode
-from app.models.interface.dataset_interface import MongoDataset, MysqlDataset
+from app.models.interface.dataset_interface import MongoDataset
 from app.models.interface.node_data import NodeDataPandasDf, NodeDataParquet
 from app.nodes.outputs.output_node import OutputNode
 from mysql import connector
