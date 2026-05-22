@@ -968,3 +968,62 @@ async def test_ensure_admin_exists_promotes_first_user(user_service_instance, sa
         # The regular user should now be an admin
         updated_user = await user_service_instance.get_user_by_id(str(regular_user.id))
         assert updated_user.role == UserRole.ADMIN
+
+
+# ============================================
+# GET USER FROM WORKFLOW TESTS
+# ============================================
+
+@pytest.mark.asyncio
+async def test_get_user_from_workflow_no_owner(user_service_instance):
+    """Workflow without owner_id returns None (public workflow — no exception)"""
+    workflow = Mock(spec=IProject)
+    workflow.owner_id = None
+
+    result = await user_service_instance.get_user_from_workflow(workflow)
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_workflow_with_owner(user_service_instance, mock_user):
+    """Workflow with a valid owner_id returns the corresponding user"""
+    workflow = Mock(spec=IProject)
+    workflow.owner_id = mock_user.id
+
+    with patch.object(user_service_instance, 'get_user_by_id', new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_user
+
+        result = await user_service_instance.get_user_from_workflow(workflow)
+
+        assert result == mock_user
+        mock_get.assert_called_once_with(mock_user.id)
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_workflow_db_error_propagates(user_service_instance):
+    """DB error must propagate — callers must return 503, not silently bypass auth"""
+    workflow = Mock(spec=IProject)
+    workflow.owner_id = "existing_owner_id"
+    workflow.id = "wf_123"
+
+    with patch.object(user_service_instance, 'get_user_by_id', new_callable=AsyncMock) as mock_get:
+        mock_get.side_effect = Exception("DB connection lost")
+
+        with pytest.raises(Exception, match="DB connection lost"):
+            await user_service_instance.get_user_from_workflow(workflow)
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_workflow_deleted_user_propagates(user_service_instance):
+    """get_user_by_id returning None (deleted user) must not silently make workflow public"""
+    workflow = Mock(spec=IProject)
+    workflow.owner_id = "deleted_user_id"
+
+    with patch.object(user_service_instance, 'get_user_by_id', new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = None
+
+        result = await user_service_instance.get_user_from_workflow(workflow)
+
+        # Returns None from get_user_by_id — caller must handle this case
+        assert result is None

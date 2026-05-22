@@ -1,6 +1,6 @@
 import json
 from typing import Annotated, Optional
-from fastapi import APIRouter, HTTPException, Query, Request, Header
+from fastapi import APIRouter, HTTPException, Query, Request, Header, status
 from app.routes.workflows import execute_workflow, import_and_execute_workflow
 from app.services.dataset_service import DatasetService
 from app import main
@@ -72,14 +72,15 @@ async def get_output_from_custom_path(
         # M2M Access Control - Verify route access using tokenInput if present
         api_keys = [tokenInput] if tokenInput else None
         verify_route_access(request, api_keys=api_keys)
-        # Attempt to fetch user info from UserService if available
         try:
             user = await user_service.get_user_from_workflow(workflow)
             logger.debug(f"Retrieved user from workflow: {getattr(user, 'id', user)}")
         except Exception:
-            # If user service or function not available, continue without user info
-            logger.debug("UserService.get_user_from_workflow not available or failed", exc_info=True)
-            user = None
+            logger.error("UserService.get_user_from_workflow failed, cannot resolve file isolation", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Unable to verify workflow ownership"
+            )
         # Construct output file path with user isolation
         file_path = get_user_output_path(node.id, user)
         
@@ -179,16 +180,18 @@ async def get_workflow_output(
         # M2M Access Control - Verify route access using tokenInput if present
         api_keys = [expected_token] if expected_token else None
         verify_route_access(request, api_keys=api_keys)
-        
+
         # Get user from workflow for file isolation
         try:
             user = await user_service.get_user_from_workflow(workflow)
             logger.debug(f"Retrieved user from workflow: {getattr(user, 'id', user)}")
         except Exception:
-            # If user service or function not available, continue without user info
-            logger.debug("UserService.get_user_from_workflow not available or failed", exc_info=True)
-            user = None
-        
+            logger.error("UserService.get_user_from_workflow failed, cannot resolve file isolation", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Unable to verify workflow ownership"
+            )
+
         # Construct output file path with user isolation
         output_file = get_user_output_path(api_node.id, user)
 

@@ -72,18 +72,20 @@ async def get_output_from_custom_path(custom_path: str, request: Request,):
         try:
             user = await user_service.get_user_from_workflow(workflow)
             logger.debug(f"Retrieved user from workflow: {getattr(user, 'id', user)}")
-
         except Exception:
-            # If user service or function not available, continue without user info
-            logger.debug("UserService.get_user_from_workflow not available or failed", exc_info=True)
-            user = None
+            # Service error: cannot determine ownership → reject rather than silently bypass auth
+            logger.error("UserService.get_user_from_workflow failed, denying access", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Unable to verify workflow ownership"
+            )
         if user:
             authenticated_users: List[AuthenticatedUser] = await authenticate_m2m_credentials(request.headers, [user])
             if not authenticated_users:
                 raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="No valid credentials found in headers"
-            )    
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="No valid credentials found in headers"
+                )
         # Construct output file path with user isolation
         file_path = get_user_output_path(node.id, user)
         logger.debug(f"Looking for output file: {file_path}")
@@ -187,16 +189,19 @@ async def get_workflow_output(workflow_id: str, request: Request):
             user = await user_service.get_user_from_workflow(workflow)
             logger.debug(f"Retrieved user from workflow: {getattr(user, 'id', user)}")
         except Exception:
-            # If user service or function not available, continue without user info
-            logger.debug("UserService.get_user_from_workflow not available or failed", exc_info=True)
-            user = None
+            # Service error: cannot determine ownership → reject rather than silently bypass auth
+            logger.error("UserService.get_user_from_workflow failed, denying access", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Unable to verify workflow ownership"
+            )
         if user:
             authenticated_users: List[AuthenticatedUser] = await authenticate_m2m_credentials(request.headers, [user])
             if not authenticated_users:
                 raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="No valid credentials found in headers"
-            ) 
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="No valid credentials found in headers"
+                )
         # Construct output file path with user isolation
         file_path = get_user_output_path(node.id, user)
 

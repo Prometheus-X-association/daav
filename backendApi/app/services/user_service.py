@@ -721,11 +721,12 @@ class UserService(metaclass=SingletonMeta):
         
 
     async def get_user_from_workflow(self, workflow: IProject) -> Optional[User]:
-        """Get the owner user of a workflow"""
-        try:
-            if not workflow.owner_id:
-                return None
-            return await self.get_user_by_id(workflow.owner_id)
-        except Exception as e:
-            logger.error(f"Error getting user from workflow {workflow.id}: {e}", exc_info=True)
+        """Get the owner user of a workflow.
+        
+        Returns None if the workflow has no owner (public workflow).
+        Raises on DB/service errors so callers can handle them explicitly
+        instead of silently treating the workflow as public.
+        """
+        if not workflow.owner_id:
             return None
+        return await self.get_user_by_id(workflow.owner_id)
