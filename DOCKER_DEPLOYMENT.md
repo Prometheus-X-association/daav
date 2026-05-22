@@ -28,6 +28,17 @@ The frontend uses different environment configurations:
 
 To customize the Nginx configuration, modify `frontendApp/nginx.conf`.
 
+#### CORS configuration
+The allowed origin is injected at container startup via the `CORS_ORIGIN` environment variable in `docker-compose.yml`. No rebuild is needed to change it:
+
+```yaml
+# docker-compose.yml — frontend service
+environment:
+  CORS_ORIGIN: "https://your-production-domain.com"
+```
+
+For local development with Docker the default value `http://localhost:8080` is already set.
+
 ## Persistent volumes
 
 - **mongodb-data**: MongoDB data
