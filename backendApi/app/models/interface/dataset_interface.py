@@ -1,13 +1,14 @@
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 import re
 import ipaddress
 from urllib.parse import urlparse
 from bson import ObjectId
-from pydantic import BaseModel, Field, model_serializer, ConfigDict, field_validator
-from beanie import Document, PydanticObjectId, UnionDoc, before_event, Insert 
+from pydantic import BaseModel, Field, model_serializer, model_validator, ConfigDict, field_validator
+from beanie import Document, PydanticObjectId, UnionDoc, before_event, after_event, Insert, Replace, Save
 from datetime import datetime
 from app.enums.type_connection import TypeConnection
 from fastapi_pagination import LimitOffsetPage
+from app.utils.encryption import encrypt_field, decrypt_field
 
 # Identifiants SQL : uniquement lettres, chiffres, underscore (max 64 car. - limite MySQL)
 _SQL_IDENTIFIER_RE = re.compile(r'^[A-Za-z0-9_]{1,64}$')
@@ -80,7 +81,35 @@ class Dataset(Document):
     # User ownership and sharing
     owner_id: Optional[str] = Field(default=None, description="ID of the user who owns this dataset")
     shared_with: List[str] = Field(default_factory=list, description="List of user IDs this dataset is shared with")
-    
+
+    # Subclasses declare their sensitive field names here
+    _sensitive_fields: ClassVar[List[str]] = []
+
+    @model_validator(mode='after')
+    def _decrypt_sensitive_fields(self) -> 'Dataset':
+        """Decrypt sensitive fields after model instantiation (DB read or API input)."""
+        for field in self.__class__._sensitive_fields:
+            val = getattr(self, field, None)
+            if val:
+                object.__setattr__(self, field, decrypt_field(val))
+        return self
+
+    @before_event(Insert, Replace, Save)
+    async def _encrypt_sensitive_fields(self):
+        """Encrypt sensitive fields before writing to MongoDB."""
+        for field in self.__class__._sensitive_fields:
+            val = getattr(self, field, None)
+            if val:
+                object.__setattr__(self, field, encrypt_field(val))
+
+    @after_event(Insert, Replace, Save)
+    async def _restore_sensitive_fields(self):
+        """Decrypt sensitive fields back in-memory after the DB write."""
+        for field in self.__class__._sensitive_fields:
+            val = getattr(self, field, None)
+            if val:
+                object.__setattr__(self, field, decrypt_field(val))
+
     @before_event(Insert)
     async def generate_string_id(self):
         """Générer un ID string avant l'insertion"""
@@ -119,6 +148,8 @@ class MysqlDataset(Dataset):
     database: Optional[str] = None
     table: Optional[str] = None
 
+    _sensitive_fields: ClassVar[List[str]] = ['password']
+
     @field_validator('database', mode='before')
     @classmethod
     def validate_database(cls, v):
@@ -135,6 +166,8 @@ class MongoDataset(Dataset):
     database: Optional[str] = None
     collection: Optional[str] = None
 
+    _sensitive_fields: ClassVar[List[str]] = ['uri']
+
 class ElasticDataset(Dataset):
     type: Literal['elastic']
     url: Optional[str] = None
@@ -143,6 +176,8 @@ class ElasticDataset(Dataset):
     bearerToken: Optional[str] = None
     password: Optional[str] = None
     index: Optional[str] = None
+
+    _sensitive_fields: ClassVar[List[str]] = ['password', 'key', 'bearerToken']
 
     @field_validator('url', mode='before')
     @classmethod
@@ -171,6 +206,8 @@ class PTXDataset(Dataset):
     service_key: Optional[str] = None
     secret_key: Optional[str] = None
 
+    _sensitive_fields: ClassVar[List[str]] = ['token', 'refreshToken', 'secret_key', 'service_key']
+
 class FileDataset(Dataset):
     type: Literal['file']
     filePath: Optional[str] = None
@@ -189,6 +226,8 @@ class ApiDataset(Dataset):
     basicToken: Optional[str] = None
     clientId: Optional[str] = None
     clientSecret: Optional[str] = None
+
+    _sensitive_fields: ClassVar[List[str]] = ['bearerToken', 'basicToken', 'clientSecret']
 
     @field_validator('url', mode='before')
     @classmethod

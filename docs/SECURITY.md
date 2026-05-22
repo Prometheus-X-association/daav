@@ -116,7 +116,51 @@ These variables should be set in your environment or `.env` file before starting
 - `.xml` - XML data
 - `.log` - Log files
 
-## 🔧 Configuration
+## � Encryption of Sensitive Dataset Fields
+
+Dataset credentials (MySQL passwords, API tokens, PTX tokens, etc.) are encrypted at rest in MongoDB using **Fernet** (AES-128-CBC + HMAC-SHA256).
+
+### Key resolution (priority order)
+
+| Priority | Source | How to set |
+|----------|--------|------------|
+| 1 | `FIELD_ENCRYPTION_KEY` env var | Explicit dedicated Fernet key |
+| 2 | `JWT_SECRET_KEY` env var | **Automatic** — key derived via HKDF-SHA256, no extra config needed |
+| 3 | Neither | Plain text stored + warning in logs |
+
+If `JWT_SECRET_KEY` is already set (required for JWT auth), dataset credentials are automatically encrypted — no additional variable needed.
+
+### Generate a dedicated key (optional)
+
+If you want to use a separate encryption key (recommended in production for key rotation):
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+Then add it to your `.env` or `docker-compose.yml`:
+
+```bash
+FIELD_ENCRYPTION_KEY=your-generated-key-here
+```
+
+### Encrypted fields per dataset type
+
+| Dataset type | Encrypted fields |
+|---|---|
+| MySQL | `password` |
+| MongoDB | `uri` (contains credentials) |
+| Elasticsearch | `password`, `key`, `bearerToken` |
+| PTX/PDC | `token`, `refreshToken`, `secret_key`, `service_key` |
+| API | `bearerToken`, `basicToken`, `clientSecret` |
+
+### Migration
+
+Existing plain-text values in the database are readable without any action. New writes and updates are automatically encrypted. The `enc:` prefix distinguishes encrypted values from plain ones.
+
+---
+
+## �🔧 Configuration
 
 ### Environment Variables
 ```bash

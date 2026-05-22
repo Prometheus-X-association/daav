@@ -57,7 +57,11 @@ services:
       
       # CORS for frontend
       CORS_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"
-      
+
+      # Security — CHANGE THESE IN PRODUCTION
+      JWT_SECRET_KEY: "change-this-to-a-random-secret-min-32-chars-in-production"
+      # FIELD_ENCRYPTION_KEY: ""  # Optional: dedicated Fernet key. If omitted, derived from JWT_SECRET_KEY.
+
       MAX_FILE_SIZE: 100MB
       UPLOAD_DIR: /app/uploads
       
