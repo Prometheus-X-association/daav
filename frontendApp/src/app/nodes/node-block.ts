@@ -89,7 +89,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
     updateStatus(status : StatusNode,statusMessage?:string,errorStacktrace? : string[]){
       this.status = status;
       this.statusMessage = statusMessage;
-      this.errorStacktrace = this.errorStacktrace;
+      this.errorStacktrace = errorStacktrace;
       this.statusControl.status=status;
       this.statusControl.statusMessage=statusMessage;
       this.statusControl.errorStacktrace=errorStacktrace;
@@ -120,7 +120,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
         if (response?.data) {
             // Update node data if needed
             Object.assign(this.data(), response.data);
-            
+
             // Update area to reflect changes
             this.area.update("node", this.id);
         }

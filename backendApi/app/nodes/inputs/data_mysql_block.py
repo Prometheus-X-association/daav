@@ -87,14 +87,14 @@ class DataMysqlBlock(InputNode):
                         # Update existing node data
                         # should resolve when output.get_node_data() is not the same type as the new node data
                         if parquetSave:
-                            if isinstance(output.get_node_data, NodeDataParquet):
+                            if isinstance(output.get_node_data(), NodeDataParquet):
                                 output.get_node_data().parquetPath = parquetPath
                                 output.get_node_data().nodeSchema = schema
                             else:
                                 raise ValueError("Output node data is not of type NodeDataParquet")
 
                         else:
-                            if isinstance(output.get_node_data, NodeDataPandasDf):
+                            if isinstance(output.get_node_data(), NodeDataPandasDf):
                                 output.get_node_data().nodeSchema = schema
                                 if sample:
                                     output.get_node_data().dataExample = result_dataFrame
