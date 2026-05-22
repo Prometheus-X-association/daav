@@ -30,6 +30,7 @@ from app.services.user_service import UserService
 from app.services.workflow_service import WorkflowService
 from app.utils.utils import decodeDictionary
 from app.utils.auth_utils import authenticate_m2m_credentials, AuthenticatedUser
+from app.middleware.auth import CurrentUser
 from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -48,8 +49,8 @@ _config_timestamp = {}
 
 
 @router.get("/{id}")
-async def get_ptx_data(id: str):
-    connection = await dataset_service.get_dataset(id)
+async def get_ptx_data(id: str, current_user: CurrentUser):
+    connection = await dataset_service.get_dataset(id, current_user)
     config = get_private_configuration(connection)
     catalog_uri = config.get("catalogUri")
     pdc_data = pdc_get_request(connection, "/")
@@ -94,12 +95,12 @@ async def get_ptx_data(id: str):
     return {"catalog": catalog}
 
 @router.put("/dataResources/{connection_id}")
-async def update_data_resource(connection_id: str, request: Request):
+async def update_data_resource(connection_id: str, request: Request, current_user: CurrentUser):
     """
     Update a data resource in a PDC connection.
     """
     try:
-        connection = await dataset_service.get_dataset(connection_id)
+        connection = await dataset_service.get_dataset(connection_id, current_user)
         if (not isinstance (connection,PTXDataset)):
             raise HTTPException(status_code=400, detail="Invalid connection type. Expected PTXDataset.")
 
@@ -139,12 +140,12 @@ async def update_data_resource(connection_id: str, request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/dataResources/{connection_id}")
-async def get_data_resources(connection_id: str):
+async def get_data_resources(connection_id: str, current_user: CurrentUser):
     """
     Get data resources from a PDC connection.
     """
     try:
-        connection = await dataset_service.get_dataset(connection_id)
+        connection = await dataset_service.get_dataset(connection_id, current_user)
         pdc_data = pdc_get_request(connection, "/")
         
         data_resources = []
@@ -374,11 +375,11 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
     }
 
 @router.get("/participants_id/{connection_id}")
-async def get_participants_id_from_connection(connection_id: str) -> List[str]:
+async def get_participants_id_from_connection(connection_id: str, current_user: CurrentUser) -> List[str]:
     """
     Extract unique participants from a connection's catalog
     """
-    connection = await dataset_service.get_dataset(connection_id)
+    connection = await dataset_service.get_dataset(connection_id, current_user)
     pdc_data = pdc_get_request(connection, "/")
     participants_id = set()
 
@@ -409,13 +410,13 @@ async def fetch_participant_id(client: httpx.AsyncClient, content: dict) -> Opti
     return None
 
 @router.get("/contracts/use-case/{connection_id}")
-async def get_use_case_contract(connection_id: str, hasSigned:Optional[bool] = None):
+async def get_use_case_contract(connection_id: str, current_user: CurrentUser, hasSigned:Optional[bool] = None):
     #URI pointing to your participant in the catalog, encode it in base64
-    connection = await dataset_service.get_dataset(connection_id)
+    connection = await dataset_service.get_dataset(connection_id, current_user)
     config = get_private_configuration(connection)
     catalog_uri = config.get("catalogUri")
     contract_uri = config.get("contractUri")
-    participants_id = await get_participants_id_from_connection(connection_id)
+    participants_id = await get_participants_id_from_connection(connection_id, current_user)
 
     all_use_case_contracts = []
     
@@ -502,12 +503,12 @@ async def get_use_case_contract(connection_id: str, hasSigned:Optional[bool] = N
     return all_use_case_contracts
 
 @router.get("/serviceChain/{connection_id}")
-async def get_service_Chain(connection_id: str):
-    connection = await dataset_service.get_dataset(connection_id)
+async def get_service_Chain(connection_id: str, current_user: CurrentUser):
+    connection = await dataset_service.get_dataset(connection_id, current_user)
     config = get_private_configuration(connection)
     catalog_uri = config.get("catalogUri")
     contract_uri = config.get("contractUri")
-    participants_id = await get_participants_id_from_connection(connection_id)
+    participants_id = await get_participants_id_from_connection(connection_id, current_user)
     
     result = []
     for participant_id in participants_id:
@@ -539,7 +540,7 @@ async def get_service_Chain(connection_id: str):
 
 
 @router.get("/dataExchanges/{connection_id}")
-async def get_data_exchanges(connection_id: str, request: Request):
+async def get_data_exchanges(connection_id: str, request: Request, current_user: CurrentUser):
     """
     Retrieve successful data exchange history for a given connection
     For each exchange with status "IMPORT_SUCCESS", fetch details of associated resources
@@ -579,7 +580,7 @@ async def get_data_exchanges(connection_id: str, request: Request):
     }
     """
     try:
-        connection = await dataset_service.get_dataset(connection_id)
+        connection = await dataset_service.get_dataset(connection_id, current_user)
         config = get_private_configuration(connection)
         pdc_endpoint = config.get("endpoint")
         data_exchanges_url = f"{pdc_endpoint}dataexchanges"
@@ -687,9 +688,9 @@ async def get_data_exchanges(connection_id: str, request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
 @router.post("/trigger-data-exchange/{connection_id}")
-async def trigger_data_exchange(connection_id: str, request: Request):
+async def trigger_data_exchange(connection_id: str, request: Request, current_user: CurrentUser):
     try:
-        connection = await dataset_service.get_dataset(connection_id)
+        connection = await dataset_service.get_dataset(connection_id, current_user)
         
         config = get_private_configuration(connection)
         pdc_endpoint = config.get("endpoint")
@@ -732,9 +733,9 @@ async def trigger_data_exchange(connection_id: str, request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/triggerServiceChain/{connection_id}")
-async def trigger_service_chain(connection_id: str, request: Request):
+async def trigger_service_chain(connection_id: str, request: Request, current_user: CurrentUser):
     try:
-        connection = await dataset_service.get_dataset(connection_id)
+        connection = await dataset_service.get_dataset(connection_id, current_user)
         
         config = get_private_configuration(connection)
         pdc_endpoint = config.get("endpoint")
@@ -776,10 +777,10 @@ async def trigger_service_chain(connection_id: str, request: Request):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/contracts/bilaterals/{connection_id}")
-async def get_billateral_contract(connection_id: str):
+async def get_billateral_contract(connection_id: str, current_user: CurrentUser):
     #URI pointing to your participant in the catalog, encode it in base64
     try:
-        connection = await dataset_service.get_dataset(connection_id)
+        connection = await dataset_service.get_dataset(connection_id, current_user)
         if not connection:
             raise HTTPException(status_code=404, detail="Connection not found")
     except Exception as e:
@@ -796,7 +797,7 @@ async def get_billateral_contract(connection_id: str):
         raise HTTPException(status_code=500, detail=f"Error loading private configuration: {str(e)}")
     
     try:
-        participants_id = await get_participants_id_from_connection(connection_id)
+        participants_id = await get_participants_id_from_connection(connection_id, current_user)
         if not participants_id:
             raise ValueError("No participants found for this connection")
     except Exception as e:
