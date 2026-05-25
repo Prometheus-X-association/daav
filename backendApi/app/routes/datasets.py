@@ -563,11 +563,11 @@ async def elastic_content(
 def getElasticContent(dataset: ElasticDataset, pagination: Pagination, datasetParams: DatasetParams) -> ElasticContentResponse:
     from elasticsearch import Elasticsearch, ApiError
     try:
-        if dataset.key != '':
+        if dataset.key:
             client = Elasticsearch(dataset.url, api_key=dataset.key)
-        elif dataset.user != '' and dataset.password != '':
+        elif dataset.user and dataset.password:
             client = Elasticsearch(dataset.url, basic_auth=(dataset.user, dataset.password))
-        elif dataset.bearerToken != '':
+        elif dataset.bearerToken:
             client = Elasticsearch(dataset.url, bearer_auth=dataset.bearerToken)
 
         client.indices.refresh(index=dataset.index)
@@ -670,7 +670,7 @@ async def getApiContent(connection: ApiDataset, pagination: Pagination) -> ApiCo
                
             authResponse = authRequest.json()
             access_token = authResponse.get('access_token')
-            headers = {'access_token': access_token}
+            headers = {'access_token': access_token,'authorization': f"Bearer {access_token}"}
         async with httpx.AsyncClient() as client:
             response = await client.get(API_URL, headers=headers)
             response.raise_for_status() 

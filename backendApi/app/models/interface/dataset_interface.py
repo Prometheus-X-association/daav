@@ -10,13 +10,13 @@ from app.enums.type_connection import TypeConnection
 from fastapi_pagination import LimitOffsetPage
 from app.utils.encryption import encrypt_field, decrypt_field
 
-# Identifiants SQL : uniquement lettres, chiffres, underscore (max 64 car. - limite MySQL)
+# SQL identifiers: only letters, digits, underscore (max 64 chars - MySQL limit)
 _SQL_IDENTIFIER_RE = re.compile(r'^[A-Za-z0-9_]{1,64}$')
 
-# Noms d'index Elasticsearch : lettres, chiffres, underscore, tiret, point
+# Elasticsearch index names: letters, digits, underscore, hyphen, dot
 _ES_INDEX_RE = re.compile(r'^[a-z0-9_\-\.]{1,255}$')
 
-# Réseaux privés / locaux à bloquer pour prévenir le SSRF
+# Private / local networks to block to prevent SSRF
 _PRIVATE_NETWORKS = [
     ipaddress.ip_network('10.0.0.0/8'),
     ipaddress.ip_network('172.16.0.0/12'),
@@ -28,7 +28,7 @@ _PRIVATE_NETWORKS = [
 ]
 
 def _validate_sql_identifier(value: Optional[str], field_name: str) -> Optional[str]:
-    if value is None:
+    if not value:
         return value
     if not _SQL_IDENTIFIER_RE.match(value):
         raise ValueError(
@@ -38,7 +38,7 @@ def _validate_sql_identifier(value: Optional[str], field_name: str) -> Optional[
     return value
 
 def _validate_no_ssrf(value: Optional[str], field_name: str) -> Optional[str]:
-    if value is None:
+    if not value:
         return value
     try:
         parsed = urlparse(value)
@@ -187,7 +187,7 @@ class ElasticDataset(Dataset):
     @field_validator('index', mode='before')
     @classmethod
     def validate_index(cls, v):
-        if v is None:
+        if not v:
             return v
         if v in ('*', '_all', '.*'):
             raise ValueError("'index' must not be a wildcard expression.")
