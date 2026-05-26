@@ -1,5 +1,5 @@
 import os
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 from beanie import init_beanie
 import logging
 
@@ -22,7 +22,7 @@ class DatabaseConfig:
             logger.info(f"Connecting to MongoDB: {database_name}")
             logger.debug(f"MongoDB URL: {mongodb_url}")
             
-            self.client = AsyncIOMotorClient(mongodb_url)
+            self.client = AsyncMongoClient(mongodb_url)
             self.database = self.client[database_name]
             
             # Test connection

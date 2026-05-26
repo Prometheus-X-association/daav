@@ -3,6 +3,7 @@
 from contextvars import ContextVar
 import os
 import json
+from fastapi import HTTPException, status
 import shutil
 import requests
 import pandas as pd
@@ -10,7 +11,6 @@ import mysql.connector
 from fastavro import reader
 from bson import ObjectId
 from datetime import datetime, timezone
-from pydantic import TypeAdapter
 from sqlalchemy import create_engine
 from typing import List, Optional, Union, Dict, Any
 import logging
@@ -37,21 +37,6 @@ pdc_chain_data_var: ContextVar[Optional[dict]] = ContextVar('pdc_chain_data', de
 pdc_chain_headers_var: ContextVar[Optional[PdcChainHeaders]] = ContextVar('pdc_chain_headers', default=None)
 
 
-# Module-level TypeAdapter reused across all calls
-_dataset_ta = TypeAdapter(DatasetUnion)
-
-
-def _coerce_to_subclass(dataset: Dataset) -> Dataset:
-    """Re-parse base Dataset as the correct subclass so @model_validator runs.
-
-    Beanie returns the base Dataset class when fetched from MongoDB because
-    documents have no _class_id field (single_root_inheritance not enabled).
-    Re-parsing via DatasetUnion uses the 'type' discriminator to build the
-    right subclass and fires all validators, including field decryption.
-    """
-    if type(dataset) is Dataset:
-        return _dataset_ta.validate_python(dataset.model_dump())
-    return dataset
 
 
 class DatasetService(metaclass=SingletonMeta):
@@ -99,8 +84,7 @@ class DatasetService(metaclass=SingletonMeta):
 
                 # Admin can see all datasets
                 if user.role == UserRole.ADMIN:
-                    datasets = await Dataset.find().to_list()
-                    datasets = [_coerce_to_subclass(ds) for ds in datasets]
+                    datasets = await Dataset.find(with_children=True).to_list()
                     logger.info(f"Admin retrieved {len(datasets)} datasets")
                     return datasets
                 
@@ -110,15 +94,13 @@ class DatasetService(metaclass=SingletonMeta):
                     logger.info(f"User {user.username} has no datasets")
                     return []
                 
-                datasets = await Dataset.find({"_id": {"$in": dataset_ids}}).to_list()
-                datasets = [_coerce_to_subclass(ds) for ds in datasets]
+                datasets = await Dataset.find({"_id": {"$in": dataset_ids}}, with_children=True).to_list()
                 logger.info(f"User {user.username} retrieved {len(datasets)} datasets")
                 return datasets
             else:
                 # System call - return all datasets
                 logger.info("System getting all datasets (no permission filtering)")
-                datasets = await Dataset.find().to_list()
-                datasets = [_coerce_to_subclass(ds) for ds in datasets]
+                datasets = await Dataset.find(with_children=True).to_list()
                 return datasets
             
         except Exception as e:
@@ -150,8 +132,6 @@ class DatasetService(metaclass=SingletonMeta):
             if not dataset:
                 raise HTTPException(status_code=404, detail="Dataset not found")
 
-            dataset = _coerce_to_subclass(dataset)
-
             # Only check permissions if user is provided
             if user:
                 can_access = await self.user_service.can_access_dataset(user, id)
@@ -181,7 +161,7 @@ class DatasetService(metaclass=SingletonMeta):
                 logger.warning(f"User {user.username} denied permission to delete dataset {id}")
                 raise HTTPException(status_code=403, detail="Access denied")
             
-            dataset = await Dataset.get(id)
+            dataset = await Dataset.get(id, with_children=True)
             if not dataset:
                 logger.warning(f"Attempted to delete non-existent dataset: {id}")
                 return False
@@ -470,7 +450,7 @@ class DatasetService(metaclass=SingletonMeta):
                 logger.warning(f"User {user.username} denied permission to edit dataset {dataset.id}")
                 raise HTTPException(status_code=403, detail="Access denied")
             
-            existing = await Dataset.get(dataset.id)
+            existing = await Dataset.get(dataset.id, with_children=True)
             if not existing:
                 raise HTTPException(status_code=404, detail="Dataset not found")
             
@@ -762,8 +742,8 @@ class DatasetService(metaclass=SingletonMeta):
         """Debug method to check database connection and collection"""
         try:
             # Vérifier la connexion directe à MongoDB
-            from motor.motor_asyncio import AsyncIOMotorClient
-            client = AsyncIOMotorClient("mongodb://localhost:27017")  # Votre URI
+            from pymongo import AsyncMongoClient
+            client = AsyncMongoClient("mongodb://localhost:27017")  # Votre URI
             db = client["daav_datasets"]
             collection = db["datasets"]
             

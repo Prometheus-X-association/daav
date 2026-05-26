@@ -2,9 +2,35 @@ import pytest
 import pytest_asyncio
 import asyncio
 import os
+from typing import get_origin, ClassVar
 from unittest.mock import Mock
+import mongomock
+import beanie.odm.utils.parsing as _beanie_parsing
 from mongomock_motor import AsyncMongoMockClient
 from beanie import init_beanie
+
+# ── Compatibility patches for Beanie 2.x + mongomock ──────────────────────────
+# 1. Beanie 2.x calls list_collection_names(authorizedCollections=True, nameOnly=True)
+#    but mongomock's Database.list_collection_names only accepts (filter, session).
+_orig_lcn = mongomock.Database.list_collection_names
+def _patched_lcn(self, filter=None, session=None, **_kwargs):
+    return _orig_lcn(self, filter=filter, session=session)
+mongomock.Database.list_collection_names = _patched_lcn
+
+# 2. Beanie 2.x always writes _class_id to MongoDB documents. When read back,
+#    merge_models() tries to set it on instances — but Pydantic rejects setting
+#    ClassVar values on instances. Skip ClassVar fields silently.
+_orig_safe_setattr = _beanie_parsing._safe_setattr
+def _patched_safe_setattr(model, field_name, value):
+    for cls in type(model).__mro__:
+        ann = cls.__dict__.get('__annotations__', {}).get(field_name)
+        if ann is not None:
+            if get_origin(ann) is ClassVar:
+                return
+            break
+    _orig_safe_setattr(model, field_name, value)
+_beanie_parsing._safe_setattr = _patched_safe_setattr
+# ──────────────────────────────────────────────────────────────────────────────
 from app.models.interface.dataset_interface import (
     Dataset, FileDataset, MongoDataset, MysqlDataset, 
     PTXDataset, ApiDataset, ElasticDataset

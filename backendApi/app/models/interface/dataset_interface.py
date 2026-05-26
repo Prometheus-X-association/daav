@@ -123,6 +123,8 @@ class Dataset(Document):
     
     class Settings:
         name = "datasets"
+        is_root = True
+        class_id = "type"
         use_state_management = True
         indexes = [
             [("type", 1)],
@@ -142,6 +144,11 @@ class Dataset(Document):
 
 class MysqlDataset(Dataset):
     type: Literal['mysql']
+
+    class Settings:
+        class_id = "type"
+        class_id_value = "mysql"
+
     host: Optional[str] = None
     user: Optional[str] = None
     password: Optional[str] = None
@@ -162,6 +169,11 @@ class MysqlDataset(Dataset):
 
 class MongoDataset(Dataset):
     type: Literal['mongo']
+
+    class Settings:
+        class_id = "type"
+        class_id_value = "mongo"
+
     uri: Optional[str] = None
     database: Optional[str] = None
     collection: Optional[str] = None
@@ -170,6 +182,11 @@ class MongoDataset(Dataset):
 
 class ElasticDataset(Dataset):
     type: Literal['elastic']
+
+    class Settings:
+        class_id = "type"
+        class_id_value = "elastic"
+
     url: Optional[str] = None
     user: Optional[str] = None
     key: Optional[str] = None
@@ -200,6 +217,11 @@ class ElasticDataset(Dataset):
 
 class PTXDataset(Dataset):
     type: Literal['ptx']
+
+    class Settings:
+        class_id = "type"
+        class_id_value = "ptx"
+
     url: Optional[str] = None
     token: Optional[str] = None
     refreshToken: Optional[str] = None
@@ -210,6 +232,11 @@ class PTXDataset(Dataset):
 
 class FileDataset(Dataset):
     type: Literal['file']
+
+    class Settings:
+        class_id = "type"
+        class_id_value = "file"
+
     filePath: Optional[str] = None
     folder: Optional[str] = None
     inputType: Optional[str] = None
@@ -219,6 +246,11 @@ class FileDataset(Dataset):
 
 class ApiDataset(Dataset):
     type: Literal['api']
+
+    class Settings:
+        class_id = "type"
+        class_id_value = "api"
+
     apiAuth: Optional[str] = None
     url: Optional[str] = None
     authUrl: Optional[str] = None
