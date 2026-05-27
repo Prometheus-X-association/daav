@@ -4,7 +4,7 @@ import { Node } from "../models/interfaces/node";
 import { StatusControl } from "../components/widgets/status-component/status-component.component";
 import { AreaPlugin } from "rete-area-plugin";
 import { AreaExtra, Schemes, WorkflowEditor } from "../core/workflow-editor";
-import { NodeComponent } from "rete-angular-plugin/16";
+import { NodeComponent } from "rete-angular-plugin/19";
 import { NodeLoaderControl } from '../components/widgets/node-loader-widget/node-loader-widget.component';
 import { NodeData } from '../models/node-data';
 import { DatasetSchema } from "../models/dataset-schema";

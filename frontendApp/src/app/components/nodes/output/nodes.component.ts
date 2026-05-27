@@ -1,4 +1,4 @@
-import { NodeComponent } from "rete-angular-plugin/16";
+import { NodeComponent } from "rete-angular-plugin/19";
 
 import {
   Component,
