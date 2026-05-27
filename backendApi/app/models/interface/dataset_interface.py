@@ -86,7 +86,7 @@ class Dataset(Document):
     _sensitive_fields: ClassVar[List[str]] = []
 
     @model_validator(mode='after')
-    def _decrypt_sensitive_fields(self) -> 'Dataset':
+    def decrypt_sensitive_fields(self) -> 'Dataset':
         """Decrypt sensitive fields after model instantiation (DB read or API input)."""
         for field in self.__class__._sensitive_fields:
             val = getattr(self, field, None)
@@ -95,7 +95,7 @@ class Dataset(Document):
         return self
 
     @before_event(Insert, Replace, Save)
-    async def _encrypt_sensitive_fields(self):
+    async def encrypt_sensitive_fields(self):
         """Encrypt sensitive fields before writing to MongoDB."""
         for field in self.__class__._sensitive_fields:
             val = getattr(self, field, None)
@@ -103,7 +103,7 @@ class Dataset(Document):
                 object.__setattr__(self, field, encrypt_field(val))
 
     @after_event(Insert, Replace, Save)
-    async def _restore_sensitive_fields(self):
+    async def restore_sensitive_fields(self):
         """Decrypt sensitive fields back in-memory after the DB write."""
         for field in self.__class__._sensitive_fields:
             val = getattr(self, field, None)
@@ -145,6 +145,7 @@ class Dataset(Document):
 class MysqlDataset(Dataset):
     type: Literal['mysql']
 
+
     class Settings:
         class_id = "type"
         class_id_value = "mysql"
@@ -166,6 +167,7 @@ class MysqlDataset(Dataset):
     @classmethod
     def validate_table(cls, v):
         return _validate_sql_identifier(v, 'table')
+        
 
 class MongoDataset(Dataset):
     type: Literal['mongo']
