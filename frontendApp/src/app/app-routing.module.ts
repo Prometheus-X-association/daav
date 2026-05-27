@@ -1,4 +1,3 @@
-import { WorkflowPageModule } from './pages/worflow/workflow.module';
 import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './guards/auth.guard';
