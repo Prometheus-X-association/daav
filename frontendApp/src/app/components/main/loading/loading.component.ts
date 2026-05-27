@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { LoadingService } from 'src/app/services/loading.service';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 @Component({
@@ -8,10 +8,8 @@ import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
     styleUrls: ['./loading.component.scss'],
     imports: [CommonModule, MatProgressSpinnerModule]
 })
-export class LoadingComponent  implements OnInit {
+export class LoadingComponent {
 
   constructor(public loadingService:LoadingService) { }
-
-  ngOnInit() {}
 
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 
 @Component({
     selector: 'app-transformation-modal',
@@ -6,10 +6,8 @@ import { Component, OnInit } from '@angular/core';
     styleUrls: ['./transformation-modal.component.scss'],
     standalone: false
 })
-export class TransformationModalComponent  implements OnInit {
+export class TransformationModalComponent {
 
   constructor() { }
-
-  ngOnInit() {}
 
 }

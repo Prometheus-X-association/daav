@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,7 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
         MatDialogModule
     ]
 })
-export class ConfirmDeletionModalComponent  implements OnInit {
+export class ConfirmDeletionModalComponent {
 
   constructor(
     public dialogRef: MatDialogRef<ConfirmDeletionModalComponent>,
@@ -25,12 +25,7 @@ export class ConfirmDeletionModalComponent  implements OnInit {
 
   onCancel(): void {
     this.dialogRef.close(false);
-  }
-
-  ngOnInit() {
-    
-  }
-
+    }
 
 }
 

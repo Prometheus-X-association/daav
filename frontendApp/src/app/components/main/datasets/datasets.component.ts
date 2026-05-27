@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, ViewChild, output } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, output } from '@angular/core';
 // import { Observable } from 'rxjs';
 import { Dataset } from 'src/app/models/dataset';
 import { DataRenderTypes } from 'src/app/models/data-render-types';
@@ -13,7 +13,7 @@ import { LoadingService } from 'src/app/services/loading.service';
     standalone: false
 })
 
-export class DatasetsComponent  implements OnInit {
+export class DatasetsComponent {
   editDataset:Dataset;
 
   @ViewChild("datasetModal", { static: false }) datasetModal: DatasetsModalComponent;
@@ -24,7 +24,7 @@ export class DatasetsComponent  implements OnInit {
   constructor(public datasetService : DatasetService, public loadingService : LoadingService) {}
 
   openModal(dataset: Dataset){
-    this.editDataset = dataset;    
+    this.editDataset = dataset;
     this.datasetModal.modal.isOpen = true;
   }
 
@@ -33,17 +33,16 @@ export class DatasetsComponent  implements OnInit {
     dataset_name.forEach(d_n => {
       d_n.classList.remove('active-dataset')
     });
-    $event.target.classList.toggle('active-dataset');    
+    $event.target.classList.toggle('active-dataset');
   }
 
   selectDataset(dataset: Dataset){
     this.dataset = dataset;
-    this.sendDataset(this.dataset);    
+    this.sendDataset(this.dataset);
   }
 
   sendDataset(dataset: Dataset){
-    this.selectedDataset.emit(dataset);    
+    this.selectedDataset.emit(dataset);
   }
 
-  ngOnInit() {}
 }

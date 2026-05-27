@@ -51,7 +51,7 @@ export class InputAutoCompleteControl
     styleUrls: ['./input-auto-complete-widget.component.scss'],
     standalone: false
 })
-export class InputAutoCompleteWidgetComponent  implements OnChanges {
+export class InputAutoCompleteWidgetComponent implements OnInit, OnChanges {
 
   @Input() data: InputAutoCompleteControl;
   cdr: ChangeDetectorRef;
