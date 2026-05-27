@@ -514,7 +514,7 @@ async def get_service_Chain(connection_id: str, current_user: CurrentUser):
     for participant_id in participants_id:
         participant_url = f"{catalog_uri}catalog/participants/{participant_id}"
         encoded_url = b64_encode(participant_url)
-        contract_url = f"{contract_uri}/contracts/for/{encoded_url}"
+        contract_url = f"{contract_uri}contracts/for/{encoded_url}"
 
         response = requests.get(contract_url)
 

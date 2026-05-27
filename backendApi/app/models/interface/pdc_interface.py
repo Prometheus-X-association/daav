@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
 
 
@@ -7,7 +7,7 @@ from datetime import datetime
 class Constraint(BaseModel):
     leftOperand: str
     operator: str
-    rightOperand: str
+    rightOperand: str | int | bool
 
 
 class Permission(BaseModel):
@@ -48,8 +48,22 @@ class Service(BaseModel):
 class ServiceChain(BaseModel):
     catalogId: str
     services: List[Service]
-    status: str
-    id: str = Field(alias="_id")
+    status: str | None = None
+    id: str | None = Field(alias="_id", default=None)
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_id(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        for key in ["_id", "serviceChainId", "service_chain_id", "id"]:
+            if key in data:
+                data["id"] = data.pop(key)
+                return data
+
+        data["id"] = None
+        return data
 
 class Negotiator(BaseModel):
     did: str
@@ -133,7 +147,7 @@ class PdcParticipant(BaseModel):
 
 class PolicyRule(BaseModel):
     ruleId: str
-    values: Dict[str, str]
+    values: Dict[str, str | int | bool]
     id: str = Field(alias="_id")
 
 
