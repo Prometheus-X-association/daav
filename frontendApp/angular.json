@@ -14,7 +14,11 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "allowedCommonJsDependencies": [
-              "lodash"
+              "lodash",
+              "localforage",
+              "jsoneditor",
+              "elkjs",
+              "@babel/runtime/regenerator"
            ],
             "outputPath": "www",
             "index": "src/index.html",

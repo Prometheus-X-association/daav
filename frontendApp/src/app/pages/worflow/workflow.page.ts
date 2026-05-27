@@ -1,5 +1,6 @@
 import { WorkflowService } from '../../services/worflow.service';
-import { Component, ElementRef, Injector, ViewChild, AfterViewInit, OnInit, input, Input, OnChanges, SimpleChanges, AfterContentInit, AfterViewChecked } from '@angular/core';
+import { Component, ElementRef, Injector, ViewChild, AfterViewInit, OnInit, input, Input, OnChanges, SimpleChanges, AfterContentInit, AfterViewChecked, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkflowEditor } from '../../core/workflow-editor';
 import { environment } from 'src/environments/environment';
 import { Project } from '../../models/interfaces/project';
@@ -14,15 +15,18 @@ import { $localize } from '@angular/localize/init';
     standalone: false
 })
 export class WorkflowPage implements AfterViewInit {
+  private readonly destroyRef = inject(DestroyRef);
   workflow: WorkflowEditor;
   exported: Project;
   toolbar: HTMLElement;
   @Input() projectId: string;
 
   constructor(private injector: Injector,private route: ActivatedRoute,public workflowService : WorkflowService) {
-    this.route.queryParams.subscribe(params => {
-      this.projectId = params['projectId'];
-    });
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        this.projectId = params['projectId'];
+      });
   }
   @ViewChild("rete", {static: false}) container!: ElementRef;
 

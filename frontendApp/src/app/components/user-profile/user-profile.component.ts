@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ModalController, ToastController, AlertController, LoadingController } from '@ionic/angular';
 import { Router } from '@angular/router';
@@ -12,6 +13,7 @@ import { User } from '../../models/auth.models';
     standalone: false
 })
 export class UserProfileComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   user: User | null = null;
   showChangePassword = false;
   changePasswordForm!: FormGroup;
@@ -41,9 +43,11 @@ export class UserProfileComponent implements OnInit {
 
   ngOnInit() {
     // Get current user
-    this.authService.currentUser$.subscribe(user => {
-      this.user = user;
-    });
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => {
+        this.user = user;
+      });
 
     // Initialize change password form
     this.changePasswordForm = this.formBuilder.group({

@@ -26,7 +26,8 @@ import { BaseService } from './base.service.service';
 export class AuthService {
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
-  private refreshTokenInProgress = false;
+  private refreshTokenPromise: Promise<string | null> | null = null;
+  private tokenRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private http: HttpClient,
@@ -102,6 +103,8 @@ export class AuthService {
    * Logout user
    */
   async logout(): Promise<void> {
+    this.stopTokenRefreshTimer();
+
     // Clear tokens
     await this.tokenService.clearTokens();
 
@@ -130,25 +133,19 @@ export class AuthService {
    * Refresh access token
    */
   async refreshToken(): Promise<string | null> {
-    if (this.refreshTokenInProgress) {
-      // Wait for ongoing refresh
-      return new Promise((resolve) => {
-        const interval = setInterval(async () => {
-          if (!this.refreshTokenInProgress) {
-            clearInterval(interval);
-            resolve(this.tokenService.getAccessToken());
-          }
-        }, 100);
-      });
+    if (this.refreshTokenPromise) {
+      return this.refreshTokenPromise;
     }
 
-    this.refreshTokenInProgress = true;
+    this.refreshTokenPromise = this.performRefreshToken();
+    return this.refreshTokenPromise;
+  }
 
+  private async performRefreshToken(): Promise<string | null> {
     try {
       const refreshToken = await this.tokenService.getRefreshToken();
 
       if (!refreshToken) {
-        this.refreshTokenInProgress = false;
         return null;
       }
 
@@ -159,17 +156,16 @@ export class AuthService {
       if (token) {
         const rememberMe = await this.tokenService.isRememberMe();
         await this.tokenService.saveTokens(token.access_token, token.refresh_token, rememberMe);
-        this.refreshTokenInProgress = false;
         return token.access_token;
       }
 
-      this.refreshTokenInProgress = false;
       return null;
     } catch (error) {
-      this.refreshTokenInProgress = false;
       console.error('Token refresh failed:', error);
       await this.logout();
       return null;
+    } finally {
+      this.refreshTokenPromise = null;
     }
   }
 
@@ -296,12 +292,23 @@ export class AuthService {
    * Call this on app initialization
    */
   startTokenRefreshTimer(): void {
+    if (this.tokenRefreshIntervalId !== null) {
+      return;
+    }
+
     // Check every minute if token needs refresh
-    setInterval(async () => {
+    this.tokenRefreshIntervalId = setInterval(async () => {
       if (this.tokenService.shouldRefreshToken()) {
         await this.refreshToken();
       }
     }, 60000); // 1 minute
+  }
+
+  stopTokenRefreshTimer(): void {
+    if (this.tokenRefreshIntervalId !== null) {
+      clearInterval(this.tokenRefreshIntervalId);
+      this.tokenRefreshIntervalId = null;
+    }
   }
 
   // ==================== ADMIN METHODS ====================
