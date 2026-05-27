@@ -2,6 +2,7 @@ import httpx
 import requests
 from typing import Any, Dict, Optional
 from fastapi import HTTPException
+from app.config.settings import settings
 
 from app.models.interface.pdc_interface import (
     PdcContract, 
@@ -17,15 +18,15 @@ from app.utils.singleton import SingletonMeta
 class PdcService(metaclass=SingletonMeta):
     """Service for handling PDC (Prometheus Data Connector) API requests"""
     
-    def __init__(self, timeout: int = 30):
-        self.timeout = timeout
+    def __init__(self, timeout: Optional[int] = None):
+        self.timeout = timeout if timeout is not None else settings.vision_api_timeout_seconds
         self.default_headers = {
             "Accept": "application/json",
             "User-Agent": "PDC-Service/1.0"
         }
         self._servicechain_storage: Dict[str, Dict[str, Any]] = {}
     
-    def _make_request(self, url: str, headers: Optional[dict] = None) -> dict:
+    def _make_request(self, url: str, headers: Optional[dict] = None, timeout: Optional[int] = None) -> dict:
         """Make a GET request to PDC API with error handling"""
         request_headers = {**self.default_headers}
         if headers:
@@ -34,7 +35,7 @@ class PdcService(metaclass=SingletonMeta):
         try:
             response = requests.get(
                 url,
-                timeout=self.timeout,
+                timeout=timeout if timeout is not None else self.timeout,
                 headers=request_headers
             )
             response.raise_for_status()
@@ -50,34 +51,34 @@ class PdcService(metaclass=SingletonMeta):
                 detail=f"Error processing data from {url}: {str(e)}"
             )
     
-    def fetch_dataResource(self, dataResource_url: str, headers: Optional[dict] = None ) -> PdcDataResource:
+    def fetch_dataResource(self, dataResource_url: str, headers: Optional[dict] = None, timeout: Optional[int] = None ) -> PdcDataResource:
         """Fetch PDC DataResources from the given URL"""
-        data = self._make_request(dataResource_url, headers )
+        data = self._make_request(dataResource_url, headers, timeout)
         return PdcDataResource.model_validate(data)
     
-    def fetch_contract(self, contract_url: str) -> PdcContract:
+    def fetch_contract(self, contract_url: str, timeout: Optional[int] = None) -> PdcContract:
         """Fetch PDC Contract from the given URL"""
-        data = self._make_request(contract_url)
+        data = self._make_request(contract_url, timeout=timeout)
         return PdcContract.model_validate(data)
     
-    def fetch_contract_bilateral(self, contract_url: str) -> PdcContractBilateral:
+    def fetch_contract_bilateral(self, contract_url: str, timeout: Optional[int] = None) -> PdcContractBilateral:
         """Fetch PDC Contract from the given URL"""
-        data = self._make_request(contract_url)
+        data = self._make_request(contract_url, timeout=timeout)
         return PdcContractBilateral.model_validate(data)
     
-    def fetch_participant(self, participant_url: str) -> PdcParticipant:
+    def fetch_participant(self, participant_url: str, timeout: Optional[int] = None) -> PdcParticipant:
         """Fetch PDC Participant from the given URL"""
-        data = self._make_request(participant_url)
+        data = self._make_request(participant_url, timeout=timeout)
         return PdcParticipant.model_validate(data)
     
-    def fetch_ecosystem(self, ecosystem_url: str) -> PdcEcosystem:
+    def fetch_ecosystem(self, ecosystem_url: str, timeout: Optional[int] = None) -> PdcEcosystem:
         """Fetch PDC Ecosystem from the given URL"""
-        data = self._make_request(ecosystem_url)
+        data = self._make_request(ecosystem_url, timeout=timeout)
         return PdcEcosystem.model_validate(data)
     
-    def fetch_service_offering(self, service_offering_url: str) -> PdcServiceOffering:
+    def fetch_service_offering(self, service_offering_url: str, timeout: Optional[int] = None) -> PdcServiceOffering:
         """Fetch PDC Service Offering from the given URL"""
-        data = self._make_request(service_offering_url)
+        data = self._make_request(service_offering_url, timeout=timeout)
         return PdcServiceOffering.model_validate(data)
     
     def get_ecosystem_name_from_contract(self, contract: PdcContract) -> Optional[str]:
@@ -144,25 +145,25 @@ class PdcService(metaclass=SingletonMeta):
         return False
     
 
-    async def fetch_service_offering_async(self, client: httpx.AsyncClient, url: str):
+    async def fetch_service_offering_async(self, client: httpx.AsyncClient, url: str, timeout: Optional[int] = None):
         """Fetch service offering asynchronously"""
-        response = await client.get(url)
+        response = await client.get(url, timeout=timeout if timeout is not None else self.timeout)
         if response.status_code == 200:
             data = response.json()
             return PdcServiceOffering.model_validate(data)
         return None
 
-    async def fetch_ecosystem_async(self, client: httpx.AsyncClient, url: str):
+    async def fetch_ecosystem_async(self, client: httpx.AsyncClient, url: str, timeout: Optional[int] = None):
         """Fetch ecosystem asynchronously"""
-        response = await client.get(url)
+        response = await client.get(url, timeout=timeout if timeout is not None else self.timeout)
         if response.status_code == 200:
             data = response.json()
             return PdcEcosystem.model_validate(data)
         return None
 
-    async def fetch_participant_async(self, client: httpx.AsyncClient, url: str):
+    async def fetch_participant_async(self, client: httpx.AsyncClient, url: str, timeout: Optional[int] = None):
         """Fetch participant asynchronously"""
-        response = await client.get(url)
+        response = await client.get(url, timeout=timeout if timeout is not None else self.timeout)
         if response.status_code == 200:
             return response.json()
         return None

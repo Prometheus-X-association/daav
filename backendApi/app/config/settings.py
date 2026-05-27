@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
+
+    # External API timeouts (Visions/PDC)
+    vision_api_timeout_seconds: int = Field(
+        default=30,
+        ge=30,
+        description="Default timeout in seconds for Visions/PDC HTTP calls"
+    )
     
     # Database
     mongodb_url: str = "mongodb://localhost:27017"
