@@ -17,6 +17,7 @@ dict-path-finder==0.0.3
 python-benedict==0.37.0
 sqlalchemy==2.0.50
 pytest==9.0.3
+pytest-cov==7.0.0
 oauthlib==3.3.1
 openpyxl==3.1.5
 fastavro==1.12.2
