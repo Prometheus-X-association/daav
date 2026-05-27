@@ -1,5 +1,20 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+_SPECIAL_PASSWORD_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?/'
+
+
+def validate_password_complexity(password: str) -> str:
+    """Validate password complexity rules used by auth flows."""
+    if len(password) < 8:
+        raise ValueError('Password must be at least 8 characters long')
+    if not any(c.isupper() for c in password):
+        raise ValueError('Password must contain at least one uppercase letter')
+    if not any(c.islower() for c in password):
+        raise ValueError('Password must contain at least one lowercase letter')
+    if not any(c in _SPECIAL_PASSWORD_CHARS for c in password):
+        raise ValueError('Password must contain at least one special character')
+    return password
 
 
 class Token(BaseModel):
@@ -32,18 +47,10 @@ class ChangePasswordRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=100)
     
-    @property
-    def validate_new_password(self):
-        """Validate new password complexity"""
-        if len(self.new_password) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not any(c.isupper() for c in self.new_password):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in self.new_password):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?/' for c in self.new_password):
-            raise ValueError('Password must contain at least one special character')
-        return True
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        return validate_password_complexity(v)
 
 
 class ShareResourceRequest(BaseModel):
@@ -69,3 +76,8 @@ class ResetPasswordRequest(BaseModel):
     """Reset password request schema"""
     token: str = Field(..., description="Password reset token from email")
     new_password: str = Field(..., min_length=8, max_length=100, description="New password")
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        return validate_password_complexity(v)

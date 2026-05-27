@@ -477,6 +477,25 @@ async def test_reset_password_inactive_user(auth_service_instance, test_user):
         assert "inactive" in str(exc_info.value.detail).lower()
 
 
+@pytest.mark.asyncio
+async def test_reset_password_rejects_weak_password(auth_service_instance, test_user):
+    """Test password reset rejects weak password complexity."""
+    reset_token = PasswordResetToken(
+        user_id=test_user.id,
+        token="hashed_token",
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        used=False
+    )
+    await reset_token.insert()
+
+    with patch('app.services.auth_service.verify_password', return_value=True):
+        with pytest.raises(HTTPException) as exc_info:
+            await auth_service_instance.reset_password("plain_token", "weakpass")
+
+        assert exc_info.value.status_code == 400
+        assert "uppercase" in str(exc_info.value.detail).lower()
+
+
 # ============================================
 # INTEGRATION TESTS
 # ============================================

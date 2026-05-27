@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from fastapi import HTTPException, status
 
 from app.models.interface.user_interface import User, PasswordResetToken
-from app.models.interface.auth_interface import Token, TokenData
+from app.models.interface.auth_interface import Token, TokenData, validate_password_complexity
 from app.utils.auth_utils import (
     verify_password,
     get_password_hash,
@@ -380,6 +380,9 @@ class AuthService(metaclass=SingletonMeta):
                     detail="User account is inactive"
                 )
             
+            # Validate password complexity for all call paths (route and direct service use)
+            validate_password_complexity(new_password)
+
             # Update password
             user.hashed_password = get_password_hash(new_password)
             user.updated_at = datetime.now(timezone.utc)
@@ -395,6 +398,11 @@ class AuthService(metaclass=SingletonMeta):
         
         except HTTPException:
             raise
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
         except Exception as e:
             logger.error(f"Error resetting password: {e}", exc_info=True)
             raise HTTPException(

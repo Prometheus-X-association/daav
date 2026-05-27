@@ -261,9 +261,6 @@ async def change_password(
     - **new_password**: New password (must meet complexity requirements)
     """
     try:
-        # Validate new password
-        password_data.validate_new_password
-        
         await user_service.change_password(
             current_user.id,
             password_data.current_password,

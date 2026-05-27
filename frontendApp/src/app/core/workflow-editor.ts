@@ -550,10 +550,10 @@ export class WorkflowEditor {
   updateProjectStatus(project : Project) {
     project.schema.nodes.forEach((node) => {
         const currentNode = this.nodeEditor.getNode(node.id);
-        
+
         // Process node response first
         currentNode.processNodeResponse(node);
-        
+
         currentNode.updateStatus(node.data.status, node.data.statusMessage, node.data.errorStacktrace);
         const previousDataOutput = this.nodeEditor.getNode(node.id).dataOutput;
         const newDataOutput = new Map<string,NodeData<any>>(Object.entries(node.data.dataOutput));
