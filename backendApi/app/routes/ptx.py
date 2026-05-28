@@ -62,9 +62,9 @@ async def get_ptx_data(
 ):
     timeout = _resolve_timeout(timeout_seconds)
     connection = await dataset_service.get_dataset(id, current_user)
-    config = get_private_configuration(connection)
+    config = await get_private_configuration(connection)
     catalog_uri = config.get("catalogUri")
-    pdc_data = pdc_get_request(connection, "/", timeout_seconds=timeout)
+    pdc_data = await pdc_get_request(connection, "/", timeout_seconds=timeout)
 
     async def fetch_catalog_item(client: httpx.AsyncClient, content: dict):
         response = await client.get(content["@id"], timeout=timeout)
@@ -121,7 +121,7 @@ async def update_data_resource(
         if (not isinstance (connection,PTXDataset)):
             raise HTTPException(status_code=400, detail="Invalid connection type. Expected PTXDataset.")
 
-        config = get_private_configuration(connection)
+        config = await get_private_configuration(connection)
         
         body = await request.json()
         dataResourcesId = body.get("dataResourceId")
@@ -168,7 +168,7 @@ async def get_data_resources(
     try:
         timeout = _resolve_timeout(timeout_seconds)
         connection = await dataset_service.get_dataset(connection_id, current_user)
-        pdc_data = pdc_get_request(connection, "/", timeout_seconds=timeout)
+        pdc_data = await pdc_get_request(connection, "/", timeout_seconds=timeout)
         
         data_resources = []
         if "content" in pdc_data and "ptx:catalog" in pdc_data["content"]:
@@ -407,7 +407,7 @@ async def get_participants_id_from_connection(
     """
     timeout = _resolve_timeout(timeout_seconds)
     connection = await dataset_service.get_dataset(connection_id, current_user)
-    pdc_data = pdc_get_request(connection, "/", timeout_seconds=timeout)
+    pdc_data = await pdc_get_request(connection, "/", timeout_seconds=timeout)
     participants_id = set()
 
     if "content" in pdc_data and "ptx:catalog" in pdc_data["content"]:
@@ -446,7 +446,7 @@ async def get_use_case_contract(
     #URI pointing to your participant in the catalog, encode it in base64
     timeout = _resolve_timeout(timeout_seconds)
     connection = await dataset_service.get_dataset(connection_id, current_user)
-    config = get_private_configuration(connection)
+    config = await get_private_configuration(connection)
     catalog_uri = config.get("catalogUri")
     contract_uri = config.get("contractUri")
     participants_id = await get_participants_id_from_connection(connection_id, current_user, timeout_seconds=timeout)
@@ -543,7 +543,7 @@ async def get_service_Chain(
 ):
     timeout = _resolve_timeout(timeout_seconds)
     connection = await dataset_service.get_dataset(connection_id, current_user)
-    config = get_private_configuration(connection)
+    config = await get_private_configuration(connection)
     catalog_uri = config.get("catalogUri")
     contract_uri = config.get("contractUri")
     participants_id = await get_participants_id_from_connection(connection_id, current_user, timeout_seconds=timeout)
@@ -627,7 +627,7 @@ async def get_data_exchanges(
     try:
         timeout = _resolve_timeout(timeout_seconds)
         connection = await dataset_service.get_dataset(connection_id, current_user)
-        config = get_private_configuration(connection)
+        config = await get_private_configuration(connection)
         pdc_endpoint = config.get("endpoint")
         data_exchanges_url = f"{pdc_endpoint}dataexchanges"
         participant_url = f"{config.get('catalogUri')}participants/"
@@ -744,7 +744,7 @@ async def trigger_data_exchange(
         timeout = _resolve_timeout(timeout_seconds)
         connection = await dataset_service.get_dataset(connection_id, current_user)
         
-        config = get_private_configuration(connection)
+        config = await get_private_configuration(connection)
         pdc_endpoint = config.get("endpoint")
         contract_uri = config.get("contractUri")
         
@@ -795,7 +795,7 @@ async def trigger_service_chain(
         timeout = _resolve_timeout(timeout_seconds)
         connection = await dataset_service.get_dataset(connection_id, current_user)
         
-        config = get_private_configuration(connection)
+        config = await get_private_configuration(connection)
         pdc_endpoint = config.get("endpoint")
         contract_uri = config.get("contractUri")
         
@@ -849,7 +849,7 @@ async def get_billateral_contract(
         raise HTTPException(status_code=500, detail=f"Error finding connection: {str(e)}")
     
     try:
-        config = get_private_configuration(connection)
+        config = await get_private_configuration(connection)
         catalog_uri = config.get("catalogUri")
         contract_uri = config.get("contractUri")
         endpoint = config.get("endpoint")
@@ -899,16 +899,42 @@ def b64_encode(url: str):
     encoded_url = base64.b64encode(url.encode('utf-8')).decode('utf-8')
     return encoded_url
 
-def pdc_get_request(connection: Dataset, url, timeout_seconds: Optional[int] = None):
+async def pdc_get_request(connection: Dataset, url, timeout_seconds: Optional[int] = None):
     timeout = _resolve_timeout(timeout_seconds)
-    r = requests.get(connection.url + url, headers={
-        "Authorization": "Bearer " + connection.token
-    }, timeout=timeout)
-    if 'json' in r.headers['Content-Type']:
-        res = r.json()
-    else:
-        res = r.content
-    return res
+
+    def _request_with_token() -> requests.Response:
+        return requests.get(
+            connection.url + url,
+            headers={"Authorization": "Bearer " + connection.token},
+            timeout=timeout,
+        )
+
+    r = _request_with_token()
+
+    if r.status_code in (401, 403) and isinstance(connection, PTXDataset):
+        renewed = await dataset_service.ensure_runtime_ptx_tokens(connection)
+        if renewed and connection.token:
+            r = _request_with_token()
+
+    if r.status_code in (401, 403):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=(
+                "PTX token invalid or expired for this connection. "
+                "Refresh/relogin attempt failed. Update PTX credentials."
+            ),
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(
+            status_code=r.status_code,
+            detail=f"PTX request failed: {r.text}",
+        )
+
+    content_type = r.headers.get("Content-Type", "")
+    if "json" in content_type.lower():
+        return r.json()
+    return r.content
 
 def write_input_append(file: str, data: str):
     """Append data to existing file with proper JSON merging."""
@@ -966,7 +992,7 @@ def write_input(file: str, data: str):
         f.write(data)
 
 
-def get_private_configuration(connection):
+async def get_private_configuration(connection):
     """Get private configuration with caching"""
     cache_key = f"{connection.id}"
     
@@ -978,7 +1004,7 @@ def get_private_configuration(connection):
         return _config_cache[cache_key]
     
     # if not cached, fetch the configuration
-    res = pdc_get_request(connection, "/private/configuration/")
+    res = await pdc_get_request(connection, "/private/configuration/")
     if "content" in res:
         config = {
             "endpoint": res["content"].get("endpoint"),
@@ -993,8 +1019,8 @@ def get_private_configuration(connection):
     else:
         raise ValueError("Error retrieving configuration")
 
-def get_serviceoffering_by_id(id: str, connection):
-    conf = get_private_configuration(connection)
+async def get_serviceoffering_by_id(id: str, connection):
+    conf = await get_private_configuration(connection)
     url = conf["catalogUri"] + "catalog/serviceofferings/" + id
     return pdc_service.fetch_service_offering(url)
 

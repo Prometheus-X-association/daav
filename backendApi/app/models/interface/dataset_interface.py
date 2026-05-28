@@ -140,6 +140,12 @@ class Dataset(Document):
             data['id'] = str(data.pop('_id'))
         elif 'id' in data and data['id']:
             data['id'] = str(data['id'])
+
+        # Remove all sensitive fields from API output
+        for field in self._sensitive_fields:
+            if field in data:
+                data.pop(field)
+
         return data
 
 class MysqlDataset(Dataset):

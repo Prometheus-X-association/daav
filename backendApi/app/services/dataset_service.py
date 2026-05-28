@@ -453,12 +453,20 @@ class DatasetService(metaclass=SingletonMeta):
             existing = await Dataset.get(dataset.id, with_children=True)
             if not existing:
                 raise HTTPException(status_code=404, detail="Dataset not found")
-            
+
+            # Restore missing sensitive fields from the persisted document.
+            for field_name in getattr(existing, '_sensitive_fields', []):
+                if getattr(dataset, field_name, None) is None and getattr(existing, field_name, None) is not None:
+                    setattr(dataset, field_name, getattr(existing, field_name))
+
+            if isinstance(dataset, PTXDataset):
+                if dataset.service_key and dataset.secret_key:
+                    dataset = self._process_ptx_dataset(dataset)
+
             dataset.updated_at = datetime.now(timezone.utc)
             await dataset.replace()
             logger.info(f"User {user.username} successfully edited dataset: {dataset.id}")
             return True
-            
         except HTTPException:
             raise
         except Exception as e:

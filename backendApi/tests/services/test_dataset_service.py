@@ -79,6 +79,80 @@ async def sample_ptx_dataset():
     await dataset.insert()
     return dataset
 
+@pytest.mark.asyncio
+async def test_edit_ptx_dataset_preserves_sensitive_fields(dataset_service, monkeypatch):
+    monkeypatch.setenv(
+        "FIELD_ENCRYPTION_KEY",
+        "2frZC2o4MLN2F1sSxJk7Y0Kj0I7j9N2G5Q7e4Wj7iNw=",
+    )
+    dataset = PTXDataset(
+        id="dataset-ptx-preserve",
+        name="test_ptx",
+        type="ptx",
+        url="https://pdc.example.com",
+        token="secret-token",
+        refreshToken="secret-refresh",
+    )
+    await dataset.insert()
+
+    # Simulate frontend edit payload without sensitive PTX fields.
+    updated_dataset = PTXDataset(
+        id=dataset.id,
+        name="test_ptx_updated",
+        type="ptx",
+        url="https://pdc.example.com",
+    )
+
+    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=AsyncMock(return_value=True)):
+        result = await dataset_service.edit_dataset(updated_dataset, Mock(username="testuser"))
+
+    assert result is True
+
+    saved = await PTXDataset.get(dataset.id)
+    assert saved.name == "test_ptx_updated"
+    assert saved.token == "secret-token"
+    assert saved.refreshToken == "secret-refresh"
+    assert saved.url == "https://pdc.example.com"
+
+
+@pytest.mark.asyncio
+async def test_edit_mysql_dataset_preserves_sensitive_password(dataset_service, monkeypatch):
+    monkeypatch.setenv(
+        "FIELD_ENCRYPTION_KEY",
+        "2frZC2o4MLN2F1sSxJk7Y0Kj0I7j9N2G5Q7e4Wj7iNw=",
+    )
+    dataset = MysqlDataset(
+        id="dataset-mysql-preserve",
+        name="test_mysql",
+        type="mysql",
+        host="localhost",
+        database="test_db",
+        table="test_table",
+        user="test_user",
+        password="super-secret",
+    )
+    await dataset.insert()
+
+    updated_dataset = MysqlDataset(
+        id=dataset.id,
+        name="test_mysql_updated",
+        type="mysql",
+        host="localhost",
+        database="test_db",
+        table="test_table",
+        user="test_user",
+    )
+
+    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=AsyncMock(return_value=True)):
+        result = await dataset_service.edit_dataset(updated_dataset, Mock(username="testuser"))
+
+    assert result is True
+
+    saved = await MysqlDataset.get(dataset.id)
+    assert saved.name == "test_mysql_updated"
+    assert saved.password == "super-secret"
+
+
 @pytest.fixture
 def temp_csv_file():
     with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:

@@ -186,14 +186,12 @@ async def _save_upload_file(file: UploadFile, current_user: CurrentUser, folder:
 async def getContentDataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> DatasetContentResponse:
     """Get dataset content with permission check"""
     connection = data.dataset
-    
-    # Check permission if dataset has an ID
+
+    # If the frontend sends a dataset id, reload the full stored dataset from DB.
+    # This preserves sensitive fields like PTX token/refreshToken and avoids relying on partial front-end payload.
     if hasattr(connection, 'id') and connection.id:
-        can_access = await dataset_service.user_service.can_access_dataset(current_user, connection.id)
-        if not can_access:
-            logger.warning(f"User {current_user.username} denied access to dataset {connection.id}")
-            raise HTTPException(status_code=403, detail="Access denied")
-    
+        connection = await dataset_service.get_dataset(connection.id, current_user)
+
     pagination = data.pagination
     datasetParams = data.datasetParams
     if isinstance(connection, FileDataset):
@@ -222,14 +220,12 @@ async def getContentDataset(request: Request, data: ConnectionInfo, current_user
 async def getDfContentDataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> NodeDataPandasDf:
     """Get dataset dataframe content with permission check"""
     connection = data.dataset
-    
-    # Check permission if dataset has an ID
+
+    # If the frontend sends a dataset id, reload the full stored dataset from DB.
+    # This preserves sensitive internal fields for the backend execution path.
     if hasattr(connection, 'id') and connection.id:
-        can_access = await dataset_service.user_service.can_access_dataset(current_user, connection.id)
-        if not can_access:
-            logger.warning(f"User {current_user.username} denied access to dataset {connection.id}")
-            raise HTTPException(status_code=403, detail="Access denied")
-    
+        connection = await dataset_service.get_dataset(connection.id, current_user)
+
     pagination = data.pagination
     datasetParams = data.datasetParams
     if isinstance(connection, FileDataset):
