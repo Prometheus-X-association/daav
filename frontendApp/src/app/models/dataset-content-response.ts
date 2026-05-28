@@ -64,7 +64,10 @@ export type DatasetResponseMap<T> =
 // --- Type guards ---
 
 export function isMySQLContentResponse(res: unknown): res is MySQLContentResponse {
-  return !!res && typeof res === 'object' && Array.isArray((res as MySQLContentResponse).databases);
+  return !!res && typeof res === 'object' && (
+    Array.isArray((res as MySQLContentResponse).databases) ||
+    Array.isArray((res as MySQLContentResponse).tables)
+  );
 }
 
 export function isMongoContentResponse(res: unknown): res is MongoContentResponse {
