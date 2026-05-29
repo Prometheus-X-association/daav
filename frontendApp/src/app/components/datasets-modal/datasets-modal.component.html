@@ -18,7 +18,7 @@
               <div id="datatypes">
                 <ion-label id="datatypes-title" i18n>Data types</ion-label>
                 <ion-radio-group id="datatypes-options" formControlName="type" (ionChange)="onSelectionChange()">
-                  @for(a of datasetTypes; track a; let x = $index){
+                  @for(a of datasetTypes; track a.dataType; let x = $index){
                     <ion-card class="radio-container">
                       <ion-radio class="datatypes-radio cards" color="transparent" value="{{ a.dataType }}" (click)="onSelected($event)">
                         <ion-icon name="{{ a.logo }}" color="primary"></ion-icon>

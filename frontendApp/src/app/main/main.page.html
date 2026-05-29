@@ -15,7 +15,7 @@
         <div id="theme-menu" [class.is-open]="isMenuOpen">
           <span>Thèmes</span>
           <div id="theme-btns">
-            @for (theme of themes; track theme) {
+            @for (theme of themes; track theme.class) {
               <ion-button (click)="applyTheme(theme.class)">{{theme.name}}</ion-button>
             }
           </div>
