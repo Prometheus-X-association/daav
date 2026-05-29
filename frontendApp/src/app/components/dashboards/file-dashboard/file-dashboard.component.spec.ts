@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { FileDashboardComponent } from './file-dashboard.component';
 import { DatasetService } from 'src/app/services/dataset.service';
 
@@ -48,6 +48,30 @@ describe('FileDashboardComponent', () => {
 
     expect(component.dataset.ifExist).toBe('append');
     expect(component.onDatasetChange).toHaveBeenCalled();
+  });
+
+  it('should preserve ifExist when already defined', () => {
+    component.dataset.ifExist = 'append';
+    component.ngOnInit();
+    expect(component.dataset.ifExist).toBe('append');
+  });
+
+  it('should call editDataset on dataset change success', () => {
+    datasetServiceSpy.editDataset.and.returnValue(of(component.dataset));
+
+    component.onDatasetChange();
+
+    expect(datasetServiceSpy.editDataset).toHaveBeenCalledWith(component.dataset);
+  });
+
+  it('should handle editDataset error without throwing', () => {
+    datasetServiceSpy.editDataset.and.returnValue(throwError(() => new Error('update failed')));
+    spyOn(console, 'error');
+
+    component.onDatasetChange();
+
+    expect(datasetServiceSpy.editDataset).toHaveBeenCalledWith(component.dataset);
+    expect(console.error).toHaveBeenCalled();
   });
 
   it('should format file size correctly', () => {

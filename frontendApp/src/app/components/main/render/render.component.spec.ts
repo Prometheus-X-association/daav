@@ -148,6 +148,28 @@ describe('RenderComponent', () => {
     expect(component.data.pagination.perPage).toBe(5);
   });
 
+  it('should reject getContent when response is empty and reset render state', async () => {
+    spyOn(window, 'alert');
+    datasetServiceSpy.getContentDataset.and.returnValue(of(null as any));
+
+    await expectAsync(component.getContent()).toBeRejected();
+    expect(component.data.displayedColumns).toEqual([]);
+    expect(component.data.renderTabIndex).toBe(0);
+    expect(window.alert).toHaveBeenCalledWith('Connection successful but unable to get data.');
+  });
+
+  it('should reset state when response has no data for a new dataset', async () => {
+    spyOn(window, 'alert');
+    datasetServiceSpy.getContentDataset.and.returnValue(of({} as any));
+    const newDataset = { name: 'New Dataset', id: 'new-id' } as any;
+
+    await component.getContent(newDataset);
+
+    expect(component.data.displayedColumns).toEqual([]);
+    expect(component.data.renderTabIndex).toBe(0);
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
   it('should apply filter text from event', () => {
     component.applyFilter({ target: { value: '  Test  ' } } as any);
 
