@@ -101,6 +101,76 @@ describe('RenderComponent', () => {
     expect(component.data.displayedColumns).toEqual(['col1']);
   });
 
+  it('should set dbNames and tableNames for MySQL content when dataset changes', async () => {
+    const newDataset = { name: 'New Dataset', id: 'other-id' } as any;
+    datasetServiceSpy.getContentDataset.and.returnValue(of({
+      data: [{ col1: 'val' }],
+      limit: 2,
+      total_rows: 1,
+      current_page: 1,
+      databases: ['db1'],
+      tables: ['t1']
+    } as any));
+
+    await component.getContent(newDataset);
+
+    expect(component.data.dbNames).toEqual(['db1']);
+    expect(component.data.tableNames).toEqual(['t1']);
+    expect(component.data.displayedColumns).toEqual(['col1']);
+  });
+
+  it('should set api pagination URLs when api response is received', async () => {
+    const newDataset = { name: 'New Dataset', id: 'other-id' } as any;
+    datasetServiceSpy.getContentDataset.and.returnValue(of({
+      data: [{ col1: 'val' }],
+      limit: 5,
+      total_rows: 1,
+      current_page: 1,
+      next_url: 'next',
+      prev_url: 'prev'
+    } as any));
+
+    await component.getContent(newDataset);
+
+    expect(component.data.fiche.nextUrl).toBe('next');
+    expect(component.data.pagination.perPage).toBe(5);
+  });
+
+  it('should update pagination nextUrl on pageChange when nextUrl exists', async () => {
+    component.data.fiche.nextUrl = 'next';
+    component.data.fiche.prevUrl = 'prev';
+    spyOn(component, 'getContent').and.returnValue(Promise.resolve());
+
+    await component.pageChange({ pageIndex: 1, pageSize: 5, previousPageIndex: 0 } as any);
+
+    expect(component.data.pagination.nextUrl).toBe('next');
+    expect(component.data.pagination.page).toBe(2);
+    expect(component.data.pagination.perPage).toBe(5);
+  });
+
+  it('should apply filter text from event', () => {
+    component.applyFilter({ target: { value: '  Test  ' } } as any);
+
+    expect(component.filterTables).toBe('test');
+  });
+
+  it('should toggle active table-name class on selectedDataset event', () => {
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    first.classList.add('table-name');
+    second.classList.add('table-name');
+    document.body.appendChild(first);
+    document.body.appendChild(second);
+
+    component.selectedDataset({ target: second } as any);
+
+    expect(first.classList.contains('active-dataset')).toBeFalse();
+    expect(second.classList.contains('active-dataset')).toBeTrue();
+
+    document.body.removeChild(first);
+    document.body.removeChild(second);
+  });
+
   it('should reject getContent on service error', async () => {
     datasetServiceSpy.getContentDataset.and.returnValue(throwError(() => new Error('fail')));
 

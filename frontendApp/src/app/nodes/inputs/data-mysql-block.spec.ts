@@ -1,3 +1,4 @@
+import { ClassicPreset } from 'rete';
 import { DataMysqlBlock } from './data-mysql-block';
 import { AreaPlugin } from 'rete-area-plugin';
 import { Node } from 'src/app/models/interfaces/node';
@@ -5,6 +6,7 @@ import { MatSelectChange } from '@angular/material/select';
 import { DatasetService } from 'src/app/services/dataset.service';
 import { of } from 'rxjs';
 import { Injector } from '@angular/core';
+import { FlatObjectSocket } from 'src/app/core/sockets/sockets';
 import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
@@ -17,6 +19,7 @@ describe('DataMysqlBlock', () => {
   let datasetService: DatasetService;
   let injector: Injector;
   let mockDatasetService: any;
+  let mockWorkflowEditor: any;
 
   beforeEach(() => {
     mockDatasetService = {
@@ -41,9 +44,10 @@ describe('DataMysqlBlock', () => {
     node = { data: {} } as Node;
     datasetService = jasmine.createSpyObj('DatasetService', ['datasets', 'getContentDataset']);
 
-    const mockWorkflowEditor = {
+    mockWorkflowEditor = {
       injector,
-      getConnections: jasmine.createSpy('getConnections').and.returnValue([])
+      getConnections: jasmine.createSpy('getConnections').and.returnValue([]),
+      removeConnection: jasmine.createSpy('removeConnection')
     };
 
     Object.defineProperty(area, 'parent', {
@@ -139,6 +143,79 @@ describe('DataMysqlBlock', () => {
       selectDatabaseDataSource: block.selectControlDatabase,
       selectTableDataSource: block.selectControlTable,
     }));
+  });
+
+  it('should create output and update status', () => {
+    spyOn(area, 'update');
+    block.createOutput({ data: [] } as any, 'db', 'table', 'dataset-id');
+
+    expect(block.dataOutput.get('out')).toEqual(jasmine.objectContaining({
+      datasetId: 'dataset-id',
+      database: 'db',
+      table: 'table',
+    }));
+    expect(block.status).toBe(2);
+    expect(area.update).toHaveBeenCalledWith('node', block.id);
+  });
+
+  it('should clean output and remove connection when output exists', () => {
+    spyOn(area, 'update');
+    block.addOutput('out', new ClassicPreset.Output(new FlatObjectSocket(), 'out'));
+    block.dataOutput.set('out', { some: 'data' } as any);
+    mockWorkflowEditor.getConnections.and.returnValue([
+      { source: block.id, sourceOutput: 'out', id: 'conn-1' }
+    ]);
+
+    block.cleanOutput();
+
+    expect(mockWorkflowEditor.removeConnection).toHaveBeenCalledWith('conn-1');
+    expect(block.outputs['out']).toBeUndefined();
+    expect(block.dataOutput.has('out')).toBeFalse();
+    expect(block.status).toBe(1);
+  });
+
+  it('should add select table control from tables list', () => {
+    spyOn(area, 'update');
+    const data = { tables: ['t1', 't2'] } as any;
+
+    block.addSelectTable(data, {} as Node);
+
+    expect(block.selectControlTable).toBeDefined();
+    expect(block.selectControlTable.list.length).toBe(2);
+    expect(area.update).toHaveBeenCalledWith('control', block.selectControlTable.id);
+  });
+
+  it('should add select database control from databases list', () => {
+    spyOn(area, 'update');
+    const data = { databases: ['db1', 'db2'] } as any;
+
+    block.addSelectDatabase(data, {} as Node);
+
+    expect(block.selectControlDatabase).toBeDefined();
+    expect(block.selectControlDatabase.list.length).toBe(2);
+    expect(area.update).toHaveBeenCalledWith('control', block.selectControlDatabase.id);
+  });
+
+  it('should remove control database and clear saved table import state', () => {
+    const node = { data: { selectTableDataSource: { value: null } } } as any;
+    block['node'] = node;
+    block.selectControlDatabase = { id: 'dataDatabaseSource' } as any;
+
+    block.removeControlDatabase();
+
+    expect(block.selectControlDatabase).toBeNull();
+    expect(node.data.selectTableDataSource).toBeNull();
+  });
+
+  it('should remove control table and clear saved table import state', () => {
+    const node = { data: { selectTableDataSource: { value: null } } } as any;
+    block['node'] = node;
+    block.selectControlTable = { id: 'dataTableSource' } as any;
+
+    block.removeControlTable();
+
+    expect(block.selectControlTable).toBeNull();
+    expect(node.data.selectTableDataSource).toBeNull();
   });
 });
 

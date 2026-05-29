@@ -43,4 +43,9 @@ describe('DataApiBlock', () => {
   it('should create an instance', () => {
     expect(new DataApiBlock('label',area)).toBeTruthy();
   });
+
+  it('should allow execute override without error', () => {
+    const block = new DataApiBlock('label', area);
+    expect(() => block.execute()).not.toThrow();
+  });
 });

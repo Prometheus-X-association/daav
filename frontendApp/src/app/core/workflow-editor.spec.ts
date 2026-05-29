@@ -300,12 +300,7 @@ describe('WorkflowEditor', () => {
   });
 
   describe('buildContextMenu', () => {
-    // Note: buildContextMenu tests are skipped because they trigger DockPlugin initialization
-    // which attempts to create Angular components after TestBed injector is destroyed.
-    // This causes NG0205 errors. These tests would require full Angular module setup
-    // with all node components (InputNode, OutputNode, TransformNode) and their dependencies.
-
-    xit('should build context menu items from registered blocks', () => {
+    it('should build context menu items from registered blocks', () => {
       const container = document.createElement('div');
       const workflowEditor = new WorkflowEditor(container, injector);
 
@@ -314,7 +309,7 @@ describe('WorkflowEditor', () => {
       expect(Array.isArray(items)).toBe(true);
     });
 
-    xit('should group nodes by type', () => {
+    it('should group nodes by type', () => {
       const container = document.createElement('div');
       const workflowEditor = new WorkflowEditor(container, injector);
 
@@ -384,24 +379,21 @@ describe('WorkflowEditor', () => {
       expect(serializedOutput.socket.name).toBe('Socket2');
     });
 
-    // These tests are skipped because accessing plugin properties triggers
-    // DockPlugin and AngularPlugin initialization which creates Angular components
-    // after TestBed injector is destroyed, causing NG0205 errors.
-    xit('should have nodeEditor property after construction', () => {
+    it('should have nodeEditor property after construction', () => {
       const container = document.createElement('div');
       const workflowEditor = new WorkflowEditor(container, injector);
 
       expect(workflowEditor.nodeEditor).toBeDefined();
     });
 
-    xit('should have area property after construction', () => {
+    it('should have area property after construction', () => {
       const container = document.createElement('div');
       const workflowEditor = new WorkflowEditor(container, injector);
 
       expect(workflowEditor.area).toBeDefined();
     });
 
-    xit('should have connection property after construction', () => {
+    it('should have connection property after construction', () => {
       const container = document.createElement('div');
       const workflowEditor = new WorkflowEditor(container, injector);
 

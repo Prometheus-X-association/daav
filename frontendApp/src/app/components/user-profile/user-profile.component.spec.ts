@@ -105,6 +105,28 @@ describe('UserProfileComponent', () => {
     expect(alert.present).toHaveBeenCalled();
   });
 
+  it('should report admin status correctly', () => {
+    component.user = { role: 'admin' } as any;
+    expect(component.isAdmin()).toBeTrue();
+
+    component.user = { role: 'user' } as any;
+    expect(component.isAdmin()).toBeFalse();
+  });
+
+  it('should format null dates as Never', () => {
+    expect(component.getFormattedDate(null)).toBe('Never');
+  });
+
+  it('should toggle credentials visibility and reset edit form when hiding', () => {
+    component.showCredentials = true;
+    const resetSpy = spyOn(component.editCredentialForm, 'reset');
+
+    component.toggleCredentials();
+
+    expect(component.showCredentials).toBeFalse();
+    expect(resetSpy).toHaveBeenCalled();
+  });
+
   it('should dismiss the modal when dismiss is called', () => {
     component.dismiss();
 

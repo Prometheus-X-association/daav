@@ -42,4 +42,12 @@ describe('ExampleOutput', () => {
   it('should create an instance', () => {
     expect(new ExampleOutput('label',area)).toBeTruthy();
   });
+
+  it('should add expected inputs when created without node', () => {
+    const block = new ExampleOutput('label', area);
+
+    expect(Object.keys(block.inputs)).toContain('oneColonne');
+    expect(Object.keys(block.inputs)).toContain('flatObject');
+    expect(block.status).toBe(1); // Incomplete
+  });
 });

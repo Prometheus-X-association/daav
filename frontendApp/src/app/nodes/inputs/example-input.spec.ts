@@ -20,13 +20,13 @@ describe('ExempleInput', () => {
     };
 
     TestBed.configureTestingModule({
-    imports: [],
-    providers: [
+      imports: [],
+      providers: [
         { provide: DatasetService, useValue: mockDatasetService },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
-    ]
-});
+      ]
+    });
 
     injector = TestBed.inject(Injector);
 
@@ -39,7 +39,16 @@ describe('ExempleInput', () => {
       configurable: true
     });
   });
+
   it('should create an instance', () => {
-    expect(new ExampleInput('label',area)).toBeTruthy();
+    expect(new ExampleInput('label', area)).toBeTruthy();
+  });
+
+  it('should expose three outputs when created without node', () => {
+    const block = new ExampleInput('label', area);
+    expect(Object.keys(block.outputs)).toContain('consequent');
+    expect(Object.keys(block.outputs)).toContain('alternate');
+    expect(Object.keys(block.outputs)).toContain('solo');
+    expect(block.status).toBe(1);
   });
 });

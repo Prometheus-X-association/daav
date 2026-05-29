@@ -43,4 +43,41 @@ describe('DatasetsComponent', () => {
     fixture.detectChanges();
     expect(component).toBeTruthy();
   });
+
+  it('should open modal and set editDataset', () => {
+    component.datasetModal = { modal: { isOpen: false } } as any;
+    const dataset = { id: '1', name: 'Dataset 1' } as Dataset;
+
+    component.openModal(dataset);
+
+    expect(component.editDataset).toBe(dataset);
+    expect(component.datasetModal.modal.isOpen).toBeTrue();
+  });
+
+  it('should emit dataset when selected', () => {
+    spyOn(component.selectedDataset, 'emit');
+    const dataset = { id: '2', name: 'Dataset 2' } as Dataset;
+
+    component.selectDataset(dataset);
+
+    expect(component.dataset).toBe(dataset);
+    expect(component.selectedDataset.emit).toHaveBeenCalledWith(dataset);
+  });
+
+  it('should toggle active dataset class on event target', () => {
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    first.classList.add('dataset-name');
+    second.classList.add('dataset-name');
+    document.body.appendChild(first);
+    document.body.appendChild(second);
+
+    component.activeDataset({ target: second } as any);
+
+    expect(first.classList.contains('active-dataset')).toBeFalse();
+    expect(second.classList.contains('active-dataset')).toBeTrue();
+
+    document.body.removeChild(first);
+    document.body.removeChild(second);
+  });
 });

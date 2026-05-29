@@ -1,8 +1,9 @@
+import '@angular/localize/init';
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule, IonModal } from '@ionic/angular';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { HttpEventType } from '@angular/common/http';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { DatasetsModalComponent } from './datasets-modal.component';
 import { DatasetService } from 'src/app/services/dataset.service';
@@ -137,5 +138,38 @@ describe('DatasetsModalComponent', () => {
     expect(component.formDatabase.get('folder')?.value).toBe('folder-path');
     expect(component.formDatabase.get('filePath')?.value).toBe('folder-path');
     expect(component.formDatabase.get('inputType')?.value).toBe('folder');
+  });
+
+  it('should reset upload progress on upload error', () => {
+    const file = new File(['a,b'], 'test.csv', { type: 'text/csv' });
+    datasetServiceSpy.uploadFile.and.returnValue(throwError(() => new Error('upload failed')));
+
+    component.uploadProgress = 50;
+    component.uploadFile({ target: { type: 'file', files: [file] } } as any);
+
+    expect(component.uploadProgress).toBeNull();
+  });
+
+  it('should toggle selected class on radio elements', () => {
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    first.classList.add('datatypes-radio', 'selected');
+    second.classList.add('datatypes-radio');
+    document.body.appendChild(first);
+    document.body.appendChild(second);
+
+    component.onSelected({ target: second } as any);
+
+    expect(first.classList.contains('selected')).toBeFalse();
+    expect(second.classList.contains('selected')).toBeTrue();
+
+    document.body.removeChild(first);
+    document.body.removeChild(second);
+  });
+
+  it('should close the modal when closeModalAddConnection is called', () => {
+    component.modal = { isOpen: true, dismiss: jasmine.createSpy('dismiss') } as any;
+    component.closeModalAddConnection();
+    expect(component.modal.isOpen).toBeFalse();
   });
 });

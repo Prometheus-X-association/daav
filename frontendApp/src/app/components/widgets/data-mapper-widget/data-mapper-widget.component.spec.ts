@@ -22,4 +22,18 @@ describe('DataMapperWidgetComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should open modal and close on dismiss', () => {
+    component.openModal();
+    expect(component.isModalOpen).toBeTrue();
+
+    const customEvent = { detail: { value: 'ok' } } as any;
+    const callbackSpy = jasmine.createSpy('callback');
+    component.data.callback = callbackSpy;
+
+    component.onWillDismiss(customEvent as any);
+
+    expect(component.isModalOpen).toBeFalse();
+    expect(callbackSpy).toHaveBeenCalledWith(customEvent);
+  });
 });

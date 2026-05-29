@@ -20,13 +20,13 @@ describe('DataLrsBlock', () => {
     };
 
     TestBed.configureTestingModule({
-    imports: [],
-    providers: [
+      imports: [],
+      providers: [
         { provide: DatasetService, useValue: mockDatasetService },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
-    ]
-});
+      ]
+    });
 
     injector = TestBed.inject(Injector);
 
@@ -41,6 +41,11 @@ describe('DataLrsBlock', () => {
   });
 
   it('should create an instance', () => {
-    expect(new DataLrsBlock('label',area)).toBeTruthy();
+    expect(new DataLrsBlock('label', area)).toBeTruthy();
+  });
+
+  it('should execute without throwing', () => {
+    const block = new DataLrsBlock('label', area);
+    expect(() => block.execute()).not.toThrow();
   });
 });
