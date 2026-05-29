@@ -21,4 +21,13 @@ describe('CustomConnectionComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should bind path attribute to svg path element', () => {
+    const testPath = 'M0,0 L10,10';
+    component.path = testPath;
+    fixture.detectChanges();
+    const pathEl: SVGPathElement | null = fixture.nativeElement.querySelector('path');
+    expect(pathEl).toBeTruthy();
+    expect(pathEl!.getAttribute('d')).toBe(testPath);
+  });
 });

@@ -192,17 +192,18 @@ export class DatasetsModalComponent implements OnChanges {
     this.isCsvFile = false;
     if (input.type === 'file' && input.files) {
       const formData = new FormData();
-      Array.from(input.files).forEach((file: File, index: number) => {
-        const ext = '.' + input.files[0].name.split('.').pop()?.toLowerCase();
+      const files = Array.from(input.files);
+      for (const file of files) {
+        const ext = '.' + file.name.split('.').pop()?.toLowerCase();
         if (!this.acceptedFormats.includes(ext)) {
           console.error('Format not supported:', ext);
           return;
         }
-        if (input.files.length === 1 && (ext === '.csv' || ext === '.tsv')) {
+        if (files.length === 1 && (ext === '.csv' || ext === '.tsv')) {
           this.isCsvFile = true;
         }
         formData.append('file', file);
-      });
+      }
       this.uploadProgress = 0;
       this.datasetService.uploadFile(formData).subscribe({
         next: (event) => {

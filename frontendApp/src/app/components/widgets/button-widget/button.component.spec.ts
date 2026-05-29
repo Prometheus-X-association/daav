@@ -21,4 +21,14 @@ describe('ButtonComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should call data.onClick when button is clicked', () => {
+    const spy = jasmine.createSpy('onClick');
+    component.data = new ButtonControl(spy, 'Click me');
+    fixture.detectChanges();
+    const btn: HTMLButtonElement | null = fixture.nativeElement.querySelector('button');
+    expect(btn).toBeTruthy();
+    btn!.click();
+    expect(spy).toHaveBeenCalled();
+  });
 });

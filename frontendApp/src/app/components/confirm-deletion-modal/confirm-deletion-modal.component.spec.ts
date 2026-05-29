@@ -25,4 +25,16 @@ describe('ConfirmDeletionModalComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should close with true when confirmed', () => {
+    component.onConfirm();
+
+    expect(component.dialogRef.close).toHaveBeenCalledWith(true);
+  });
+
+  it('should close with false when cancelled', () => {
+    component.onCancel();
+
+    expect(component.dialogRef.close).toHaveBeenCalledWith(false);
+  });
 });

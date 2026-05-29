@@ -23,4 +23,12 @@ describe('SelectWidgetComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('onOpenedChange should store oldValue when opened', () => {
+    component.data = new SelectControl({ value: 'a', list: [{label: 'A', value: 'a'}] });
+    component.data.value = 'current';
+    component.data.oldValue = 'old';
+    component.onOpenedChange(true);
+    expect(component.data.oldValue).toBe('current');
+  });
 });

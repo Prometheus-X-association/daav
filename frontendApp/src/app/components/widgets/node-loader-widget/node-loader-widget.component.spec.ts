@@ -22,4 +22,10 @@ describe('NodeLoaderWidgetComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('ngOnChanges should call detectChanges on cdr', () => {
+    spyOn(component.cdr, 'detectChanges');
+    component.ngOnChanges({} as any);
+    expect(component.cdr.detectChanges).toHaveBeenCalled();
+  });
 });
