@@ -26,6 +26,7 @@ import { ClassicPreset } from "rete";
       <path [attr.d]="path" />
     </svg>
   `,
+    // eslint-disable-next-line @angular-eslint/prefer-standalone
     standalone: false
 })
 export class CustomConnectionComponent {

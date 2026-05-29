@@ -11,6 +11,7 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 @Component({
     selector: 'app-datasets-modal',
     template: '',
+    // eslint-disable-next-line @angular-eslint/prefer-standalone
     standalone: false
 })
 class DatasetsModalStubComponent {
