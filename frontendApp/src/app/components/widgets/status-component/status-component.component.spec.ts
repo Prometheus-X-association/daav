@@ -17,7 +17,7 @@ describe('StatusComponentComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(StatusComponentComponent);
-    component = fixture.componentInstance;
+      component = fixture.componentInstance;
     component.data = new StatusControl(StatusNode.Valid, 'Test message', []);
     fixture.detectChanges();
   }));
