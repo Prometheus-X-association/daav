@@ -1,9 +1,9 @@
-FROM python:3.10.17-slim-trixie
+FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     git \
     libmagic1 \
     && rm -rf /var/lib/apt/lists/*

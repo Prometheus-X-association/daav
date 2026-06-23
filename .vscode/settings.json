@@ -1,5 +1,5 @@
 {
-    "python.analysis.extraPaths": [
-        "./backendApi/src/app"
-    ]
+  "python.analysis.extraPaths": [
+    "./backendApi/src/app"
+  ]
 }
