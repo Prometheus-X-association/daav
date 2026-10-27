@@ -4,7 +4,7 @@ Tests for the security middleware.
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app.middleware.security import SecurityMiddleware
 
@@ -82,6 +82,52 @@ class TestSecurityMiddleware:
         assert response.status_code == 400
         assert "Suspicious request pattern detected" in response.json()["detail"]
     
+    @pytest.mark.parametrize("url, headers", [
+        ("/files?path=../secret", {}),
+        ("/files?path=..%2F..%2Fsecret", {}),
+        ("/test", {"X-Path": "..\\..\\windows"}),
+        ("/test", {"X-Path": "C:\\Windows\\System32"}),
+        ("/test", {"X-Path": "${jndi:ldap://evil}"}),
+        ("/files?path=%2fetc%2fpasswd", {}),
+    ])
+    def test_suspicious_patterns_detected(self, client, url, headers):
+        """Test that regex patterns are applied (not plain substrings)."""
+        response = client.get(url, headers=headers)
+        assert response.status_code == 400
+
+    @pytest.mark.parametrize("url, headers", [
+        ("/files/datasets/ghosts.csv", {}),
+        ("/test?q=doc:1", {}),
+        ("/test", {"Referer": "http://localhost:4200/workflow"}),
+        ("/files/report.v2..final.csv", {}),
+    ])
+    def test_regular_values_allowed(self, client, url, headers):
+        """Test that regular values are not flagged as suspicious."""
+        response = client.get(url, headers=headers)
+        assert response.status_code == 200
+
+    def test_forwarded_for_spoofing_does_not_bypass_rate_limit(self, client):
+        """Test that X-Forwarded-For from an untrusted peer is ignored."""
+        statuses = [
+            client.get("/test", headers={"X-Forwarded-For": f"1.2.3.{i}"}).status_code
+            for i in range(6)
+        ]
+        assert statuses[-1] == 429
+
+    def test_client_ip_from_trusted_proxy(self, app_with_security_middleware):
+        """Test that proxy headers are used when the peer is a private address."""
+        middleware = SecurityMiddleware(app_with_security_middleware)
+        request = Mock()
+        request.client.host = "172.18.0.5"
+        request.headers = {"X-Real-IP": "203.0.113.7", "X-Forwarded-For": "6.6.6.6, 203.0.113.7"}
+        assert middleware._get_client_ip(request) == "203.0.113.7"
+
+        request.headers = {"X-Forwarded-For": "6.6.6.6, 203.0.113.7"}
+        assert middleware._get_client_ip(request) == "203.0.113.7"
+
+        request.client.host = "8.8.8.8"
+        assert middleware._get_client_ip(request) == "8.8.8.8"
+
     def test_file_access_logging(self, client):
         """Test that file access is logged."""
         # This would require checking logs, but shows the concept

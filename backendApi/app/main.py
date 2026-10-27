@@ -23,6 +23,7 @@ from app.models.interface.dataset_interface import (
 )
 from app.models.interface.workflow_interface import IProject
 from app.models.interface.user_interface import User,PasswordResetToken
+from app.models.interface.pdc_chain_interface import ServiceChainData
 
 from app.services.migration_service import MigrationService
 from app.services.user_service import UserService
@@ -45,7 +46,8 @@ async def lifespan(app: FastAPI):
         logger.info("Initializing database connection...")
         await db_config.connect(settings, [
             Dataset,FileDataset, MongoDataset, MysqlDataset,
-            ApiDataset, ElasticDataset, PTXDataset, IProject, User, PasswordResetToken
+            ApiDataset, ElasticDataset, PTXDataset, IProject, User, PasswordResetToken,
+            ServiceChainData
         ])
             # Test Beanie après initialisation
         try:

@@ -17,7 +17,7 @@
 **Implemented solutions:**
 - ✅ Validation of allowed file extensions
 - ✅ Filename sanitization (removal of dangerous characters)
-- ✅ File size limitation (1000MB by default)
+- ✅ File size limitation (`MAX_FILE_SIZE`, 100MB per file by default)
 - ✅ Validation of destination directories
 
 ### 3. Unrestricted Directory Access
@@ -57,6 +57,15 @@ content = FileAccessController.get_restricted_file_content(file_path, max_size)
 ### Security Middleware (`SecurityMiddleware`)
 
 **Integration in main.py:**
+```python
+if settings.security_enabled:
+    app.add_middleware(
+        SecurityMiddleware,
+        rate_limit=settings.security_rate_limit,
+        time_window=settings.security_time_window
+    )
+```
+The middleware can be disabled with `SECURITY_ENABLED=false`.
 
 **Configuration for Users:**
 The rate limiting and time window for security are set using environment variables. You can adjust these values in your deployment settings to control how many requests are allowed and over what period.
@@ -75,24 +84,48 @@ These variables should be set in your environment or `.env` file before starting
 - ✅ Rate limiting (configurable req/min per IP)
 - ✅ Path traversal detection (`../`, `/etc/`, etc.)
 - ✅ Suspicious pattern detection (encoded attacks)
-- ✅ Large request size blocking (>50MB)
-- ✅ Temporary IP blocking (1 hour after violations)
+- ✅ Large request size blocking (> 10 × `MAX_FILE_SIZE`, i.e. 1000MB by default → HTTP 413)
+- ✅ Temporary IP blocking (1 hour after exceeding the rate limit)
 - ✅ File access monitoring and logging
 - ✅ Automatic security event logging
 
 **What it blocks:**
-- Path traversal: `../../../etc/passwd`
-- Rate limits: >100 requests/minute from same IP
+- Path traversal: `../../../etc/passwd` (→ HTTP 400)
+- Rate limits: more than `SECURITY_RATE_LIMIT` requests per `SECURITY_TIME_WINDOW` from the same IP (100/60s by default → HTTP 429, then IP blocked for 1 hour)
 - Suspicious headers: Headers containing attack patterns
 - System paths: `/etc/`, `/proc/`, `C:\Windows\`
+
+Patterns are regular expressions defined in `SecurityConfig.SUSPICIOUS_REQUEST_PATTERNS` (`app/config/security.py`) and checked on the URL path and query (raw and URL-decoded) and on header values.
+
+**Client IP**: `X-Real-IP` / `X-Forwarded-For` are only trusted when the request comes from a loopback or private address (e.g. the Nginx container); otherwise the socket address is used, so these headers cannot be spoofed to bypass rate limiting.
+
+> The rate-limit and blocked-IP state is kept in memory, per worker process.
+
+## 🔑 Authentication & Authorization
+
+- **JWT** access tokens (`JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, 60 min by default) and refresh tokens (`JWT_REFRESH_TOKEN_EXPIRE_DAYS`, 90 days by default), signed with `JWT_SECRET_KEY` (min. 32 characters, required in production)
+- **Password hashing** with Argon2id (`passlib`)
+- **Password policy**: at least 8 characters, one uppercase, one lowercase and one special character
+- **Roles**: `admin` and `user`; datasets and workflows are owned by a user and can be shared
+- **Registration**: only admins can create users unless `ALLOW_PUBLIC_REGISTRATION=true`; only admins can create admin users
+- **Password reset** by email (SMTP settings, token valid `PASSWORD_RESET_TOKEN_EXPIRE_HOURS`)
+- **Default admin**: `admin` / `Admin123!` is created when no user exists — change it immediately
+
+## 💉 Injection & SSRF Protection
+
+Dataset models validate user-provided connection parameters (`app/models/interface/dataset_interface.py`):
+- **MySQL**: `database` and `table` must be plain SQL identifiers (`[A-Za-z0-9_]`, max 64 chars)
+- **Elasticsearch**: `index` must be a valid index name; wildcard expressions are rejected
+- **API output filters**: Drupal JSON:API filters on `/api/...` and `/output/...` are converted to parameterized DuckDB queries; values are bound as parameters and field paths are quoted as SQL identifiers (`app/utils/drupal_filter_converter.py`)
+- **SSRF**: API and Elasticsearch URLs must use `http`/`https` and must not target `localhost` or private/internal IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `169.254.0.0/16`, `::1`, `fc00::/7`)
 
 ## 📁 Authorized Directories
 
 ### Whitelist
-- `uploads/` - Files uploaded by users
-- `app/uploads/` - Alternative upload directory
+- `UPLOAD_DIR` (default `uploads/`, resolved from `app/`) - Files uploaded by users
 - `app/ptx/` - PTX data
 - `app/inputs/` - Input files
+- Any directory listed in `DIRECTORY_WHITE_LIST`
 
 ### Forbidden Directories
 - `/etc/`, `/proc/`, `/sys/` (Unix)
@@ -116,7 +149,14 @@ These variables should be set in your environment or `.env` file before starting
 - `.xml` - XML data
 - `.log` - Log files
 
-## � Encryption of Sensitive Dataset Fields
+### Media Formats
+- Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.tiff`, `.webp`, `.svg`
+- Audio: `.mp3`, `.wav`, `.flac`, `.aac`, `.ogg`, `.m4a`, `.wma`
+- Video: `.mp4`, `.avi`, `.mkv`, `.mov`, `.wmv`, `.flv`, `.webm`, `.m4v`
+
+The list is defined in `SecurityConfig.ALLOWED_FILE_EXTENSIONS` (`app/config/security.py`).
+
+## 🔐 Encryption of Sensitive Dataset Fields
 
 Dataset credentials (MySQL passwords, API tokens, PTX tokens, etc.) are encrypted at rest in MongoDB using **Fernet** (AES-128-CBC + HMAC-SHA256).
 
@@ -160,10 +200,22 @@ Existing plain-text values in the database are readable without any action. New 
 
 ---
 
-## �🔧 Configuration
+## 🔧 Configuration
 
 ### Environment Variables
 ```bash
+# JWT secret (required, min 32 chars) and optional dedicated encryption key
+JWT_SECRET_KEY=change-this-to-a-strong-random-secret-key-min-32-characters
+# FIELD_ENCRYPTION_KEY=
+
+# Security middleware
+SECURITY_ENABLED=true
+SECURITY_RATE_LIMIT=100
+SECURITY_TIME_WINDOW=60
+
+# Security log
+SECURITY_LOG_FILE=security.log
+SECURITY_LOG_LEVEL=INFO
 
 # Upload directory (optional, default: uploads)
 UPLOAD_DIR=uploads
@@ -179,28 +231,32 @@ DIRECTORY_WHITE_LIST=/opt/uploads,/opt/static
 ## 🔍 Monitoring and Logs
 
 ### Security Logs
-Security events are logged in `security.log`:
+Security events are logged by the `security` logger in `SECURITY_LOG_FILE` (default `security.log`, in the log directory, rotated with `SECURITY_LOG_MAX_SIZE` / `SECURITY_LOG_BACKUP_COUNT`):
 
 ```
-[SECURITY] 2024-01-01 12:00:00 - WARNING - PATH_TRAVERSAL_BLOCKED: ../../../etc/passwd from IP 192.168.1.100
-[SECURITY] 2024-01-01 12:01:00 - ERROR - SUSPICIOUS_PATTERN_DETECTED: Multiple path traversal attempts from IP 192.168.1.100
-[SECURITY] 2024-01-01 12:02:00 - CRITICAL - IP_BLOCKED: IP 192.168.1.100 blocked for 1 hour
+[SECURITY] 2026-01-01 12:00:00,000 - ERROR - SUSPICIOUS_PATTERN_DETECTED: Suspicious pattern in request from 192.168.1.100: /datasets/../../etc/passwd
+[SECURITY] 2026-01-01 12:01:00,000 - WARNING - RATE_LIMIT_EXCEEDED: ...
+[SECURITY] 2026-01-01 12:02:00,000 - WARNING - BLOCKED_IP_ACCESS: ...
 ```
 
 ### Monitored Event Types
-- `PATH_TRAVERSAL_BLOCKED` - Path traversal attempt
-- `SUSPICIOUS_PATTERN_DETECTED` - Suspicious pattern detected
-- `RATE_LIMIT_EXCEEDED` - Rate limit exceeded
+- `SUSPICIOUS_PATTERN_DETECTED` - Suspicious pattern (path traversal, encoded attack...) in URL, query or headers
+- `RATE_LIMIT_EXCEEDED` - Rate limit exceeded (IP is then blocked)
+- `BLOCKED_IP_ACCESS` - Request from a temporarily blocked IP
+- `LARGE_REQUEST_DETECTED` - Request body larger than allowed
 - `FILE_ACCESS` - File access
-- `UPLOAD_BLOCKED` - Upload blocked
+- `SUSPICIOUS_FILE_ACCESS_PATTERN` - Abnormal file access pattern from one IP
+- `REQUEST_ERROR` - Unhandled error while processing a request
 
 ## 🧪 Security Tests
 
 ### Running Tests
 ```bash
 cd backendApi
-python -m pytest tests/security/test_path_security.py -v
+python -m pytest tests/security -v
 ```
+
+Test files: `test_path_security.py`, `test_security_middleware.py`, `test_injection_validators.py` (plus `tests/models/interface/test_dataset_interface.py` for field encryption and `tests/utils/test_drupal_filter_converter.py` for API output filters).
 
 ### Tested Scenarios
 - ✅ Unix/Windows path traversal
@@ -209,6 +265,11 @@ python -m pytest tests/security/test_path_security.py -v
 - ✅ Unauthorized extensions
 - ✅ Excessive file sizes
 - ✅ Access outside authorized directories
+- ✅ Rate limiting, IP blocking and suspicious pattern detection (middleware)
+- ✅ SQL identifier injection, Elasticsearch wildcards and SSRF URLs
+- ✅ SQL injection through API output filter paths
+- ✅ Proxy header spoofing and false positives of the middleware patterns
+- ✅ Encryption of sensitive dataset fields at rest
 
 ## 🚀 Deployment Recommendations
 

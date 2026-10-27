@@ -22,7 +22,7 @@ class ExampleInput(InputNode):
         """
         super().__init__(id=id, data=data, revision=revision, status=status)    
 
-    def process(self,sample : False):
+    def process(self, sample: bool = False):
 
         df = pd.DataFrame([['De Pouille', 'Frénégonde',28], ['Fripouille', 'Jacquouille',32], ['De MontMiraille', 'Godefroy',36], ['Le purineur', 'Prosper',34]],
                   index=[1, 2, 3, 4],

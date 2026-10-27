@@ -13,9 +13,10 @@ DAAV enables you to:
 
 ## 🏗️ Technical Architecture
 
-- **Frontend**: Angular 17 with Ionic 8 components and Rete.js for workflow design
-- **Backend**: High-performance FastAPI with async support
-- **Database**: MongoDB 7.0 for scalable storage
+- **Frontend**: Angular 19 with Ionic 8 components and Rete.js 2 for workflow design
+- **Backend**: High-performance FastAPI with async support (served by Gunicorn + Uvicorn workers in Docker)
+- **Database**: MongoDB 7.0 (via Beanie ODM) for scalable storage
+- **Authentication**: JWT (access/refresh tokens), Argon2 password hashing, admin/user roles
 - **Workflow Engine**: Custom engine for data pipeline execution
 
 ## 🚀 Quick Installation
@@ -37,8 +38,10 @@ docker-compose up -d
 |---------|------|-------------|
 | Frontend | 8080 | Angular/Nginx user interface |
 | Backend | 8081 | FastAPI REST API |
-| MongoDB | 27017 | Database |
-| Mongo Express | 8083 | Database admin (optional) |
+| MongoDB | — | Database (internal Docker network only, port not published) |
+| Mongo Express | 8083 | Database admin (optional, `admin` profile) |
+
+> ⚠️ The default credentials in `docker-compose.yml` (MongoDB `admin/admin123`, `JWT_SECRET_KEY`) are for local use only — change them before any deployment.
 
 #### Useful Docker Commands
 ```bash
@@ -59,7 +62,7 @@ docker-compose up -d --build
 
 ### Option 2: Local Installation
 
-**Prerequisites**: Node.js 18+, Python 3.10+, MongoDB (optional)
+**Prerequisites**: Node.js 20 or 22 (Angular 19 also supports 18.19+), Python 3.10+ (the Docker image uses 3.13), a running MongoDB instance (required: users, datasets and workflows are stored in it)
 
 #### Frontend (Angular + Ionic)
 ```bash
@@ -78,9 +81,9 @@ cp .env.example .env  # Configure your variables
 uvicorn app.main:app --reload --port 8000
 ```
 
-On first launch the backend create a default admin user.
-Username: admin, Password: Admin123!
-Change this immediatly with frontend or API.
+On first launch (when no user exists) the backend creates a default admin user:
+Username: `admin`, Password: `Admin123!`.
+Change it immediately from the frontend or the API.
 
 **API Documentation**: http://localhost:8000/docs
 
@@ -103,19 +106,26 @@ daav/
 ├── backendApi/              # FastAPI backend application
 │   ├── app/                 # Application source code
 │   │   ├── main.py         # FastAPI entry point
+│   │   ├── config/         # Settings, database, logging, security config
 │   │   ├── core/           # Main workflow engine
-│   │   ├── models/         # Pydantic models
+│   │   ├── enums/          # Node status, connection types, user roles
+│   │   ├── middleware/     # Authentication & security middleware
+│   │   ├── models/         # Pydantic / Beanie models
+│   │   ├── nodes/          # Input, transform and output nodes
 │   │   ├── routes/         # API endpoints
-│   │   └── services/       # Business logic
+│   │   ├── services/       # Business logic
+│   │   └── utils/          # Helpers (security, encryption, auth...)
+│   ├── tests/               # Pytest test suite
 │   ├── requirements.txt     # Python dependencies
 │   └── .env.example        # Environment variables template
 ├── docker-compose.yml       # Docker configuration
+├── docker-start.sh          # Interactive Docker Compose helper
 └── docs/                    # Documentation
 ```
 
 ## ⚙️ Configuration
 
-Configuration is done via environment variables. Copy `.env.example` to `.env` in the `backendApi/` folder:
+Configuration is done via environment variables. Copy `.env.example` to `.env` in the `backendApi/` folder. Main variables:
 
 ```bash
 # MongoDB Configuration
@@ -125,6 +135,12 @@ DATABASE_NAME=daav_datasets
 # Server Configuration
 HOST=0.0.0.0
 PORT=8000
+CORS_ORIGINS=http://localhost:4200,http://localhost:8080
+
+# Authentication (JWT_SECRET_KEY must be at least 32 characters)
+JWT_SECRET_KEY=change-this-to-a-strong-random-secret-key-min-32-characters
+ALLOW_PUBLIC_REGISTRATION=false
+# FIELD_ENCRYPTION_KEY=   # Optional Fernet key for dataset credentials (derived from JWT_SECRET_KEY if omitted)
 
 # File Upload
 MAX_FILE_SIZE=100MB
@@ -133,6 +149,8 @@ UPLOAD_DIR=uploads
 # Logging
 LOG_LEVEL=INFO
 ```
+
+See [`backendApi/.env.example`](backendApi/.env.example) for the full list (SMTP for password reset, security middleware, security logs, domain whitelist...) and [docs/SECURITY.md](docs/SECURITY.md) for the security-related settings.
 
 ## 🧪 Unit Testing
 
@@ -157,17 +175,16 @@ pytest --cov=app --cov-report=html
 # Security tests
 pytest tests/security/test_path_security.py -v
 
-# API tests
-pytest tests/test_api.py -v
+# Service tests
+pytest tests/services/test_workflow_service.py -v
 ```
 
-**Run tests by category:**
+**Run tests by folder:**
 ```bash
-# Run only unit tests
-pytest -m unit
-
-# Run only integration tests
-pytest -m integration
+pytest tests/security    # Security
+pytest tests/services    # Services
+pytest tests/nodes       # Nodes and transforms
+pytest tests/core        # Workflow engine
 ```
 
 ### Test Coverage
@@ -176,7 +193,11 @@ The backend test suite includes comprehensive coverage of all critical functiona
 
 #### 🔒 Security Tests
 - **`test_path_security.py`**: Path traversal protection, dangerous pattern detection, Unix/Windows path attack prevention, null byte injection protection
-- **`test_security_middleware.py`**: Rate limiting enforcement, request validation, suspicious pattern detection, IP blocking
+- **`test_security_middleware.py`**: Rate limiting enforcement, request validation, suspicious pattern detection (and false positives), IP blocking, proxy header spoofing
+- **`test_injection_validators.py`**: SQL identifier validation (MySQL), Elasticsearch index wildcard rejection, SSRF protection on API/Elastic URLs
+
+#### 🗃️ Model Tests
+- **`test_dataset_interface.py`**: Encryption of sensitive dataset fields before persistence and plaintext restoration after write
 
 #### 🔧 Service Tests
 - **`test_user_service.py`**: User CRUD operations, permission management, resource ownership, password changes, duplicate username/email validation, admin enforcement, dataset/workflow sharing
@@ -199,26 +220,39 @@ The backend test suite includes comprehensive coverage of all critical functiona
 
 #### 🛠️ Utility Tests
 - **`test_utils.py`**: File size conversion, folder operations, pandas schema generation, data slicing, base64 decoding, file type detection, DataFrame filtering with DuckDB, route access verification
+- **`test_drupal_filter_converter.py`**: Drupal JSON:API filter conversion to parameterized DuckDB queries (IN / NOT IN, identifier quoting against SQL injection)
 
 ### Frontend Tests
 
+Frontend tests use Jasmine + Karma and run in headless Chrome (a local Chrome/Chromium install is required).
+
 ```bash
 cd frontendApp
-npm test
+npm test                      # watch mode
+npm test -- --watch=false     # single run (CI)
 ```
 
 **Run with coverage:**
 ```bash
-npm test -- --code-coverage
+npm test -- --watch=false --code-coverage
 ```
-### Test Coverage
-Work in progress
+
+### Frontend Test Coverage
+
+About 70 spec files cover:
+- **Workflow editor**: `core/workflow-editor`, `core/workflow-node-editor`, `nodes/node-block`
+- **Nodes**: every input, transform and output node (`nodes/inputs`, `nodes/transforms`, `nodes/outputs`)
+- **Components**: node rendering, sockets, connections, widgets, data mapper/filter, modals, dashboards, user profile
+- **Models & services**: dataset models (API, MongoDB, MySQL, PTX), dataset/workflow/loading services
 
 ## 📖 Documentation
 
 - [Docker Deployment Guide](DOCKER_DEPLOYMENT.md) - Advanced Docker configuration and troubleshooting
 - [Project Overview](docs/OVERVIEW.md) - Detailed technical architecture
 - [Plugin Development Guide](docs/PLUGGINS.md) - Create custom nodes for the platform
+- [Security Guide](docs/SECURITY.md) - Security measures, encryption and configuration
+- [Node User Guide](docs/README.md) - How to use each node in the workflow editor
+- [Design Document](docs/design-document.md) - Prometheus-X building block design document
 
 ## Contributing
 
@@ -235,7 +269,7 @@ Please ensure that your contributions align with the project's coding standards,
 
 ## License
 
-The Prometheus-X Daav is released under the [MIT License](LICENSE). You are free to use, modify, and distribute the software as per the terms specified in the license.
+The Prometheus-X Daav is released under the [MIT License](LICENSE.md). You are free to use, modify, and distribute the software as per the terms specified in the license.
 
 ## Support
 

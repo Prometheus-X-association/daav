@@ -9,14 +9,23 @@ Advanced Docker configuration and troubleshooting guide for DAAV.
 ### Backend
 The backend uses environment variables defined in docker-compose.yml.
 To customize, you can:
-1. Create a `.env` file in the `backendApi/` folder
-2. Copy and modify `.env.example`
+1. Edit the `environment:` section of the `backend` service in `docker-compose.yml` (these values take precedence)
+2. Or create a `.env` file in the `backendApi/` folder (copy and modify `.env.example`) for variables not set in `docker-compose.yml` (SMTP, ...) — it is loaded at runtime through the optional `env_file` entry (it is not copied into the image), so `docker-compose up -d backend` is enough to apply changes
+
+The backend image runs on `python:3.13-slim` with Gunicorn and `WORKERS` Uvicorn workers (default 4).
+
+**Before deploying to production**, change at least:
+- `JWT_SECRET_KEY` (min. 32 characters) — also used to derive the dataset credentials encryption key unless `FIELD_ENCRYPTION_KEY` is set (see [SECURITY.md](docs/SECURITY.md))
+- MongoDB credentials (`MONGO_INITDB_ROOT_*` and `MONGODB_URL`, plus Mongo Express settings if used)
+- `CORS_ORIGINS` (backend) and `CORS_ORIGIN` (frontend) to your public domain
+- `FRONTEND_URL` and the `SMTP_*` variables if password reset by email is needed
+- The default application admin password (`admin` / `Admin123!`), from the UI after first login
 
 ### Frontend
 The frontend uses different environment configurations:
 - **Development**: `environment.ts` → `http://127.0.0.1:8000`
 - **Production**: `environment.prod.ts` → `https://daav-back.ptx.profenpoche.com`  
-- **Docker**: `environment.docker.ts` → `/api` (proxied through Nginx)
+- **Docker**: `environment.docker.ts` → `/api` (proxied through Nginx, built with `--configuration=docker`)
 
 **Important**: When deployed with Docker Compose, the frontend uses Nginx as a reverse proxy to communicate with the backend. This solves the issue where external users cannot access `localhost:8081` from their browsers.
 
@@ -26,7 +35,11 @@ The frontend uses different environment configurations:
 3. Nginx proxies these calls to: `http://backend:8000/...`
 4. Backend responds through the proxy back to the user
 
-To customize the Nginx configuration, modify `frontendApp/nginx.conf`.
+To customize the Nginx configuration, modify `frontendApp/nginx.conf` (it is used as a template: `docker-entrypoint.sh` substitutes `${CORS_ORIGIN}` and `${API_URL}` into it at startup), then rebuild the frontend image.
+
+The backend proxied on `/api/` is set by the `API_URL` environment variable of the `frontend` service (default `http://backend:8000`, without trailing slash); changing it only requires recreating the container.
+
+Upload limits: Nginx accepts request bodies up to 1000 MB on `/api/` (100 MB elsewhere); the backend then enforces `MAX_FILE_SIZE` per file (default 100 MB) and rejects requests larger than 10 × `MAX_FILE_SIZE`.
 
 #### CORS configuration
 The allowed origin is injected at container startup via the `CORS_ORIGIN` environment variable in `docker-compose.yml`. No rebuild is needed to change it:
@@ -38,6 +51,8 @@ environment:
 ```
 
 For local development with Docker the default value `http://localhost:8080` is already set.
+
+The backend has its own CORS whitelist, set by `CORS_ORIGINS` (comma-separated) on the `backend` service. When the frontend is served through the Nginx proxy, API calls are same-origin; update `CORS_ORIGINS` only if browsers call the backend directly (port 8081).
 
 ## Persistent volumes
 
@@ -81,7 +96,7 @@ curl http://localhost:8081/health
 docker-compose logs -f backend
 
 # Test backend connectivity from frontend container
-docker-compose exec frontend curl http://backend:8000/health
+docker-compose exec frontend wget -qO- http://backend:8000/health
 ```
 
 #### 4. Frontend Build/Access Issues
@@ -142,8 +157,9 @@ docker-compose up -d
 # Check if requirements.txt is up to date
 docker-compose exec backend pip list
 
-# Check if package.json dependencies are installed
-docker-compose exec frontend npm list
+# The production frontend image only contains Nginx and the built app (no npm).
+# Rebuild it without cache to reinstall package.json dependencies
+docker-compose build --no-cache frontend
 ```
 
 ### Performance Issues
@@ -162,9 +178,11 @@ docker-compose logs backend | grep -E "(memory|CPU|performance)"
 # Increase workers in docker-compose.yml
 WORKERS: 8  # Increase from default 4
 
-# Restart backend service
-docker-compose restart backend
+# Recreate backend service to apply the new environment
+docker-compose up -d backend
 ```
+
+> Note: the security middleware rate limit (`SECURITY_RATE_LIMIT`) is kept in memory per worker.
 
 ### Data Recovery
 
@@ -182,13 +200,14 @@ docker run --rm -v daav_mongodb-data:/data -v $(pwd):/backup alpine tar xzf /bac
 
 ## Important Notes
 
-1. **Security**: Default passwords should be changed in production
+1. **Security**: Default passwords and secrets should be changed in production (see [Advanced Configuration](#advanced-configuration))
 2. **Persistence**: Docker volumes persist data between restarts
-3. **Network**: All services communicate via the `daav` Docker network
-4. **Monitoring**: The backend includes a health check to verify its status
+3. **Network**: All services communicate via the `daav` Docker network; MongoDB is not published on the host
+4. **Monitoring**: The backend exposes `GET /health`, used by the container health check
 
 ## 📖 Navigation
 
 - [← Back to main project](README.md)
 - [Technical overview](docs/OVERVIEW.md)
 - [Plugin development guide](docs/PLUGGINS.md)
+- [Security guide](docs/SECURITY.md)

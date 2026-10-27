@@ -202,9 +202,22 @@ async def executeChainService(
             detail="No valid credentials found in headers"
         )
 
+    service_chain_match = re.search(r"@supervisor:([a-f0-9]{24})", x_ptx_service_chain_id or "")
+    if not service_chain_match:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing or invalid x-ptx-service-chain-id header"
+        )
+    workflow_id = (payload.params or {}).get("workflowId")
+    if not workflow_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing workflowId in params"
+        )
+
     requestjson = await request.json()
-    service_chain_id = re.search(r"@supervisor:([a-f0-9]{24})", x_ptx_service_chain_id).group(1)
-    pdc_service.store_servicechain_data(
+    service_chain_id = service_chain_match.group(1)
+    await pdc_service.store_servicechain_data(
         service_chain_id=service_chain_id,
         data=payload.data
     )
@@ -213,12 +226,10 @@ async def executeChainService(
         x_ptx_service_chain_id=x_ptx_service_chain_id,
         x_ptx_target_id=x_ptx_target_id,
     )
-    logger.info(f"requestjson {pdc_service.get_servicechain_data(service_chain_id)}...")
 
     dataset_service.pdcChainData = payload.data
     print(requestjson)
     dataset_service.pdcChainHeaders = pdc_headers
-    workflow_id = payload.params["workflowId"] if "workflowId" in payload.params else "e492c405-300f-4bf3-967e-c3db614e18f6"
     workflow_data = await workflow_service.get_workflow(workflow_id)
     print(type(workflow_data))
     
@@ -238,15 +249,15 @@ async def executeChainService(
     return True
 
 @router.get("/serviceChain/data/{service_chain_id}")
-async def get_servicechain_data(service_chain_id: str):
+async def get_servicechain_data(service_chain_id: str, current_user: CurrentUser):
     """retrieve service chain data by its ID"""
-    return pdc_service.get_servicechain_data(service_chain_id)
+    return await pdc_service.get_servicechain_data(service_chain_id)
 
 
 @router.delete("/serviceChain/data/remove/{service_chain_id}")
-async def delete_service_chain_data(service_chain_id: str):
+async def delete_service_chain_data(service_chain_id: str, current_user: CurrentUser):
     """delete service chain data  in pdc_service"""
-    status =  pdc_service.delete_servicechain_data(service_chain_id)
+    status = await pdc_service.delete_servicechain_data(service_chain_id)
     if status:
         logger.info(f"{service_chain_id} deleted in pdc service")
         return True

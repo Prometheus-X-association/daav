@@ -45,6 +45,26 @@ class SecurityConfig:
     r'\.\.\\', # Relative up (Windows)
     ]
 
+    # Suspicious patterns in HTTP request URLs and headers (regex, case insensitive).
+    # Narrower than DANGEROUS_PATH_PATTERNS to avoid false positives on regular
+    # values (e.g. "doc:1", "ghosts", "http://")
+    SUSPICIOUS_REQUEST_PATTERNS = [
+    r'\.{2,}[/\\]',                  # Path traversal: ../ ..\
+    r'[/\\]\.{2,}$',                 # Path traversal: trailing /..
+    r'~/',                           # Home directory
+    r'/etc/',                        # Unix system
+    r'/proc/',                       # Unix system
+    r'/sys/',                        # Unix system
+    r'/var/',                        # Unix system
+    r'(^|[^a-z0-9])[a-z]:[/\\]',     # Windows drive (C:\ or C:/)
+    r'\\\\',                         # UNC paths
+    r'\$\{|\$\(',                    # Variable / command expansion
+    r'%2e%2e',                       # URL encoded ..
+    r'%252e',                        # Double URL encoded
+    r'%c0%af',                       # Unicode encoding attacks
+    r'[/\\](passwd|shadow|hosts)\b', # Sensitive system files
+    ]
+
     @classmethod
     def get_allowed_base_directories(cls) -> List[str]:
         """Returns the complete list of allowed directories including the dynamic upload folder."""

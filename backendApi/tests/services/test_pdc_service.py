@@ -16,6 +16,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.services.pdc_service import PdcService
+from app.models.interface.pdc_chain_interface import ServiceChainData, PdcChainRequestData
 from app.models.interface.pdc_interface import (
     PdcContract, 
     PdcEcosystem, 
@@ -410,10 +411,10 @@ async def test_store_servicechain_data(pdc_service_instance):
     service_chain_id = "chain_123"
     data = {"key": "value", "nested": {"data": "test"}}
     
-    result = pdc_service_instance.store_servicechain_data(service_chain_id, data)
+    result = await pdc_service_instance.store_servicechain_data(service_chain_id, data)
     
     assert result is True
-    assert service_chain_id in pdc_service_instance._servicechain_storage
+    assert await ServiceChainData.get(service_chain_id) is not None
 
 
 @pytest.mark.asyncio
@@ -422,8 +423,8 @@ async def test_get_servicechain_data(pdc_service_instance):
     service_chain_id = "chain_456"
     data = {"test": "data"}
     
-    pdc_service_instance.store_servicechain_data(service_chain_id, data)
-    result = pdc_service_instance.get_servicechain_data(service_chain_id)
+    await pdc_service_instance.store_servicechain_data(service_chain_id, data)
+    result = await pdc_service_instance.get_servicechain_data(service_chain_id)
     
     assert result is not None
     assert result["service_chain_id"] == service_chain_id
@@ -433,7 +434,7 @@ async def test_get_servicechain_data(pdc_service_instance):
 @pytest.mark.asyncio
 async def test_get_servicechain_data_not_found(pdc_service_instance):
     """Test retrieving non-existent service chain data"""
-    result = pdc_service_instance.get_servicechain_data("nonexistent_chain")
+    result = await pdc_service_instance.get_servicechain_data("nonexistent_chain")
     
     assert result is None
 
@@ -444,17 +445,17 @@ async def test_delete_servicechain_data(pdc_service_instance):
     service_chain_id = "chain_789"
     data = {"test": "data"}
     
-    pdc_service_instance.store_servicechain_data(service_chain_id, data)
-    result = pdc_service_instance.delete_servicechain_data(service_chain_id)
+    await pdc_service_instance.store_servicechain_data(service_chain_id, data)
+    result = await pdc_service_instance.delete_servicechain_data(service_chain_id)
     
     assert result is True
-    assert service_chain_id not in pdc_service_instance._servicechain_storage
+    assert await ServiceChainData.get(service_chain_id) is None
 
 
 @pytest.mark.asyncio
 async def test_delete_servicechain_data_not_found(pdc_service_instance):
     """Test deleting non-existent service chain data"""
-    result = pdc_service_instance.delete_servicechain_data("nonexistent_chain")
+    result = await pdc_service_instance.delete_servicechain_data("nonexistent_chain")
     
     assert result is False
 
@@ -466,11 +467,46 @@ async def test_servicechain_data_overwrite(pdc_service_instance):
     data1 = {"version": 1}
     data2 = {"version": 2}
     
-    pdc_service_instance.store_servicechain_data(service_chain_id, data1)
-    pdc_service_instance.store_servicechain_data(service_chain_id, data2)
+    await pdc_service_instance.store_servicechain_data(service_chain_id, data1)
+    await pdc_service_instance.store_servicechain_data(service_chain_id, data2)
     
-    result = pdc_service_instance.get_servicechain_data(service_chain_id)
+    result = await pdc_service_instance.get_servicechain_data(service_chain_id)
     assert result["data"]["version"] == 2
+
+
+@pytest.mark.asyncio
+async def test_servicechain_data_shared_between_instances(pdc_service_instance):
+    """Data stored by one worker must be readable by another (no per-process storage)"""
+    await pdc_service_instance.store_servicechain_data("chain_shared", {"value": 42})
+
+    # Simulate another worker process with its own PdcService instance
+    PdcService._instances = {}
+    other_worker = PdcService()
+    assert other_worker is not pdc_service_instance
+
+    result = await other_worker.get_servicechain_data("chain_shared")
+    assert result == {"service_chain_id": "chain_shared", "data": {"value": 42}}
+
+
+@pytest.mark.asyncio
+async def test_store_servicechain_data_pydantic_model(pdc_service_instance):
+    """Pydantic payloads are stored as plain JSON"""
+    data = PdcChainRequestData(origin={"source": "pdc"})
+
+    await pdc_service_instance.store_servicechain_data("chain_model", data)
+
+    result = await pdc_service_instance.get_servicechain_data("chain_model")
+    assert result["data"] == {"additionalData": None, "origin": {"source": "pdc"}}
+
+
+def test_servicechain_data_has_ttl_index():
+    """Service chain data not deleted by the frontend must expire"""
+    ttl_indexes = [
+        index.document for index in ServiceChainData.Settings.indexes
+        if "expireAfterSeconds" in index.document
+    ]
+    assert len(ttl_indexes) == 1
+    assert ttl_indexes[0]["key"] == {"created_at": 1}
 
 
 # ============================================
@@ -587,25 +623,25 @@ async def test_full_service_chain_workflow(pdc_service_instance):
     data = {"step": 1, "status": "active"}
     
     # Store
-    stored = pdc_service_instance.store_servicechain_data(service_chain_id, data)
+    stored = await pdc_service_instance.store_servicechain_data(service_chain_id, data)
     assert stored is True
     
     # Retrieve
-    retrieved = pdc_service_instance.get_servicechain_data(service_chain_id)
+    retrieved = await pdc_service_instance.get_servicechain_data(service_chain_id)
     assert retrieved["data"] == data
     
     # Update
     updated_data = {"step": 2, "status": "completed"}
-    pdc_service_instance.store_servicechain_data(service_chain_id, updated_data)
+    await pdc_service_instance.store_servicechain_data(service_chain_id, updated_data)
     
     # Verify update
-    updated = pdc_service_instance.get_servicechain_data(service_chain_id)
+    updated = await pdc_service_instance.get_servicechain_data(service_chain_id)
     assert updated["data"]["step"] == 2
     
     # Delete
-    deleted = pdc_service_instance.delete_servicechain_data(service_chain_id)
+    deleted = await pdc_service_instance.delete_servicechain_data(service_chain_id)
     assert deleted is True
     
     # Verify deletion
-    after_delete = pdc_service_instance.get_servicechain_data(service_chain_id)
+    after_delete = await pdc_service_instance.get_servicechain_data(service_chain_id)
     assert after_delete is None

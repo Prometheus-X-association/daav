@@ -6,6 +6,8 @@ from unittest.mock import Mock
 from app.nodes.transforms.example_transform import ExampleTransform
 from app.nodes.inputs.example_input import ExampleInput
 from app.enums.status_node import StatusNode
+from app.core.execution_context import ExecutionContext
+from app.services.dataset_service import DatasetService
 
 @pytest.mark.asyncio  
 async def test_execute_node_valid():
@@ -76,3 +78,34 @@ async def test_execute_node_with_inputs_error():
     assert child_node.status == StatusNode.Error
     assert child_node.statusMessage == "A parent node has an error status"
     assert parent_node.status == StatusNode.Error
+
+
+_seen_context = {}
+
+
+class ContextReadingTransform(ExampleTransform):
+    """Synchronous node recording the execution context seen by process()"""
+
+    def process(self, sample=False) -> StatusNode:
+        _seen_context["user"] = ExecutionContext.get_user()
+        _seen_context["chain_data"] = DatasetService().pdcChainData
+        return StatusNode.Valid
+
+
+@pytest.mark.asyncio
+async def test_sync_process_receives_execution_context():
+    """Sync process() runs in a thread but must still see the request context (user, PDC chain data)."""
+    user = Mock(username="context_user")
+    dataset_service = DatasetService()
+    ExecutionContext.set_user(user)
+    dataset_service.pdcChainData = {"chain": "data"}
+    try:
+        node = ContextReadingTransform(id="1", data={}, status=StatusNode.Complete)
+        result = await node._execute_process(False)
+    finally:
+        ExecutionContext.clear()
+        dataset_service.pdcChainData = None
+
+    assert result == StatusNode.Valid
+    assert _seen_context["user"] is user
+    assert _seen_context["chain_data"] == {"chain": "data"}

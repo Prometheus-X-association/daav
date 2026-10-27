@@ -3,6 +3,9 @@ Security middleware for the DAAV application.
 """
 import time
 import logging
+import re
+import ipaddress
+from urllib.parse import unquote
 from typing import Dict, Set
 from fastapi import Request, Response, HTTPException
 from fastapi.responses import JSONResponse
@@ -37,8 +40,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         self.blocked_ips: Dict[str, datetime] = {}
         
         # Suspicious patterns to monitor (imported from config)
-        self.suspicious_patterns = list(SecurityConfig.DANGEROUS_PATH_PATTERNS) + [
-            'passwd', 'shadow', 'hosts'
+        self.suspicious_patterns = [
+            re.compile(pattern, re.IGNORECASE)
+            for pattern in SecurityConfig.SUSPICIOUS_REQUEST_PATTERNS
         ]
     
     async def dispatch(self, request: Request, call_next):
@@ -119,17 +123,36 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             raise
     
     def _get_client_ip(self, request: Request) -> str:
-        """Get client IP."""
-        # Check proxy headers
-        forwarded_for = request.headers.get("X-Forwarded-For")
-        if forwarded_for:
-            return forwarded_for.split(",")[0].strip()
-        
+        """Get client IP.
+
+        Proxy headers are only trusted when the request comes from a local or
+        private address (e.g. the Nginx container), otherwise any client could
+        spoof them to bypass rate limiting.
+        """
+        peer_ip = request.client.host if request.client else "unknown"
+        if not self._is_trusted_proxy(peer_ip):
+            return peer_ip
+
+        # Nginx overwrites X-Real-IP with the address it received the request from
         real_ip = request.headers.get("X-Real-IP")
         if real_ip:
-            return real_ip
-        
-        return request.client.host if request.client else "unknown"
+            return real_ip.strip()
+
+        # The last X-Forwarded-For entry is the one added by the trusted proxy
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            return forwarded_for.split(",")[-1].strip()
+
+        return peer_ip
+
+    @staticmethod
+    def _is_trusted_proxy(ip: str) -> bool:
+        """Check if the direct peer is a local or private address."""
+        try:
+            address = ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        return address.is_loopback or address.is_private
     
     def _check_rate_limit(self, ip: str) -> bool:
         """Check rate limiting."""
@@ -163,21 +186,19 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     
     def _detect_suspicious_patterns(self, request: Request) -> bool:
         """Detect suspicious patterns in request."""
-        # Check URL
-        url_path = str(request.url.path).lower()
-        query_params = str(request.url.query).lower()
-        
-        # Check suspicious patterns
-        for pattern in self.suspicious_patterns:
-            if pattern.lower() in url_path or pattern.lower() in query_params:
-                return True
-        
-        # Check suspicious headers
-        for header, value in request.headers.items():
-            if any(pattern.lower() in value.lower() for pattern in self.suspicious_patterns):
-                return True
-        
-        return False
+        # Check URL, raw and decoded to catch encoded attacks
+        url_path = str(request.url.path)
+        query_params = str(request.url.query)
+        values = [url_path, unquote(url_path), query_params, unquote(query_params)]
+
+        # Check headers
+        values.extend(request.headers.values())
+
+        return any(
+            pattern.search(value)
+            for value in values
+            for pattern in self.suspicious_patterns
+        )
     
     def _check_request_size(self, request: Request) -> bool:
         """Check request size."""

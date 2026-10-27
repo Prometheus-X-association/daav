@@ -12,7 +12,7 @@ The DAAV building block purpose is to setup **data manipulation pipeline** to cr
 
 The project is divided in two modules :
 
-- The front-end  offers a user interface to connect various data sources (Prometheus Data Connector, databases, files, API), visualize them and manipulate them (alignment, aggregation and vectorisation). The data manipulation use a **visual programming system** to create data manipulation pipelines by connecting blocks. Basic roles / organisations / users managment is available.
+- The front-end  offers a user interface to connect various data sources (Prometheus Data Connector, databases, files, API), visualize them and manipulate them (alignment, aggregation and vectorisation). The data manipulation use a **visual programming system** to create data manipulation pipelines by connecting blocks. Basic roles (admin / user) and users managment is available, with sharing of datasets and workflows between users.
 - The back-end provides API to manage front-end actions, to execute the data manipulation and to expose data.
 
 Blocks are divided in three groups :
@@ -301,28 +301,36 @@ stateDiagram-v2
 Various configuration example :
 
 ```html
-**.env file :** 
-MONGO_URI = ''
-SQL_HOST = ''
-
-LOG_FILE = "logs/log.txt"
+**backend .env file (backendApi/.env, template in backendApi/.env.example) :** 
+MONGODB_URL=mongodb://localhost:27017
+DATABASE_NAME=daav_datasets
+JWT_SECRET_KEY=...            # min 32 chars, CHANGE IN PRODUCTION
+FIELD_ENCRYPTION_KEY=         # optional Fernet key, derived from JWT_SECRET_KEY if empty
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=90
+ALLOW_PUBLIC_REGISTRATION=false
+CORS_ORIGINS=http://localhost:4200,http://localhost:8080
+SECURITY_ENABLED=true
+SECURITY_RATE_LIMIT=100
+SECURITY_TIME_WINDOW=60
+DOMAIN_WHITELIST=
+UPLOAD_DIR=uploads
+MAX_FILE_SIZE=100MB
+SMTP_HOST=... / SMTP_PORT=... / FRONTEND_URL=...   # password reset emails
+LOG_LEVEL=INFO
+LOG_FILE=/app/logs/app.log
 ...
 
-**secrets folder (openssl password generated) :** 
-- secrets/db_root_password 
-- secrets/elasticsearch_admin
+**docker-compose.yml :** 
+- the backend service environment overrides the .env values (MONGODB_URL, JWT_SECRET_KEY, CORS_ORIGINS, ...)
+- WORKERS : number of gunicorn/uvicorn workers (default 4)
 
-**angular environments :** 
+**angular environments (frontendApp/src/environments/) :** 
 - production: true / false
-- version : X.X
+- backendUrl : "http://127.0.0.1:8000" (dev) / "/api" (docker, proxied by nginx)
 
-**python fast api backend config.ini :**
-[dev]
-DEBUG=True/False
-
-[edge]
-master:True/False
-cluster=014
+**python fast api backend config.ini (legacy) :**
+If app/config.ini exists at startup, its datasets and workflows are migrated into MongoDB and assigned to the admin user.
 ```
 
 *What are the limits in terms of usage (e.g. number of requests, size of dataset, etc.)?*
@@ -346,7 +354,7 @@ cluster=014
 
 All nodes have a front-end implementation where the user can setup its configuration and a back-end implementation to execute the process.
 
-All nodes inherit from the abstract class Nodeblock.
+All nodes inherit from the abstract class NodeBlock (front-end) / Node (back-end).
 
 We identify shared functionalities like :
 
@@ -358,7 +366,7 @@ We identify shared functionalities like :
 
 **Inputs Node  :**
 
-All input nodes inherit from InputDataBlock :
+All input nodes inherit from InputDataBlock (front-end) / InputNode (back-end) :
 
 We identify shared functionalities like :
 
@@ -366,6 +374,8 @@ We identify shared functionalities like :
 - Back-end : An abstract test connection function.
 
 We need one class of input Node for each data-source format (Local file, MySQL, Mongo , API, ...)
+
+Currently available input nodes : DataFileBlock, DataMysqlBlock, DataMongoBlock, ServiceChainInput (API, Elasticsearch and LRS input nodes are not yet available in the workflow editor).
 
 For the front-end a factory deduces the correct input instance according to the given source connector sent in parameter.
 
@@ -394,9 +404,11 @@ The purpose of this is too reduce memory footprint at the chain start.
 
 **Outputs Node  :**
 
-All output nodes inherit from OutputDataBlock.
+All output nodes inherit from OutputDataBlock (front-end) / OutputNode (back-end).
 
 We need one class of output Node for each format handle by the BB.
+
+Currently available output nodes : FileOutput (CSV, JSON, XML, Parquet), MysqlOutput, MongoOutput, ApiOutput (exposed on `/api/{url}`), PdcOutput (exposed on `/output/{url}`), ServiceChainOutput.
 
 Each output block specifies the inputs it can process.
 
@@ -428,7 +440,9 @@ Like this each node  can recursively execute the chain.
 
 **Transform Node  :**
 
-All nodes called upon to manipulate data inherit from the transformation node.
+All nodes called upon to manipulate data inherit from the transformation node (TransformBlock front-end / TransformNode back-end).
+
+Currently available transform nodes : FilterTransform, FlattenTransform, MergeTransform (maps columns of several inputs to target columns).
 
 Transform node can dynamically add input or output based on data manipulated and use widgets to expose parameters for the user.
 
@@ -456,23 +470,27 @@ By keeping track of the last revision of the root of a front-end and back-end ca
 
 ## OpenAPI Specification
 
-The back-end will expose a swagger OpenAPI description.
+The back-end exposes a swagger OpenAPI description (`/docs`, `/openapi.json`).
 
 For all entity describes we will follow a REST API (Create / Update / Delete).
 
-- User entity  represent the end user
-- Credential entity represent Auth system linked to user.
-- DataConnector represent data-source location
-- Project entity represent end user workflow
+- User entity  represent the end user : `/auth` (register, login, refresh, forgot/reset password, `me`, admin-only `users` management and activate/deactivate, `share` / `unshare`)
+- Credential entity represent Auth system linked to user : JWT bearer tokens for the UI, and M2M credentials stored in the user configuration (`PUT /auth/me/config`)
+- DataConnector represent data-source location : `/datasets` (dataset types : file, mysql, mongo, elastic, api, ptx)
+- Project entity represent end user workflow : `/workflows`
+
+All these routes require a JWT bearer token (`Authorization: Bearer <access_token>`), except login / refresh / password reset ; register is admin-only unless `ALLOW_PUBLIC_REGISTRATION=true`.
 
 API output data blocks (GET)
 
-- Expose data from all output data blocks defined.
+- Expose data from output data blocks : `GET /api/{url}` and `GET /api/workflow/{id}` for ApiOutput (node token as bearer token, or domain whitelist), `GET /output/{url}` and `GET /output/workflow/{id}` for PdcOutput (M2M credentials of the workflow owner).
+
+Prometheus-X routes are under `/ptx` (catalog, data resources, contracts, data exchanges with JWT ; `executeChainService` and `pdcInput` called by the PDC with M2M credentials).
 
 And around the project all business action  :
 
-- Execute a workflow
-- Execute a node
+- Execute a workflow : `POST /workflows/execute/{id}` (stored workflow) or `POST /workflows/execute` (workflow JSON)
+- Execute a node : `POST /workflows/execute_node/{id}/{node_id}` or `POST /workflows/execute_node/{node_id}` (sample mode)
 - Get input / output data schemes from a node
 - Get input / output data example from a node
 - ...
@@ -494,7 +512,7 @@ To reproduce (manual) tests, you need to deploy DAAV using Docker or local insta
 
 Before testing DAAV, ensure you have:
 - Docker and Docker Compose installed (recommended), OR
-- Node.js 18+, Python 3.10+, MongoDB for local installation
+- Node.js 20 or 22 (Angular 19 also supports 18.19+), Python 3.10+ (the Docker image uses 3.13), MongoDB 7 for local installation
 - Web browser (Chrome, Firefox, Edge, or Safari)
 
 ### Running Instructions (Docker - Recommended)
@@ -516,7 +534,7 @@ docker-compose up -d
    - **Frontend**: http://localhost:8080
    - **Backend API**: http://localhost:8081
    - **API Documentation**: http://localhost:8081/docs
-   - **MongoDB**: mongodb://admin:admin123@localhost:27017
+   - **MongoDB**: not published on the host; reachable from the containers at mongodb://admin:admin123@mongodb:27017 (optional Mongo Express UI on http://localhost:8083 with `docker-compose --profile admin up -d`)
 
 ### Default Credentials
 
@@ -557,109 +575,109 @@ Tests to validate functional requirements and mitigate potential risks identifie
 | SYS-001 | Backend API health check | DAAV backend deployed and accessible | GET `/health` - Verify HTTP 200, JSON response with status, app_name, version | ✅ Manual test | Test Case 0 |
 | SYS-002 | API documentation accessibility | Backend running | Navigate to `/docs` - Verify Swagger UI loads with all endpoints | ✅ Manual test | Test Case 1 |
 | **Authentication & User Management** ||||||
-| AUTH-001 | User registration with valid credentials | Application is running. No existing user with same username/email | Username: `testuser`, Email: `testuser@example.com`, Password: `TestPass123!`, Full Name: `Test User` - Verify account created, can login | ✅ Unit tests | test_auth_service.py, test_user_service.py |
+| AUTH-001 | User registration with valid credentials | Application is running. No existing user with same username/email. Admin logged in (or `ALLOW_PUBLIC_REGISTRATION=true`) | POST `/auth/register` - Username: `testuser`, Email: `testuser@example.com`, Password: `TestPass123!`, Full Name: `Test User` - Verify account created, can login | ✅ Unit tests | test_user_service.py |
 | AUTH-002 | User login with valid credentials | User account exists (username `admin`, password `Admin123!`) | Login with valid credentials - Verify access_token and refresh_token returned | ✅ Both (manual + unit) | Test Case 2, test_auth_service.py |
 | AUTH-003 | User login with invalid credentials | Application is running | Login with username `admin`, password `wrongpassword` - Verify HTTP 401, error message | ✅ Unit tests | test_auth_service.py |
 | AUTH-004 | Password reset flow | User exists with email, email service configured | Request password reset for `testuser@example.com` - Verify reset token generated | ⚠️ Partial (unit only) | test_auth_service.py, test_email_service.py |
-| AUTH-005 | Change password for authenticated user | User is logged in with valid access token | Change from `Admin123!` to `NewAdmin123!` - Verify new password works, old doesn't | ✅ Unit tests | test_auth_service.py |
+| AUTH-005 | Change password for authenticated user | User is logged in with valid access token | Change from `Admin123!` to `NewAdmin123!` - Verify new password works, old doesn't | ✅ Unit tests | test_user_service.py |
 | AUTH-006 | Token refresh using valid refresh token | User has valid refresh token | Use refresh token - Verify new access and refresh tokens generated | ✅ Unit tests | test_auth_service.py |
 | AUTH-007 | Access protected resource without authentication | Application is running | Request to `/auth/me` without Authorization header - Verify HTTP 401 | ✅ Unit tests | test_auth_service.py |
 | AUTH-008 | Admin creates new user | Admin user is logged in | Create user: username `newuser`, email `newuser@example.com`, role `user` - Verify user created | ✅ Unit tests | test_user_service.py |
-| AUTH-009 | Admin deactivates user account | Admin logged in, target user exists and is active | Deactivate user by ID - Verify user cannot login, data preserved | ✅ Unit tests | test_user_service.py |
-| AUTH-010 | Admin activates deactivated user | Admin logged in, target user exists and is deactivated | Activate user by ID - Verify user can login again | ✅ Unit tests | test_user_service.py |
-| AUTH-011 | Non-admin attempts admin operation | Regular user is logged in (not admin) | Attempt to create user as non-admin - Verify HTTP 403, operation denied | ✅ Unit tests | test_auth_service.py |
+| AUTH-009 | Admin deactivates user account | Admin logged in, target user exists and is active | Deactivate user by ID - Verify user cannot login, data preserved | ⚠️ Partial (unit only) | test_auth_service.py (inactive account login rejected) |
+| AUTH-010 | Admin activates deactivated user | Admin logged in, target user exists and is deactivated | Activate user by ID - Verify user can login again | ⚠️ No automated test | — |
+| AUTH-011 | Non-admin attempts admin operation | Regular user is logged in (not admin) | Attempt to create user as non-admin - Verify HTTP 403, operation denied | ✅ Unit tests | test_auth_service.py, test_user_service.py |
 | **Dataset Management** ||||||
 | DATA-001 | Create file dataset (CSV/JSON) | User authenticated, file exists | Name: `test-dataset`, Type: `file`, File: `sample.csv` or `data.json` - Verify dataset created, appears in list, structure preserved | ✅ Both (manual + unit) | Test Case 3, test_dataset_service.py |
-| DATA-003 | Create file dataset (Parquet) | User authenticated, Parquet file exists | Name: `parquet-dataset`, Type: `file`, File: `data.parquet` - Verify schema readable | ✅ Unit tests | test_dataset_service.py |
-| DATA-004 | Create MySQL dataset connection | User authenticated, MySQL database accessible | Name: `mysql-dataset`, Host: `db.example.com`, Port: 3306, Database: `testdb`, Table: `users` - Verify connection created, credentials encrypted | ✅ Unit tests | test_dataset_service.py |
-| DATA-005 | Create MongoDB dataset connection | User authenticated, MongoDB accessible | Name: `mongo-dataset`, URI: `mongodb://localhost:27017`, Database: `testdb`, Collection: `users` - Verify connection successful | ✅ Unit tests | test_dataset_service.py |
-| DATA-006 | Create API dataset connection | User authenticated, External API accessible | Name: `api-dataset`, URL: `https://api.example.com/data`, Method: GET, Headers with auth - Verify API callable | ✅ Unit tests | test_dataset_service.py |
-| DATA-007 | Create Elasticsearch dataset | User authenticated, Elasticsearch accessible | Name: `elastic-dataset`, URL: `http://localhost:9200`, Index: `test-index` - Verify index queryable | ✅ Unit tests | test_dataset_service.py |
-| DATA-008 | Create PTX dataset connection | User authenticated, PDC accessible | Name: `ptx-dataset`, Type: `ptx`, PDC URL, Bearer token - Verify catalog retrievable | ✅ Unit tests | test_dataset_service.py, test_pdc_service.py |
-| DATA-009 | Upload file through API | User authenticated, file size within limits | Upload `upload.csv` (< 100MB), Folder: `datasets` - Verify file uploaded, path returned, user isolated | ✅ Unit tests | test_dataset_service.py |
-| DATA-010 | Upload file exceeding size limit | User authenticated | Upload file > 100MB - Verify HTTP 413, appropriate error message | ✅ Unit tests | test_dataset_service.py |
+| DATA-003 | Create file dataset (Parquet) | User authenticated, Parquet file exists | Name: `parquet-dataset`, Type: `file`, File: `data.parquet` - Verify schema readable | ⚠️ No automated test | — |
+| DATA-004 | Create MySQL dataset connection | User authenticated, MySQL database accessible | Name: `mysql-dataset`, Host: `db.example.com`, User, Password, Database: `testdb`, Table: `users` - Verify connection created, credentials encrypted | ✅ Unit tests | test_dataset_service.py, test_dataset_interface.py |
+| DATA-005 | Create MongoDB dataset connection | User authenticated, MongoDB accessible | Name: `mongo-dataset`, URI: `mongodb://localhost:27017`, Database: `testdb`, Collection: `users` - Verify connection successful | ⚠️ No automated test | — |
+| DATA-006 | Create API dataset connection | User authenticated, External API accessible | Name: `api-dataset`, URL: `https://api.example.com/data`, Authorization method: none / bearer / OAuth2 - Verify API callable | ⚠️ Partial (unit only) | test_injection_validators.py (URL / SSRF validation) |
+| DATA-007 | Create Elasticsearch dataset | User authenticated, Elasticsearch accessible | Name: `elastic-dataset`, URL: `http://localhost:9200`, Index: `test-index` - Verify index queryable | ⚠️ Partial (unit only) | test_injection_validators.py (URL / index validation) |
+| DATA-008 | Create PTX dataset connection | User authenticated, PDC accessible | Name: `ptx-dataset`, Type: `ptx`, PDC URL, Service key, Secret key - Verify catalog retrievable | ✅ Unit tests | test_dataset_service.py, test_pdc_service.py |
+| DATA-009 | Upload file through API | User authenticated, file size within limits | POST `/datasets/uploadFile` - Upload `upload.csv` (< 100MB), Folder: `datasets` - Verify file uploaded, path returned, user isolated | ⚠️ Partial (unit only) | test_path_security.py (filename / path validation) |
+| DATA-010 | Upload file exceeding size limit | User authenticated | Upload file > 100MB (`MAX_FILE_SIZE`) - Verify HTTP 413, appropriate error message | ⚠️ No automated test | — |
 | DATA-011 | Retrieve dataset content | User authenticated, dataset exists, user has access | Dataset ID, Pagination: page 1, limit 100 - Verify content returned, pagination works | ✅ Both (manual + unit) | Test Case 4, test_dataset_service.py |
 | DATA-012 | Edit dataset configuration | User authenticated, user owns dataset | Dataset ID, New name: `updated-dataset` - Verify changes persisted | ✅ Unit tests | test_dataset_service.py |
 | DATA-013 | Delete dataset | User authenticated, user owns dataset | Dataset ID - Verify deleted, no longer in list, files cleaned up | ✅ Unit tests | test_dataset_service.py |
-| DATA-014 | Access dataset without permission | User authenticated, dataset belongs to another user | Attempt to access other user's dataset - Verify HTTP 403, access denied | ✅ Unit tests | test_dataset_service.py |
-| DATA-015 | Share dataset with another user | User owns dataset, target user exists | Dataset ID, Target User ID, Permission: `read` - Verify share successful, target can access | ✅ Unit tests | test_dataset_service.py |
-| DATA-016 | Unshare dataset | Dataset is shared, user is owner | Dataset ID, Target User ID - Verify share removed, target loses access | ✅ Unit tests | test_dataset_service.py |
+| DATA-014 | Access dataset without permission | User authenticated, dataset belongs to another user | Attempt to access other user's dataset - Verify HTTP 403, access denied | ✅ Unit tests | test_user_service.py |
+| DATA-015 | Share dataset with another user | User owns dataset, target user exists | POST `/auth/share` - Resource ID, Target User ID, Resource type: `dataset` - Verify share successful, target can access | ✅ Unit tests | test_user_service.py |
+| DATA-016 | Unshare dataset | Dataset is shared, user is owner | POST `/auth/unshare` - Resource ID, Target User ID, Resource type: `dataset` - Verify share removed, target loses access | ✅ Unit tests | test_user_service.py |
 | **Workflow Creation & Management** ||||||
 | WF-001 | Create empty workflow | User authenticated | Name: `test-workflow`, Revision: `1.0`, Schema: empty - Verify workflow ID returned, appears in list | ✅ Both (manual + unit) | Test Case 6, test_workflow_service.py |
 | WF-002 | Create workflow with single input node | User authenticated, dataset exists | Name: `simple-workflow`, Nodes: DataFileBlock, Dataset ID - Verify node configured correctly | ✅ Both (manual + unit) | Test Case 5, 6, test_workflow_service.py |
-| WF-003 | Create workflow with input-transform-output chain | User authenticated, dataset exists | Nodes: DataFileBlock → FilterTransform → FileOutput - Verify all connected, executable | ✅ Unit tests | test_workflow_service.py |
-| WF-004 | Save workflow with complex transformations | User authenticated, multiple datasets exist | Workflow with 10+ nodes (Filter, Flatten, Merge, Join) - Verify all configs preserved | ✅ Unit tests | test_workflow_service.py |
+| WF-003 | Create workflow with input-transform-output chain | User authenticated, dataset exists | Nodes: DataFileBlock → FilterTransform → FileOutput - Verify all connected, executable | ✅ Unit tests | test_workflow.py |
+| WF-004 | Save workflow with complex transformations | User authenticated, multiple datasets exist | Workflow with 10+ nodes (Filter, Flatten, Merge) - Verify all configs preserved | ✅ Unit tests | test_workflow_service.py |
 | WF-005 | Update existing workflow | User authenticated, workflow exists, user owns it | Workflow ID, updated schema with new nodes - Verify updated, revision tracked | ✅ Unit tests | test_workflow_service.py |
-| WF-006 | Delete workflow | User authenticated, user owns workflow | Workflow ID - Verify deleted, no longer in list, outputs cleaned | ✅ Unit tests | test_workflow_service.py |
+| WF-006 | Delete workflow | User authenticated, user owns workflow | Workflow ID - Verify deleted, no longer in list, ownership removed | ✅ Unit tests | test_workflow_service.py |
 | WF-007 | Retrieve workflow by ID | User authenticated, user has access | Workflow ID - Verify data returned, schema complete | ✅ Unit tests | test_workflow_service.py |
 | WF-008 | List all user workflows | User authenticated, user has workflows | User access token - Verify only accessible workflows shown | ✅ Unit tests | test_workflow_service.py |
-| WF-009 | Export workflow as JSON | Workflow exists, user has access | Workflow ID - Verify complete JSON returned, all nodes and connections | ✅ Unit tests | test_workflow_service.py |
-| WF-010 | Import workflow from JSON | User authenticated, valid JSON provided | Valid workflow JSON - Verify imported, new ID assigned, nodes restored | ✅ Unit tests | test_workflow_service.py |
+| WF-009 | Export workflow as JSON | Workflow exists, user has access | Workflow ID - Verify complete JSON returned, all nodes and connections | ✅ Unit tests | test_workflow.py |
+| WF-010 | Import workflow from JSON | User authenticated, valid JSON provided | Valid workflow JSON - Verify imported, new ID assigned, nodes restored | ✅ Unit tests | test_workflow.py, test_workflow_service.py |
 | **Workflow Execution** ||||||
 | EXEC-001 | Execute simple workflow (CSV → File) | Valid workflow with CSV input and file output | Workflow ID - Verify executes, output file created, transformation correct | ✅ Both (manual + unit) | Test Case 7, test_workflow.py, test_node.py |
 | EXEC-002 | Execute workflow with filter transformation | Workflow with filter node, input data available | Workflow ID, Filter: `age > 18` - Verify only filtered records in output | ✅ Unit tests | test_filter_transform.py |
 | EXEC-003 | Execute workflow with flatten transformation | Workflow with nested JSON input, flatten node | Workflow ID, nested JSON data - Verify nested structures flattened | ✅ Unit tests | test_flatten_transform.py |
-| EXEC-004 | Execute workflow with merge transformation | Workflow merges two datasets, both available | Workflow ID, Dataset A + B, Merge key: `id` - Verify merged correctly | ✅ Unit tests | test_merge_transform.py |
-| EXEC-005 | Execute workflow with join transformation | Workflow joins two datasets, join configured | Workflow ID, Left join on `user_id` - Verify join correct, null handling ok | ✅ Unit tests | test_workflow.py |
+| EXEC-004 | Execute workflow with merge transformation | Workflow merges two datasets, both available | Workflow ID, Dataset A + B, column mapping to target columns - Verify mapped columns merged correctly | ✅ Unit tests | test_merge_transform.py |
+| EXEC-005 | Execute workflow with join transformation | Workflow joins two datasets, join configured | Workflow ID, Left join on `user_id` - Verify join correct, null handling ok | ⚠️ Not implemented (no key-based join node) | — |
 | EXEC-006 | Execute workflow with multiple transformations | Complex workflow with 5+ transform nodes | Workflow ID - Verify all execute in order, data flows correctly | ✅ Unit tests | test_workflow.py, test_execution_context.py |
-| EXEC-007 | Execute workflow with MySQL output | Workflow outputs to MySQL table, DB accessible | Workflow ID, Target table: `results` - Verify data written, table created if needed | ✅ Unit tests | test_node.py |
-| EXEC-008 | Execute workflow with MongoDB output | Workflow outputs to MongoDB, DB accessible | Workflow ID, Collection: `results` - Verify data written, documents structured | ✅ Unit tests | test_node.py |
-| EXEC-009 | Execute workflow with API output | Workflow configured with custom API endpoint | Workflow ID, API URL: `/api/custom-path` - Verify endpoint exposed, returns results | ✅ Unit tests | test_workflow.py |
-| EXEC-010 | Execute incomplete workflow | Workflow has disconnected nodes, incomplete config | Incomplete workflow ID - Verify fails gracefully, error indicates missing connections | ✅ Unit tests | test_workflow.py |
-| EXEC-011 | Execute workflow with invalid data | Workflow expects specific schema, input doesn't match | Workflow ID, invalid input - Verify validation error, schema mismatch indicated | ✅ Unit tests | test_node.py |
+| EXEC-007 | Execute workflow with MySQL output | Workflow outputs to MySQL table, DB accessible | Workflow ID, Target table: `results` - Verify data written, table created if needed | ⚠️ No automated test | — |
+| EXEC-008 | Execute workflow with MongoDB output | Workflow outputs to MongoDB, DB accessible | Workflow ID, Collection: `results` - Verify data written, documents structured | ⚠️ No automated test | — |
+| EXEC-009 | Execute workflow with API output | Workflow configured with ApiOutput node | Workflow ID, URL: `custom-path` - Verify endpoint `/api/custom-path` exposed, returns results | ⚠️ No automated test | — |
+| EXEC-010 | Execute incomplete workflow | Workflow has disconnected nodes, incomplete config | Incomplete workflow ID - Verify fails gracefully, error indicates missing connections | ✅ Unit tests | test_node.py |
+| EXEC-011 | Execute workflow with invalid data | Workflow expects specific schema, input doesn't match | Workflow ID, invalid input - Verify validation error, schema mismatch indicated | ✅ Unit tests | test_node.py, test_filter_transform.py, test_flatten_transform.py, test_merge_transform.py |
 | EXEC-012 | Execute workflow recursively (dependencies) | Workflow with dependent nodes, parents incomplete | Execute specific node - Verify parents execute first, dependencies resolved | ✅ Unit tests | test_workflow.py, test_execution_context.py |
 | **API Endpoints & Data Exposure** ||||||
-| API-001 | Access custom API endpoint | Workflow with ApiOutput, custom path configured | GET `/api/custom-path` - Verify data returned, workflow executed if needed | ✅ Unit tests | test_workflow.py |
-| API-002 | Access API endpoint with authentication token | ApiOutput configured with token auth | GET `/api/secure-path`, Header: `X-API-Key: <token>` - Verify auth works, invalid rejected | ✅ Unit tests | test_workflow.py |
-| API-003 | Access API endpoint with query filters | ApiOutput endpoint exposed, data available | GET `/api/data?filter[age][operator]=>&filter[age][value]=18` - Verify filtered data returned | ✅ Unit tests | test_workflow.py |
-| API-004 | Access workflow output by workflow ID | Workflow executed, output generated | GET `/api/workflow/<id>`, with auth - Verify latest execution results returned | ✅ Unit tests | test_workflow.py |
-| API-005 | Access non-existent API endpoint | No workflow configured for path | GET `/api/non-existent` - Verify HTTP 404, appropriate error | ✅ Unit tests | test_workflow.py |
-| API-006 | Execute and retrieve workflow via API | Valid workflow exists | POST `/workflows/execute/<id>` - Verify executes, results available | ✅ Unit tests | test_workflow_service.py |
+| API-001 | Access custom API endpoint | Workflow with ApiOutput, custom path configured | GET `/api/custom-path` - Verify data returned, workflow executed if needed | ⚠️ No automated test | — |
+| API-002 | Access API endpoint with authentication token | ApiOutput configured with token | GET `/api/secure-path`, Header: `Authorization: Bearer <token>` - Verify auth works, invalid rejected (HTTP 403) | ✅ Unit tests | test_utils.py (verify_route_access) |
+| API-003 | Access API endpoint with query filters | ApiOutput endpoint exposed, data available | GET `/api/data?filter[f][condition][path]=age&filter[f][condition][operator]=%3E&filter[f][condition][value]=18` (Drupal JSON:API syntax) - Verify filtered data returned | ⚠️ Partial (unit only) | test_utils.py (filter_data_with_duckdb), test_drupal_filter_converter.py |
+| API-004 | Access workflow output by workflow ID | Workflow executed, output generated | GET `/api/workflow/<id>`, with auth - Verify latest execution results returned | ⚠️ No automated test | — |
+| API-005 | Access non-existent API endpoint | No workflow configured for path | GET `/api/non-existent` - Verify HTTP 404, appropriate error | ⚠️ No automated test | — |
+| API-006 | Execute and retrieve workflow via API | Valid workflow exists | POST `/workflows/execute/<id>` - Verify executes, results available | ✅ Unit tests | test_workflow.py |
 | **Prometheus-X Integration (PTX)** ||||||
-| PTX-001 | Create PTX dataset connection | User authenticated, PDC connector accessible | Name: `ptx-connector`, PDC URL, Token - Verify connection created, token secured | ✅ Unit tests | test_pdc_service.py |
+| PTX-001 | Create PTX dataset connection | User authenticated, PDC connector accessible | Name: `ptx-connector`, PDC URL, Service key, Secret key - Verify connection created, keys secured | ✅ Unit tests | test_dataset_service.py |
 | PTX-002 | Retrieve catalog from PTX connection | PTX dataset configured, PDC accessible | Connection ID - Verify catalog retrieved, offerings/resources listed | ✅ Unit tests | test_pdc_service.py |
 | PTX-003 | Get data resources from PTX | PTX connection exists, catalog has resources | Connection ID - Verify resources listed, metadata complete | ✅ Unit tests | test_pdc_service.py |
-| PTX-004 | Update data resource URL in PTX | PTX connection exists, resource exists in catalog | Connection ID, Resource ID, New URL - Verify URL updated in PDC | ✅ Unit tests | test_pdc_service.py |
-| PTX-005 | Execute service chain workflow | Service chain configured, workflow assigned | POST `/ptx/executeChainService`, Headers with chain ID, Payload - Verify executed in chain context | ✅ Unit tests | test_pdc_service.py |
-| PTX-006 | Trigger data exchange via PTX | PTX connection configured, exchange endpoint exists | Connection ID, Data exchange config - Verify exchange triggered, response handled | ✅ Unit tests | test_pdc_service.py |
-| PTX-007 | Store and retrieve service chain data | Service chain ID exists, data stored temporarily | Service Chain ID, Store payload - Verify data stored, retrievable, cleaned after | ✅ Unit tests | test_pdc_service.py |
-| PTX-008 | Access PDC output endpoint | Workflow with PdcOutput, custom URL configured | GET `/output/<custom_path>`, Headers: M2M credentials - Verify workflow executes, output returned | ✅ Unit tests | test_pdc_service.py |
-| PTX-009 | Receive pushed data from PDC | PDC configured to push data, endpoint listening | POST `/ptx/pdcInput`, Data payload from PDC - Verify data received, processed, acknowledged | ✅ Unit tests | test_pdc_service.py |
+| PTX-004 | Update data resource URL in PTX | PTX connection exists, resource exists in catalog | PUT `/ptx/dataResources/<connection_id>`, Resource ID, New URL - Verify URL updated in PDC | ⚠️ No automated test | — |
+| PTX-005 | Execute service chain workflow | Service chain configured, workflow assigned | POST `/ptx/executeChainService`, Headers with chain ID and M2M credentials, Payload with `params.workflowId` (HTTP 400 if the chain ID header or `workflowId` is missing) - Verify executed in chain context | ⚠️ Partial (unit only) | test_pdc_service.py (service chain data storage) |
+| PTX-006 | Trigger data exchange via PTX | PTX connection configured, exchange endpoint exists | POST `/ptx/trigger-data-exchange/<connection_id>`, Data exchange config - Verify exchange triggered, response handled | ⚠️ No automated test | — |
+| PTX-007 | Store and retrieve service chain data | Service chain ID exists, data stored temporarily in MongoDB (`service_chain_data` collection, shared by all workers, expires after 24 h) | Service Chain ID, Store payload - Verify data stored, retrievable from another worker, cleaned after | ✅ Unit tests | test_pdc_service.py |
+| PTX-008 | Access PDC output endpoint | Workflow with PdcOutput, custom URL configured | GET `/output/<custom_path>`, Headers: M2M credentials - Verify workflow executes, output returned | ⚠️ No automated test | — |
+| PTX-009 | Receive pushed data from PDC | PDC configured to push data, endpoint listening | POST `/ptx/pdcInput`, Data payload from PDC - Verify data received, processed, acknowledged | ⚠️ No automated test | — |
 | **Security & Access Control** ||||||
 | SEC-001 | Path traversal prevention in file upload | User authenticated | Upload file with name: `../../etc/passwd` - Verify rejected/sanitized, no traversal | ✅ Unit tests | test_path_security.py |
 | SEC-002 | File extension validation | User authenticated | Upload file: `malicious.exe` - Verify rejected, only allowed extensions accepted | ✅ Unit tests | test_path_security.py |
-| SEC-003 | File size limit enforcement | User authenticated | Upload 150MB file (limit 100MB) - Verify HTTP 413, limit enforced before full upload | ✅ Unit tests | test_security_middleware.py |
-| SEC-004 | SQL injection prevention | MySQL dataset configured | Query with injection: `'; DROP TABLE users; --` - Verify prevented, parameterized, no damage | ✅ Unit tests | test_dataset_service.py |
-| SEC-005 | XSS prevention in user inputs | User creates dataset with name | Name: `<script>alert('XSS')</script>` - Verify sanitized, script escaped/removed | ✅ Unit tests | test_security_middleware.py |
-| SEC-006 | Rate limiting on API endpoints | Public API endpoint configured | 100 requests in 10 seconds to same endpoint - Verify HTTP 429, limit triggered | ⚠️ Partial (unit only) | test_security_middleware.py |
-| SEC-007 | CORS policy enforcement | Frontend on different origin | API request from `http://evil.com` - Verify blocked if not allowed, CORS enforced | ✅ Unit tests | test_security_middleware.py |
-| SEC-008 | Sensitive data encryption | User creates dataset with password | Password: `MySecretPass123` - Verify encrypted in DB, not in API responses | ✅ Unit tests | test_dataset_service.py |
-| SEC-009 | User data isolation | Two users with same filename | User A uploads `data.csv`, User B uploads `data.csv` - Verify stored separately, isolation maintained | ✅ Unit tests | test_path_security.py |
-| SEC-010 | Token expiration enforcement | Access token expired (> 60 min old) | Request with expired token - Verify HTTP 401, must refresh/re-login | ✅ Unit tests | test_auth_service.py |
+| SEC-003 | File size limit enforcement | User authenticated | Upload 150MB file (limit 100MB) - Verify HTTP 413 ; requests whose Content-Length exceeds 10 × `MAX_FILE_SIZE` are rejected by the security middleware before processing | ⚠️ Partial (unit only) | test_security_middleware.py |
+| SEC-004 | SQL injection prevention | MySQL dataset configured | Database / table name with injection: `'; DROP TABLE users; --` - Verify rejected, no damage | ✅ Unit tests | test_injection_validators.py |
+| SEC-005 | XSS prevention in user inputs | User creates dataset with name | Name: `<script>alert('XSS')</script>` - Verify sanitized, script escaped/removed | ⚠️ No automated test | — |
+| SEC-006 | Rate limiting on API endpoints | Security middleware enabled (`SECURITY_ENABLED=true`) | More than 100 requests in 60 seconds from the same IP (`SECURITY_RATE_LIMIT` / `SECURITY_TIME_WINDOW`) - Verify HTTP 429, IP temporarily blocked | ⚠️ Partial (unit only) | test_security_middleware.py |
+| SEC-007 | CORS policy enforcement | Frontend on different origin | API request from `http://evil.com` - Verify blocked if not allowed (`CORS_ORIGINS`), CORS enforced | ⚠️ No automated test | — |
+| SEC-008 | Sensitive data encryption | User creates dataset with password | Password: `MySecretPass123` - Verify encrypted in DB, not in API responses | ✅ Unit tests | test_dataset_interface.py, test_dataset_service.py |
+| SEC-009 | User data isolation | Two users with same filename | User A uploads `data.csv`, User B uploads `data.csv` - Verify stored separately, isolation maintained | ✅ Unit tests | test_dataset_service.py, test_path_security.py |
+| SEC-010 | Token expiration enforcement | Access token expired (> 60 min old, `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`) | Request with expired token - Verify HTTP 401, must refresh/re-login | ⚠️ Partial (unit only, invalid token) | test_auth_service.py |
 | **Data Processing & Transformations** ||||||
 | PROC-001 | Process CSV file with headers | CSV file with headers uploaded | File with columns: `name,age,city` - Verify parsed, headers detected, names preserved | ✅ Unit tests | test_dataset_service.py |
-| PROC-002 | Process CSV file without headers | CSV file without headers | Headerless CSV data - Verify parsed, auto-generated column names | ✅ Unit tests | test_dataset_service.py |
+| PROC-002 | Process CSV file without headers | CSV file without headers | Headerless CSV data - Verify parsed, auto-generated column names | ⚠️ No automated test | — |
 | PROC-003 | Process JSON array | JSON file with array of objects | `[{id: 1, name: "A"}, {id: 2, name: "B"}]` - Verify array parsed, objects accessible | ✅ Unit tests | test_dataset_service.py |
 | PROC-004 | Process nested JSON | JSON with nested structures | `{user: {profile: {age: 25}}}` - Verify nested preserved, dot notation accessible | ✅ Unit tests | test_dataset_service.py, test_flatten_transform.py |
-| PROC-005 | Process Parquet file | Parquet file uploaded | Parquet with schema and data - Verify schema read, data queryable, types preserved | ✅ Unit tests | test_dataset_service.py |
-| PROC-006 | Process Excel file (.xlsx) | Excel file uploaded with multiple sheets | Excel with 3 sheets - Verify all detected, sheet selection available | ✅ Unit tests | test_dataset_service.py |
-| PROC-007 | Handle missing values in data | Dataset with null/empty values | Data with nulls and empty strings - Verify handled gracefully, distinguished | ✅ Unit tests | test_node.py, test_filter_transform.py |
-| PROC-008 | Handle large dataset (1M+ rows) | Large CSV file (> 1 million rows) | 1M row CSV - Verify processed efficiently, pagination works, no timeout | ✅ Unit tests | test_dataset_service.py |
-| PROC-009 | Convert between data formats | Input CSV, output Parquet | CSV → Parquet conversion - Verify successful, data integrity maintained | ✅ Unit tests | test_node.py |
-| PROC-010 | Aggregate data (groupBy) | Dataset with groupable data, transform with aggregate | Group by `category`, aggregate `sum(amount)` - Verify grouping correct, aggregation accurate | ✅ Unit tests | test_workflow.py |
-| PROC-011 | Sort data | Dataset with unsorted data, sort transformation | Sort by `age DESC, name ASC` - Verify multi-column sort works, order correct | ✅ Unit tests | test_workflow.py |
-| PROC-012 | Remove duplicates | Dataset with duplicate rows | Deduplicate on columns: `id` - Verify duplicates removed, unique rows remain | ✅ Unit tests | test_workflow.py |
+| PROC-005 | Process Parquet file | Parquet file uploaded | Parquet with schema and data - Verify schema read, data queryable, types preserved | ⚠️ No automated test | — |
+| PROC-006 | Process Excel file (.xlsx) | Excel file uploaded with multiple sheets | Excel with 3 sheets - Verify all detected, sheet selection available | ⚠️ No automated test | — |
+| PROC-007 | Handle missing values in data | Dataset with null/empty values | Data with nulls and empty strings - Verify handled gracefully, distinguished | ⚠️ Partial (unit only) | test_utils.py (schema generation with null values) |
+| PROC-008 | Handle large dataset (1M+ rows) | Large CSV file (> 1 million rows) | 1M row CSV - Verify processed efficiently, pagination works, no timeout | ⚠️ No automated test | — |
+| PROC-009 | Convert between data formats | Input CSV, output Parquet | CSV → Parquet conversion - Verify successful, data integrity maintained | ⚠️ No automated test | — |
+| PROC-010 | Aggregate data (groupBy) | Dataset with groupable data, transform with aggregate | Group by `category`, aggregate `sum(amount)` - Verify grouping correct, aggregation accurate | ⚠️ Not implemented (no aggregate node) | — |
+| PROC-011 | Sort data | Dataset with unsorted data, sort transformation | Sort by `age DESC, name ASC` - Verify multi-column sort works, order correct | ⚠️ Not implemented (no sort node) | — |
+| PROC-012 | Remove duplicates | Dataset with duplicate rows | Deduplicate on columns: `id` - Verify duplicates removed, unique rows remain | ⚠️ Not implemented (no deduplication node) | — |
 | **Error Handling & Edge Cases** ||||||
-| ERR-001 | Handle malformed JSON input | User uploads JSON file | Invalid JSON: `{broken: syntax` - Verify error caught, helpful message, line number if possible | ✅ Unit tests | test_dataset_service.py |
-| ERR-002 | Handle corrupt file upload | User uploads corrupted file | Corrupted CSV file - Verify error detected, upload fails with reason | ✅ Unit tests | test_dataset_service.py |
-| ERR-003 | Handle database connection failure | MySQL dataset configured, database is down | Execute workflow with MySQL input - Verify connection error caught, clear error | ✅ Unit tests | test_dataset_service.py |
-| ERR-004 | Handle external API timeout | API dataset configured, API slow/unresponsive | Workflow with API call (30s+ response) - Verify timeout handled, configurable, clear error | ✅ Unit tests | test_dataset_service.py |
-| ERR-005 | Handle missing required fields | Create dataset without required field | Dataset without `name` field - Verify HTTP 422, required fields listed | ✅ Unit tests | test_dataset_service.py, test_workflow_service.py |
-| ERR-006 | Handle concurrent workflow edits | Two users edit same workflow simultaneously | User A and B save workflow at same time - Verify conflict detected, no corruption | ⚠️ Partial (unit only) | test_workflow_service.py |
-| ERR-007 | Handle workflow circular dependencies | User creates workflow with circular connections | Node A → Node B → Node A - Verify detected, validation prevents save, error explains | ✅ Unit tests | test_workflow.py |
-| ERR-008 | Handle insufficient disk space | Server disk space full, file upload attempted | Upload large file when disk full - Verify HTTP 507, graceful degradation | ⚠️ Not implemented | test_dataset_service.py |
-| ERR-009 | Handle memory exhaustion on large data | Very large dataset processing | Process 10GB+ file - Verify memory limit respected, streaming/chunking, OOM error if needed | ✅ Unit tests | test_dataset_service.py, test_workflow.py |
-| ERR-010 | Handle invalid credentials in dataset | MySQL dataset with wrong password | Credentials: user `admin`, wrong password - Verify auth error caught, clear message, no leak | ✅ Unit tests | test_dataset_service.py |
+| ERR-001 | Handle malformed JSON input | User uploads JSON file | Invalid JSON: `{broken: syntax` - Verify error caught, helpful message, line number if possible | ⚠️ No automated test | — |
+| ERR-002 | Handle corrupt file upload | User uploads corrupted file | Corrupted CSV file - Verify error detected, upload fails with reason | ⚠️ No automated test | — |
+| ERR-003 | Handle database connection failure | MySQL dataset configured, database is down | Execute workflow with MySQL input - Verify connection error caught, clear error | ⚠️ No automated test | — |
+| ERR-004 | Handle external API timeout | API dataset configured, API slow/unresponsive | Workflow with API call (30s+ response) - Verify timeout handled, configurable, clear error | ⚠️ Partial (unit only, PDC calls with `VISION_API_TIMEOUT_SECONDS`) | test_pdc_service.py |
+| ERR-005 | Handle missing required fields | Create dataset without required field | Dataset without `name` field - Verify HTTP 422, required fields listed | ✅ Unit tests | test_workflow_service.py |
+| ERR-006 | Handle concurrent workflow edits | Two users edit same workflow simultaneously | User A and B save workflow at same time - Verify conflict detected, no corruption | ⚠️ Not implemented (no conflict detection) | — |
+| ERR-007 | Handle workflow circular dependencies | User creates workflow with circular connections | Node A → Node B → Node A - Verify detected, validation prevents save, error explains | ⚠️ Not implemented (no cycle detection) | — |
+| ERR-008 | Handle insufficient disk space | Server disk space full, file upload attempted | Upload large file when disk full - Verify HTTP 507, graceful degradation | ⚠️ Not implemented | — |
+| ERR-009 | Handle memory exhaustion on large data | Very large dataset processing | Process 10GB+ file - Verify memory limit respected, streaming/chunking, OOM error if needed | ⚠️ No automated test | — |
+| ERR-010 | Handle invalid credentials in dataset | MySQL dataset with wrong password | Credentials: user `admin`, wrong password - Verify auth error caught, clear message, no leak | ⚠️ No automated test | — |
 
 ---
 
@@ -876,7 +894,7 @@ Using real-world personas and use cases, we established several detailed test sc
    - Repeat for `students_attendance.csv`, name it: `student-attendance`
 
 3. **Create workflow:**
-   - Navigate to "Workflows" tab
+   - Navigate to "Transformation" tab
    - Click "New Workflow"
    - Name workflow: `student-performance-report`
 
@@ -886,7 +904,7 @@ Using real-world personas and use cases, we established several detailed test sc
    - Configure second node: select `student-attendance` dataset
    - Drag "MergeTransform" node to canvas
    - Connect both DataFileBlock outputs to MergeTransform inputs
-   - Configure merge: join on `student_id` column
+   - Configure merge: map the source columns (student_id, name, math_score, science_score, attendance_rate) to target columns
    - Drag "FileOutput" node to canvas
    - Connect MergeTransform output to FileOutput input
    - Configure output: filename `student_report.parquet`
@@ -904,7 +922,7 @@ Using real-world personas and use cases, we established several detailed test sc
 **Expected Result:**
 - Workflow executes successfully
 - Output file contains merged data with columns: student_id, name, math_score, science_score, attendance_rate
-- All student records are present with matching attendance data
+- Rows of the mapped source columns are concatenated per target column (MergeTransform does not perform a key-based join on `student_id`)
 
 **Validation:** Test Scenario 1 Validated
 
@@ -944,10 +962,9 @@ Using real-world personas and use cases, we established several detailed test sc
    - Select "API" type
    - Name: `api-users`
    - URL: `https://jsonplaceholder.typicode.com/users`
-   - Method: GET
-   - Headers: Leave empty (no authentication needed)
+   - Authorization method: None (no authentication needed)
    - Save dataset
-   - Click "Test Connection" to verify API is accessible
+   - Select the dataset to preview its content
 
 3. **Upload JSON file:**
    - Click "Add Dataset"
@@ -957,7 +974,7 @@ Using real-world personas and use cases, we established several detailed test sc
    - Click "Save"
 
 4. **Build ML data pipeline:**
-   - Navigate to "Workflows" tab
+   - Navigate to "Transformation" tab
    - Click "New Workflow"
    - Name workflow: `ml-training-pipeline`
    - Add "DataApiBlock" node
@@ -969,7 +986,7 @@ Using real-world personas and use cases, we established several detailed test sc
    - Add "FlattenTransform" node for nested JSON (from API)
    - Add "MergeTransform" node
    - Connect both data sources to MergeTransform
-   - Configure merge: join on `id` column
+   - Configure merge: map the source columns to target columns
    - Add "FileOutput" node
    - Connect MergeTransform output to FileOutput
    - Configure output: `training_data.parquet` format
@@ -990,11 +1007,11 @@ Using real-world personas and use cases, we established several detailed test sc
 - Local JSON file data successfully loaded
 - Null values are filtered out
 - Nested structures from API are flattened
-- Data merged on `id` column
+- Mapped columns merged into target columns
 - Output Parquet file ready for ML training
 - File schema compatible with common ML libraries (pandas, scikit-learn)
 
-**Validation:** ✅ Test Scenario 2 Validated
+**Validation:** ⚠️ Test Scenario 2 not reproducible with the current code: no API input node is available in the workflow editor (`DataApiBlock` is a front-end stub that is not registered and has no back-end counterpart)
 
 ---
 
@@ -1030,10 +1047,11 @@ Using real-world personas and use cases, we established several detailed test sc
 2. **Setup PDC connection:**
    - Go to "Datasets"
    - Click "Add Dataset"
-   - Select "Prometheus-X (PDC)" type
+   - Select "PTX" type
    - Name: `pdc-learning-records`
    - PDC URL: `https://pdc.example.com`
-   - Bearer Token: `<valid_token>`
+   - Service key: `<service_key>`
+   - Secret key: `<secret_key>`
    - Save connection
 
 3. **Verify catalog access:**
@@ -1045,15 +1063,14 @@ Using real-world personas and use cases, we established several detailed test sc
 4. **Create workflow with PDC:**
    - Create new workflow: `pdc-data-processing`
    - Add PDC input node (ServiceChainInput)
-   - Add transformation nodes (Filter, Aggregate)
+   - Add transformation nodes (e.g. Filter, Flatten)
    - Add PDC output node (PdcOutput)
-   - Configure custom URL: `/api/processed-learning-data`
 
 5. **Configure service chain:**
    - In PdcOutput node, configure:
-     - URL path: `processed-learning-data`
-     - Enable M2M authentication
-     - Set access token
+     - Data resource of the PDC catalog
+     - URL path: `processed-learning-data` (exposed under `/output/`)
+   - In the user profile, add the M2M credential(s) (header name / value) used by external systems
    - Save workflow
 
 6. **Test data exchange:**
@@ -1065,7 +1082,7 @@ Using real-world personas and use cases, we established several detailed test sc
 
 7. **Verify endpoint access:**
    - External system sends GET request to: `http://localhost:8081/output/processed-learning-data`
-   - With header: `Authorization: Bearer <m2m_token>`
+   - With a header matching one of the workflow owner's M2M credentials (e.g. `Authorization: Bearer <m2m_token>`)
    - Verify transformed data is returned
 
 **Expected Result:**
@@ -1114,10 +1131,11 @@ DAAV includes comprehensive automated test suites to ensure code quality and fun
 - **Test Files**: `backendApi/tests/`
 - **Test Categories**:
   - Services: Auth, User, Dataset, Workflow, PDC, Email, Migration
-  - Core: Workflow execution, Node processing, Execution context
-  - Nodes: Input nodes, Transform nodes, Output nodes
-  - Security: Path validation, Security middleware
-  - Utils: Helper functions
+  - Core: Workflow execution, Execution context
+  - Nodes: Base node execution / status propagation, Transform nodes (Filter, Flatten, Merge)
+  - Models: Dataset interface (sensitive fields encryption)
+  - Security: Path validation, Security middleware, Injection / SSRF validators
+  - Utils: Helper functions, route access control, DuckDB filtering
 
 **Commands to run backend tests:**
 ```bash
@@ -1125,6 +1143,8 @@ cd backendApi
 python -m pytest                          # Run all tests
 python -m pytest tests/services/          # Run service tests
 python -m pytest tests/nodes/             # Run node tests
+python -m pytest tests/security/          # Run security tests
+python -m pytest tests/core/              # Run workflow engine tests
 python -m pytest --cov=app --cov-report=html  # With coverage
 ```
 
@@ -1132,18 +1152,18 @@ python -m pytest --cov=app --cov-report=html  # With coverage
 - **Test Framework**: Karma + Jasmine
 - **Test Files**: `frontendApp/src/**/*.spec.ts`
 - **Test Categories**:
-  - Components: Workflow editor, Node blocks, UI components
-  - Services: Dataset service, Workflow service, Auth service
-  - Guards: Authentication guards
-  - Utilities
-  - WIP Components Nodes 
+  - Core: Workflow editor, Workflow node editor
+  - Nodes: Input, Transform and Output node blocks
+  - Components: Dashboards, modals, widgets, sockets, UI components
+  - Services: Dataset service, Workflow service, Base service, Loading service
+  - Models: Dataset models, data mapper types, utilities
 
 **Commands to run frontend tests:**
 ```bash
 cd frontendApp
-npm test                    # Run tests
-npm run test:headless       # Headless mode
-ng test --code-coverage     # With coverage
+npm test                                      # Run tests (headless Chrome, watch mode)
+npm test -- --watch=false                     # Single run (CI)
+npm test -- --watch=false --code-coverage     # With coverage
 ```
 
 

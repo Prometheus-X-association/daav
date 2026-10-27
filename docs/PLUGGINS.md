@@ -74,6 +74,10 @@ class MyCustomTransform(TransformNode):
         This is the ONLY method you must implement.
         """
         try:
+            # Validate configuration first (see _validate_configuration below)
+            if not self._validate_configuration():
+                return StatusNode.Error
+
             # Get node configuration from self.data (inherited property)
             config = self.data.get('config', {})
             operation_type = config.get('operation_type', 'filter')
@@ -211,7 +215,8 @@ class MyCustomInput(InputNode):
             # Use inherited properties for error handling
             import traceback
             traceback.print_exc()
-            self.errorStackTrace = traceback.format_exc()
+            # errorStackTrace is a list of strings (Optional[List[str]] in Node)
+            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
             self.statusMessage = str(e)
             return StatusNode.Error
 
@@ -236,6 +241,7 @@ Create a new file in `app/nodes/outputs/` directory, inheriting strictly from `O
 ```python
 # filepath: app/nodes/outputs/my_custom_output.py
 from typing import Optional, Any
+import pandas as pd
 from pydantic import ConfigDict
 
 from app.enums.status_node import StatusNode
@@ -273,8 +279,7 @@ class MyCustomOutput(OutputNode):
                     self._write_custom_data(df, sample, config)
                 
                 elif isinstance(node_data, NodeDataParquet):
-                    # Handle parquet data
-                    import pyarrow.parquet as pq
+                    # Handle parquet data (node_data.data is the parquet file path)
                     df = pd.read_parquet(node_data.data)
                     if sample:
                         df = df.head(20)
@@ -286,7 +291,8 @@ class MyCustomOutput(OutputNode):
             # Use inherited properties for error handling
             import traceback
             traceback.print_exc()
-            self.errorStackTrace = traceback.format_exc()
+            # errorStackTrace is a list of strings (Optional[List[str]] in Node)
+            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
             self.statusMessage = str(e)
             return StatusNode.Error
 
@@ -305,7 +311,7 @@ class MyCustomOutput(OutputNode):
 
 ### Adding Custom Configuration Parameters
 
-To add custom configuration parameters to your nodes, extend the `data()` method and handle them in the constructor:
+To add custom configuration parameters to your nodes, return them from the frontend node's `data()` method (see Frontend Implementation) and handle defaults in the backend constructor:
 
 ```python
 class MyCustomTransform(TransformNode):
@@ -365,8 +371,8 @@ def _validate_configuration(self) -> bool:
 Node (app/nodes/node.py - base class)
 ├── InputNode (app/nodes/inputs/input_node.py)
 │   ├── DataFileBlock (data_file_block.py) - File data input
-│   ├── DataHuggingBlock (data_hugging_block.py) - Hugging Face data input
-│   ├── DataLrsBlock (data_lrs_block.py) - LRS data input
+│   ├── DataHuggingBlock (data_hugging_block.py) - Hugging Face data input (stub, not implemented)
+│   ├── DataLrsBlock (data_lrs_block.py) - LRS data input (stub, not implemented)
 │   ├── DataMongoBlock (data_mongo_block.py) - MongoDB data input
 │   ├── DataMysqlBlock (data_mysql_block.py) - MySQL data input
 │   ├── ServiceChainInput (service-chain-input.py) - Service Chain data input
@@ -399,11 +405,11 @@ Node (app/nodes/node.py - base class)
 - **DataMysqlBlock**: Read from MySQL databases
 
 #### API/Service Inputs
-- **DataApiBlock**: Read from API endpoints
-- **DataElasticBlock**: Read from Elasticsearch
-- **DataHuggingBlock**: Import from Hugging Face datasets
-- **DataLrsBlock**: Read from LRS (Learning Record Store)
+- **DataHuggingBlock**: Import from Hugging Face datasets (placeholder: `process()` is not implemented yet)
+- **DataLrsBlock**: Read from LRS (Learning Record Store) (placeholder: `process()` is not implemented yet)
 - **ServiceChainInput**: Fetch data from Service Chain services
+
+> There is no backend `DataApiBlock` or `DataElasticBlock` node: these only exist as unregistered frontend stubs (see Frontend Node Hierarchy).
 
 ### Existing Output Nodes
 
@@ -433,7 +439,12 @@ Your platform includes these data transformation capabilities:
 
 ### Node Factory
 
-Your platform uses a factory pattern (`node_factory.py`) to create and manage node instances dynamically using automatic class scanning.
+Your platform uses a factory pattern (`node_factory.py`) to create and manage node instances dynamically using automatic class scanning. There is no manual registration step on the backend:
+
+- When a `Workflow` is created (`app/core/workflow.py`), it calls `NodeFactory.scan_nodes()` on the `app/nodes` directory.
+- `scan_nodes()` recursively imports every `.py` file under `app/nodes` (files starting with `__` are skipped) and registers every subclass of `Node` by its **Python class name** (the base classes `Node`, `InputNode`, `OutputNode` and `TransformNode` are excluded). The scan runs only once per process, so restart the backend after adding a new node file.
+- `NodeFactory.create_node()` looks up the node `type` sent by the frontend (the frontend class name) and calls the constructor positionally as `cls(id, data, revision, data['status'])`. Keep the `(id, data, revision=None, status=None)` constructor signature.
+- `process()` may be synchronous or `async`: `Node._execute_process()` awaits async implementations and runs synchronous ones in a thread executor.
 
 ## Integration with Existing Architecture
 
@@ -450,10 +461,10 @@ Your custom node should follow the same patterns as `MergeTransform` and `Flatte
 
 ### Configuration Structure
 
-Follow the configuration pattern from existing transforms:
+Existing transforms store their settings as top-level keys of `data` (e.g. `MergeTransform` reads `dataMapping` and `parquetSave`, `FilterTransform` reads `dataSource`, `filterRules` and `parquetSave`). This guide groups custom settings under a `config` key; either works as long as the frontend `data()` and the backend agree:
 
 ```python
-# Example configuration structure (similar to MergeTransform)
+# Example configuration structure used in this guide
 data = {
     'config': {
         # Your custom configuration here
@@ -498,16 +509,16 @@ self.outputs.get('out').set_node_data(output_data, self)
 - Provide examples similar to existing transforms
 - Include usage patterns
 
-This guide focuses on the backend extension capabilities based on your existing codebase architecture. The frontend integration would depend on the Angular application structure, which would need to be analyzed separately.
+This section focuses on the backend extension capabilities. The frontend integration is described in the next section.
 
 # Frontend Implementation
 
 ## Overview
 
-The DAAV frontend uses Rete.js with Angular for visual workflow editing. Nodes are implemented as TypeScript classes that extend base classes and are registered using the `@daavBlock` decorator.
-This decorator takes an optional tag string parameter that can be used for filtering and ordering.
-To allow automatic registration we need to import the code of the new implementation
-by adding a link inside src/app/nodes/index.ts
+The DAAV frontend (Angular 19 + Ionic 8) uses Rete.js 2 (`rete-angular-plugin/19`) for visual workflow editing. Nodes are implemented as TypeScript classes that extend base classes and are registered using the `@daavBlock` decorator (defined in `src/app/nodes/node-block.ts`).
+The decorator stores the class in the `registeredBlock` map, keyed by the **class name**. It takes an optional tag string parameter (`'input'`, `'output'`, `'transform'`) that is used to group the node in a submenu of the editor's context menu. The registry is also used to fill the dock and to re-instantiate nodes when a saved workflow is imported (by matching the node `type`, i.e. the class name).
+The decorator only runs if the file is loaded: to allow automatic registration you need to export the new implementation
+from `src/app/nodes/index.ts` (this barrel is imported by `src/app/core/workflow-editor.ts`).
 
 
 
@@ -515,7 +526,7 @@ by adding a link inside src/app/nodes/index.ts
 
 ```
 src/app/nodes/
-├── node-block.ts              # Base class for all nodes
+├── node-block.ts              # Base class for all nodes + @daavBlock decorator / registeredBlock
 ├── input/
 │   └── input-data-block.ts    # Base class for input nodes
 ├── output/
@@ -525,7 +536,7 @@ src/app/nodes/
 ├── inputs/                    # Concrete input node implementations
 ├── outputs/                   # Concrete output node implementations
 ├── transforms/                # Concrete transform node implementations
-└── index.ts                   # Export all nodes
+└── index.ts                   # Export all registered nodes (required for registration)
 ```
 
 ## Node Hierarchy
@@ -534,13 +545,13 @@ src/app/nodes/
 NodeBlock (base class)
 ├── InputDataBlock (for data sources)
 │   ├── DataFileBlock
-│   ├── DataApiBlock
-│   ├── DataElasticBlock
+│   ├── DataApiBlock        (stub, not registered)
+│   ├── DataElasticBlock    (stub, not registered)
 │   ├── DataMongoBlock
 │   ├── DataMysqlBlock
-│   ├── DataLrsBlock
+│   ├── DataLrsBlock        (stub, not registered)
 │   ├── ServiceChainInput
-│   └── ExampleInput
+│   └── ExampleInput        (@daavBlock commented out)
 ├── OutputDataBlock (for data destinations)
 │   ├── FileOutput
 │   ├── MongoOutput
@@ -548,13 +559,15 @@ NodeBlock (base class)
 │   ├── ApiOutput
 │   ├── PdcOutput
 │   ├── ServiceChainOutput
-│   └── ExampleOutput
+│   └── ExampleOutput       (@daavBlock commented out)
 └── TransformBlock (for data transformations)
     ├── MergeTransform
     ├── FlattenTransform
     ├── FilterTransform
-    └── ExampleTransform
+    └── ExampleTransform    (@daavBlock commented out)
 ```
+
+"Not registered" means the class has no active `@daavBlock` decorator and/or is not exported from `index.ts`, so it does not appear in the editor menus. The `Example*` classes are kept as reference implementations.
 
 ## Creating Custom Frontend Nodes
 
@@ -585,6 +598,8 @@ export class MyCustomTransform extends TransformBlock {
   ) {
     super(label, area, node);
     
+    // When a saved workflow is imported (node given), the editor recreates
+    // ports from the JSON (unless rebuildLocally = true), so only add them for new nodes
     if (!node) {
       // Set initial status
       this.status = StatusNode.Incomplete;
@@ -595,8 +610,10 @@ export class MyCustomTransform extends TransformBlock {
         new ClassicPreset.Input(new FlatObjectSocket(), "Input")
       );
       
+      // Port keys must match the keys used by the backend node
+      // (the backend example writes to self.outputs.get('out'))
       this.addOutput(
-        "output", 
+        "out", 
         new ClassicPreset.Output(new FlatObjectSocket(), "Output")
       );
     }
@@ -643,9 +660,12 @@ export class MyCustomTransform extends TransformBlock {
     return '';
   }
 
+  // Optional: execute() is called when the play button is clicked.
+  // The default implementation sends the workflow to the backend
+  // (core.executeNodeJson), so keep calling super.execute().
   override execute() {
-    // This method is called when the play button is clicked
     console.log('Executing custom transform with config:', this.data().config);
+    super.execute();
   }
 }
 ```
@@ -740,9 +760,12 @@ export class MyCustomInput extends InputDataBlock {
     return '';
   }
 
+  // Optional: execute() is called when the play button is clicked.
+  // The default implementation sends the workflow to the backend
+  // (core.executeNodeJson), so keep calling super.execute().
   override execute() {
-    // This method is called when the play button is clicked
     console.log('Executing custom input with config:', this.data());
+    super.execute();
   }
 }
 ```
@@ -835,12 +858,35 @@ export class MyCustomOutput extends OutputDataBlock {
     return '';
   }
 
+  // Optional: execute() is called when the play button is clicked.
+  // The default implementation sends the workflow to the backend
+  // (core.executeNodeJson), so keep calling super.execute().
   override execute() {
-    // This method is called when the play button is clicked
     console.log('Executing custom output with config:', this.data());
+    super.execute();
   }
 }
 ```
+
+### Step 4 (optional): Adding Controls (Widgets)
+
+Node settings are edited through Rete controls rendered by Angular components. Reuse the existing ones from `src/app/components/widgets/` (`SelectControl`, `CheckboxControl`, `ButtonControl`, `InputAutoCompleteControl`, `TextDisplayControl`, `JsonInputsControl`, `DataMapperControl`, `DataFilterControl`, ...) or Rete's `ClassicPreset.InputControl`:
+
+```typescript
+import { CheckboxControl } from "src/app/components/widgets/checkbox-widget/checkbox-widget.component";
+
+this.enabledControl = new CheckboxControl(
+  node?.data?.enabled ?? { value: true, label: "Enabled" },  // restore from saved data
+  () => this.validateConfiguration()
+);
+this.addControl("enabled", this.enabledControl);
+```
+
+Return the control (or its value) from `data()` so it is saved and sent to the backend (existing nodes return the control object itself, e.g. `parquetSave: this.parquetCheckbox`, which the backend reads as `self.data['parquetSave']['value']`).
+
+To create a new kind of widget:
+1. Create a control class extending `ClassicPreset.Control` and an Angular component with an `@Input() data` property. Existing widgets are NgModule-based (`standalone: false`) and declared/exported in `ComponentsModule` (`src/app/components-module.ts`).
+2. Map the control to its component in the `control` branch of `WorkflowEditor.customRender()` (`src/app/core/workflow-editor.ts`); otherwise it will not be rendered.
 
 ## Required Files for a Custom Transform Node
 
@@ -863,7 +909,7 @@ import { daavBlock } from "../node-block";
 @daavBlock('transform')
 export class MyCustomTransform extends TransformBlock {
     override getRevision(): string { return "1.0"; }
-    override execute(): void { /* implementation */ }
+    // execute() is inherited (sends the workflow to the backend); override only if needed
 }
 ```
 
@@ -906,12 +952,13 @@ import { Node } from "src/app/models/interfaces/node";
 
 ### Writing Unit Tests
 
-Create test files in the `tests/nodes/` directory following the existing pattern:
+Create test files in the `backendApi/tests/nodes/` directory following the existing pattern (see `tests/nodes/transforms/test_filter_transform.py`). Inputs and outputs are normally wired by `Workflow.import_project()`, so unit tests replace them with mocks:
 
 ```python
 # filepath: tests/nodes/transforms/test_my_custom_transform.py
 import pytest
 import pandas as pd
+from unittest.mock import Mock
 from app.nodes.transforms.my_custom_transform import MyCustomTransform
 from app.enums.status_node import StatusNode
 from app.models.interface.node_data import NodeDataPandasDf
@@ -931,6 +978,7 @@ class TestMyCustomTransform:
         node_data = {
             'config': {
                 'operation_type': 'filter',
+                'threshold': 0.5,
                 'filter_column': 'status',
                 'filter_value': 'active'
             }
@@ -949,65 +997,89 @@ class TestMyCustomTransform:
             name="Test Data"
         )
         
-        # Mock input connection
-        transform.inputs['input'].set_node_data(input_data, transform)
+        # Mock input/output ports (NodeInput has no setter: mock get_node_data)
+        transform.inputs = {'input': Mock()}
+        transform.outputs = {'out': Mock()}
+        transform.inputs['input'].get_node_data.return_value = input_data
         
         # Execute the transform
         result = transform.process(sample=False)
         
         # Verify results
         assert result == StatusNode.Valid
-        output_data = transform.outputs['output'].get_node_data()
+        output_data = transform.outputs['out'].set_node_data.call_args[0][0]
         assert len(output_data.data) == 2  # Only 'active' records
         
     def test_process_invalid_config(self):
         """Test processing with invalid configuration."""
         transform = MyCustomTransform(
             id="test_transform",
-            data={'config': {}}  # Missing required config
+            data={'config': {'operation_type': 'filter', 'threshold': 2}}  # Out of range
         )
         
         result = transform.process(sample=False)
         assert result == StatusNode.Error
-        assert "Missing required parameter" in transform.statusMessage
+        assert "Threshold must be between 0 and 1" in transform.statusMessage
+```
+
+Run the tests from the `backendApi` directory (a mocked MongoDB is set up in `tests/conftest.py`):
+
+```bash
+cd backendApi
+pytest tests/nodes
 ```
 
 ### Integration Testing
 
-Test your nodes in the context of a complete workflow:
+Test your nodes in the context of a complete workflow (see `tests/core/test_workflow.py`). Every node needs `type`, `label`, `inputs`, `outputs`, `controls` and a `data.status`, and port keys must match the connections:
 
 ```python
-def test_transform_in_workflow():
+import pytest
+from app.core.workflow import Workflow
+from app.models.interface.workflow_interface import IProject
+from app.enums.status_node import StatusNode
+
+@pytest.mark.asyncio
+async def test_transform_in_workflow():
     """Test the transform as part of a complete workflow."""
-    from app.core.workflow import Workflow
-    from app.models.interface.workflow_interface import IProject
-    
+    socket = {"name": "FlatObjectSocket"}
     # Create a simple workflow with your custom transform
     project_data = {
+        "name": "Test",
         "schema": {
             "nodes": [
                 {
                     "id": "input_1",
                     "type": "ExampleInput",
-                    "data": {}
+                    "label": "ExampleInput",
+                    "data": {"status": StatusNode.Complete},
+                    "inputs": {},
+                    "outputs": {"alternate": {"id": "p1", "label": "Full", "socket": socket}},
+                    "controls": {}
                 },
                 {
                     "id": "transform_1", 
                     "type": "MyCustomTransform",
+                    "label": "MyCustomTransform",
                     "data": {
+                        "status": StatusNode.Complete,
                         "config": {
                             "operation_type": "filter",
+                            "threshold": 0.5,
                             "filter_column": "age",
-                            "filter_value": 30
+                            "filter_value": 32
                         }
-                    }
+                    },
+                    "inputs": {"input": {"id": "p2", "label": "Input", "socket": socket}},
+                    "outputs": {"out": {"id": "p3", "label": "Output", "socket": socket}},
+                    "controls": {}
                 }
             ],
             "connections": [
                 {
                     "id": "conn_1",
                     "sourceNode": "input_1",
-                    "sourcePort": "output",
+                    "sourcePort": "alternate",
                     "targetNode": "transform_1", 
                     "targetPort": "input"
                 }
@@ -1015,21 +1087,22 @@ def test_transform_in_workflow():
         }
     }
     
-    # Execute the workflow
+    # Execute the workflow (execute_workflow is async and returns None)
     workflow = Workflow()
-    workflow.import_project(IProject(**project_data))
-    result = workflow.execute()
+    workflow.import_project(IProject.model_validate(project_data))
+    await workflow.execute_workflow(node_id="transform_1")
     
     # Verify the workflow executed successfully
-    assert result == StatusNode.Valid
+    assert workflow.nodes["transform_1"].status == StatusNode.Valid
 ```
 
 ## Best Practices
 
 ### 1. Follow Existing Architecture
 - Always extend the appropriate base class (`InputDataBlock`, `OutputDataBlock`, `TransformBlock`)
-- Use the `@daavBlock` decorator with the correct type
-- Implement required abstract methods (`getRevision()`, `execute()`)
+- Use the `@daavBlock` decorator with the correct type and export the file from `src/app/nodes/index.ts`
+- Implement the abstract method `getRevision()` (`TransformBlock` and `InputDataBlock` provide a default, but `OutputDataBlock`'s default throws, so output nodes must override it)
+- `execute()` is optional to override: the inherited implementation sends the workflow to the backend; call `super.execute()` if you override it
 
 ### 2. Configuration Management
 - Store configuration in the `data()` method return object
@@ -1042,7 +1115,8 @@ def test_transform_in_workflow():
 - Provide meaningful status messages
 
 ### 4. Socket Usage
-- Use appropriate socket types from `src/app/core/sockets/sockets`
+- Use appropriate socket types from `src/app/core/sockets/sockets` (`FlatObjectSocket`, `DeepObjectSocket`, `LrsObjectSocket`, `SimpleFieldSocket`, `AllSocket`)
+- A new socket class must also be added to `WorkflowEditor.socketFactory()` to be restored when a workflow is imported
 - Follow input/output patterns from existing nodes
 - Ensure socket compatibility between connected nodes
 
@@ -1050,7 +1124,7 @@ def test_transform_in_workflow():
 
 ### Synchronizing Node Types
 
-When you create a custom node, you need to ensure both frontend and backend implementations use the same class names:
+When you create a custom node, you need to ensure both frontend and backend implementations use the same class names. The frontend exports each node with `type: node.constructor.name`, and the backend `NodeFactory` looks that `type` up among the scanned Python class names:
 
 **Backend**: `MyCustomTransform` in `app/nodes/transforms/my_custom_transform.py`
 **Frontend**: `MyCustomTransform` in `src/app/nodes/transforms/my-custom-transform.ts`
@@ -1062,13 +1136,14 @@ The frontend node sends its configuration to the backend through the `data()` me
 ```typescript
 // Frontend - data() method returns configuration
 override data() {
-  return {
+  const data = {
     config: {
       operation_type: this.operationType,
       filter_column: this.filterColumn
-    },
-    parquetSave: this.parquetCheckbox
+    }
   };
+  // Keep the parent data (status, dataOutput, parquetSave, selectDataSource, ...)
+  return { ...super.data(), ...data };
 }
 ```
 
@@ -1087,13 +1162,14 @@ The backend node status is automatically synchronized to the frontend:
 
 ```python
 # Backend - set status and messages
-self.status = StatusNode.Error
+# (the value returned by process() becomes the node status)
 self.statusMessage = "Configuration error"
 self.errorStackTrace = ["Error details..."]
+return StatusNode.Error
 ```
 
 ```typescript
-// Frontend - status is automatically updated
+// Frontend - status is automatically updated by WorkflowEditor.executeNodeJson()
 this.updateStatus(StatusNode.Error, "Configuration error", ["Error details..."]);
 ```
 

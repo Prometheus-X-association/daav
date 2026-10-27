@@ -8,12 +8,15 @@ DAAV is a comprehensive data processing and analysis platform consisting of two 
 
 ### Backend API (`/backendApi`)
 - **Framework**: FastAPI with Python
-- **Database**: Support for various data sources
+- **Storage**: MongoDB (Beanie ODM) for users, datasets and workflows
+- **Data sources**: Files, MySQL, MongoDB, REST APIs, Elasticsearch, Prometheus-X (PTX/PDC)
 - **Processing**: Pandas and PyArrow for data manipulation
 - **Architecture**: Modular node system for data processing
+- **Security**: JWT authentication with admin/user roles, security middleware, encryption of dataset credentials
 
 ### Frontend (`/frontendApp`)
-- User interface for creating and managing data pipelines
+- Angular 19 + Ionic 8 application
+- Visual workflow editor based on Rete.js 2 for creating and managing data pipelines
 - Visualization of analysis results
 
 ## Core Components
@@ -22,14 +25,30 @@ DAAV is a comprehensive data processing and analysis platform consisting of two 
 
 The platform's core is built on a modular node system:
 
+#### Input Nodes (`inputs/`)
+- **DataFileBlock**: Loads CSV, JSON, Excel or Parquet files
+- **DataMysqlBlock** / **DataMongoBlock**: Load a MySQL table or a MongoDB collection
+- **ServiceChainInput**: Receives data from a Prometheus-X service chain
+- **InputNode**: Base class for all input nodes
+
 #### Transform Nodes (`transforms/`)
+- **FilterTransform**: Filters rows with AND/OR rule groups
 - **MergeTransform**: Merges columns from different data sources
 - **FlattenTransform**: Flattens nested JSON structures
 - **TransformNode**: Base class for all transformation nodes
 
+#### Output Nodes (`outputs/`)
+- **FileOutput**: Writes CSV, JSON, XML or Parquet files
+- **MysqlOutput** / **MongoOutput**: Write to a MySQL table or a MongoDB collection
+- **ApiOutput**: Exposes the result through an API endpoint
+- **PdcOutput** / **ServiceChainOutput**: Share results in the Prometheus-X ecosystem
+- **OutputNode**: Base class for all output nodes
+
+Node classes are discovered automatically by `NodeFactory` (`node_factory.py`), which scans the `nodes/` directory. `example_*` files provide templates for new nodes (see the [Plugin Development Guide](PLUGGINS.md)).
+
 #### Node Features
 - **Inputs/Outputs**: Each node can have multiple inputs and outputs
-- **State Management**: Execution status tracking (Valid, Error, Processing)
+- **State Management**: Execution status tracking (`Error`, `Incomplete`, `Complete`, `Valid`)
 - **Batch Processing**: Support for large Parquet files
 
 ### 2. Data Management (`app/models/interface/`)
@@ -40,10 +59,10 @@ The platform's core is built on a modular node system:
 - **Schemas**: Automatic schema generation for validation and documentation
 
 #### Data Sources
-- Parquet files
-- Pandas DataFrames
-- External APIs
-- Databases
+- Files (CSV, JSON, Excel, Parquet)
+- External REST APIs
+- Databases (MySQL, MongoDB, Elasticsearch)
+- Prometheus-X PDC / service chains
 
 ### 3. Specialized Transformations
 
@@ -62,19 +81,26 @@ The platform's core is built on a modular node system:
 - **Use Cases**: JSON data normalization for analysis
 
 ### 4. Enumerations and States (`app/enums/`)
-- **StatusNode**: Node states (Valid, Error, Processing, etc.)
+- **StatusNode**: Node states (`Error`, `Incomplete`, `Complete`, `Valid`)
+- **TypeConnection**: Dataset connection types (`mysql`, `mongo`, `file`, `elastic`, `api`, `ptx`)
+- **UserRole**: User roles (`admin`, `user`)
 - Consistent state management across the platform
 
 ### 5. Utilities (`app/utils/`)
 - **Schema Generation**: Automatic Pandas schema creation
 - **Validation**: Data integrity checks
 - **Optimizations**: Performance helper functions
+- **Security**: Path validation (`security.py`), field encryption (`encryption.py`), JWT and password helpers (`auth_utils.py`)
+
+### 6. API and Services (`app/routes/`, `app/services/`)
+- **Routes**: `auth`, `datasets`, `workflows`, `ptx`, `output`, `api` (interactive documentation at `/docs`)
+- **Services**: authentication, users, datasets, workflows, PDC integration, email (password reset), migration from legacy `config.ini`
 
 ## Processing Flow
 
 1. **Configuration**: Define nodes and their connections
 2. **Validation**: Pipeline consistency verification
-3. **Execution**: Sequential node processing
+3. **Execution**: Sequential node processing (a node can also be executed individually, with its parents)
 4. **Monitoring**: Real-time execution state tracking
 5. **Results**: Data export and visualization
 
@@ -106,12 +132,19 @@ The platform's core is built on a modular node system:
 ## Technologies Used
 
 ### Backend
-- **Python 3.10+**
-- **FastAPI**: Modern, high-performance web framework
+- **Python 3.10+** (Docker image: Python 3.13)
+- **FastAPI**: Modern, high-performance web framework (Gunicorn + Uvicorn workers in Docker)
+- **MongoDB + Beanie**: Persistence of users, datasets and workflows
 - **Pandas**: Data manipulation
 - **PyArrow/Parquet**: High-performance storage and processing
 - **Pydantic**: Data validation and serialization
+- **python-jose / passlib (Argon2)**: JWT authentication and password hashing
 - **Pytest**: Testing framework
+
+### Frontend
+- **Angular 19** and **Ionic 8**
+- **Rete.js 2**: Visual workflow editor
+- **Jasmine / Karma**: Testing framework
 
 ### Data Management
 - **Apache Arrow**: In-memory data format
@@ -124,12 +157,17 @@ The platform's core is built on a modular node system:
 daav/
 ├── backendApi/          # Backend API
 │   ├── app/
-│   │   ├── nodes/       # Node system
-│   │   ├── models/      # Data models
+│   │   ├── config/      # Settings, database, logging, security
+│   │   ├── core/        # Workflow engine
 │   │   ├── enums/       # Enumerations
+│   │   ├── middleware/  # Authentication & security middleware
+│   │   ├── models/      # Data models
+│   │   ├── nodes/       # Node system
+│   │   ├── routes/      # API endpoints
+│   │   ├── services/    # Business logic
 │   │   └── utils/       # Utilities
 │   └── tests/           # Automated tests
-├── frontendApp/         # User interface
+├── frontendApp/         # User interface (Angular / Ionic)
 └── docs/               # Documentation
 ```
 
@@ -155,17 +193,18 @@ daav/
 ```
 Input Sources → Transform Nodes → Output Destinations
      ↓              ↓                    ↓
-[Parquet Files] [MergeTransform]    [Processed Data]
-[DataFrames]    [FlattenTransform]  [Visualizations]
-[JSON APIs]     [Custom Nodes]     [Export Files]
+[Files]         [FilterTransform]   [Files (CSV/JSON/XML/Parquet)]
+[MySQL/MongoDB] [MergeTransform]    [MySQL/MongoDB]
+[PTX Service    [FlattenTransform]  [API / PDC /
+ Chain]         [Custom Nodes]       Service Chain]
 ```
 
 ## Future Roadmap
 
-- **Visual Pipeline Editor**: Drag-and-drop interface for pipeline creation
-- **Enhanced Connectors**: Integration with more data sources (databases, cloud services)
+Already available: visual drag-and-drop pipeline editor (Rete.js), database connectors (MySQL, MongoDB) and container-based deployment (Docker Compose).
+
+- **Enhanced Connectors**: Integration with more data sources (Elasticsearch, LRS, Hugging Face and cloud services — some are partially implemented)
 - **Advanced Monitoring**: Performance metrics and pipeline optimization suggestions
-- **Cloud Deployment**: Container-based deployment for scalable processing
 - **Real-time Processing**: Stream processing capabilities for live data
 - **Machine Learning Integration**: Built-in ML model training and inference nodes
 
@@ -184,3 +223,5 @@ DAAV represents a modern, extensible solution for data processing that combines 
 - [← Back to main project](../README.md)
 - [Docker deployment guide](../DOCKER_DEPLOYMENT.md)
 - [Plugin development guide](PLUGGINS.md)
+- [Security guide](SECURITY.md)
+- [Node user guide](README.md)

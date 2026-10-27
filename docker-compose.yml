@@ -43,6 +43,10 @@ services:
       - "8081:8000"
     networks:
       - daav
+    # Optional local settings (SMTP, ...). Values below in "environment" take precedence.
+    env_file:
+      - path: ./backendApi/.env
+        required: false
     environment:
       # MongoDB Configuration
       MONGODB_URL: mongodb://admin:admin123@mongodb:27017/daav_datasets?authSource=admin
@@ -75,7 +79,8 @@ services:
     depends_on:
       - mongodb
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      # curl is not installed in the python slim image
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3

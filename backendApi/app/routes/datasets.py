@@ -249,7 +249,7 @@ async def getDfContentDataset(request: Request, data: ConnectionInfo, current_us
         raise ValueError("Dataset type not handle")
     
 @router.post("/getDfFromJson" ,response_model=NodeDataUnion)
-def getDfFromJson(data: dict)-> NodeDataPandasDf:
+def getDfFromJson(data: dict, current_user: CurrentUser)-> NodeDataPandasDf:
     print("data", data)
     json_data = data['data']
     if not json_data:

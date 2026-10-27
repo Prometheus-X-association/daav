@@ -37,6 +37,7 @@ from app.models.interface.dataset_interface import (
 )
 from app.models.interface.workflow_interface import IProject
 from app.models.interface.user_interface import User, PasswordResetToken
+from app.models.interface.pdc_chain_interface import ServiceChainData
 from app.enums.user_role import UserRole
 
 _test_database = None
@@ -71,7 +72,8 @@ async def setup_test_db():
                 PTXDataset,
                 ApiDataset,
                 ElasticDataset,
-                IProject
+                IProject,
+                ServiceChainData
             ]
         )
     
@@ -82,7 +84,7 @@ async def clean_collections():
     """Clean all collections before each test."""
     if _test_database is not None:
         # Clean collections
-        for model in [User, PasswordResetToken, Dataset, FileDataset, MongoDataset, MysqlDataset, PTXDataset, ApiDataset, ElasticDataset, IProject]:
+        for model in [User, PasswordResetToken, Dataset, FileDataset, MongoDataset, MysqlDataset, PTXDataset, ApiDataset, ElasticDataset, IProject, ServiceChainData]:
             try:
                 await model.delete_all()
             except Exception:

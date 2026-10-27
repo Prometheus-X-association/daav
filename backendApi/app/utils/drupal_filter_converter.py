@@ -117,7 +117,7 @@ class DrupalFilterConverter:
                     }
                 }
             }
-            Output: ("model LIKE ?", ['M%'])
+            Output: ('"model" LIKE ?', ['M%'])
         """
         groups = {}
         conditions_by_group = {}  # Stocker les conditions par groupe
@@ -207,7 +207,7 @@ class DrupalFilterConverter:
             else:
                 values = [value]
             
-            placeholders = ', '.join(['%s'] * len(values))
+            placeholders = ', '.join(['?'] * len(values))
             return f"{field_name} {self.OPERATOR_MAP[operator]} ({placeholders})", values
         
         elif operator == 'BETWEEN' or operator == 'NOT BETWEEN':
@@ -279,8 +279,16 @@ class DrupalFilterConverter:
         # Add table prefix if provided
         if self.table_prefix and not '.' in mapped_field:
             mapped_field = f"{self.table_prefix}.{mapped_field}"
-        
-        return mapped_field
+
+        # Quote each identifier part: the path comes from the query string
+        # and must never be interpreted as SQL
+        return '.'.join(self._quote_identifier(part) for part in mapped_field.split('.'))
+
+    @staticmethod
+    def _quote_identifier(identifier: str) -> str:
+        """Quote a SQL identifier, escaping embedded double quotes."""
+        escaped = identifier.replace('"', '""')
+        return f'"{escaped}"'
     
     def convert_query_string_to_where(self, query_string: str) -> Tuple[str, List[Any]]:
         """
@@ -294,7 +302,7 @@ class DrupalFilterConverter:
 
         Example:
             Input: "filter[test][condition][path]=model&filter[test][condition][operator]=STARTS_WITH&filter[test][condition][value]=M"
-            Output: ('model LIKE ?', ['M%'])
+            Output: ('"model" LIKE ?', ['M%'])
         """
         filters = self.parse_query_string(query_string)
         return self.convert_filters_to_where(filters)

@@ -17,8 +17,8 @@ class DataHuggingBlock(InputNode):
         """
         super().__init__(id=id, data=data, revision=revision, status=status)    
 
-    def process(self):
-        pass
+    def process(self, sample: bool = False) -> StatusNode:
+        raise NotImplementedError("Hugging Face input node is not implemented yet")
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
