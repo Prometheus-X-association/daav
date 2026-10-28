@@ -122,7 +122,8 @@ def decode_token(token: str) -> TokenData:
         user_id: str = payload.get("sub")
         username: str = payload.get("username")
         role: str = payload.get("role")
-        
+        token_version: int = payload.get("tv", 0)
+
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -130,7 +131,7 @@ def decode_token(token: str) -> TokenData:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        return TokenData(user_id=user_id, username=username, role=role)
+        return TokenData(user_id=user_id, username=username, role=role, token_version=token_version)
     
     except JWTError as e:
         raise HTTPException(

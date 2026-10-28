@@ -166,6 +166,7 @@ class UserService(metaclass=SingletonMeta):
             # Hash password if provided
             if "password" in update_data and update_data["password"]:
                 update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
+                update_data["token_version"] = user.token_version + 1  # Revoke the tokens issued before the change
             
             # Only admin can change role
             if "role" in update_data and current_user.role != UserRole.ADMIN:
@@ -290,9 +291,10 @@ class UserService(metaclass=SingletonMeta):
             # Hash and set new password
             user.hashed_password = get_password_hash(new_password)
             user.must_change_password = False
+            user.token_version += 1  # Revoke the tokens issued before the change
             user.updated_at = datetime.now(timezone.utc)
             await user.save()
-            
+
             logger.info(f"Password changed for user: {user.username}")
             return True
         

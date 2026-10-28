@@ -2,7 +2,7 @@ import { Injectable, Injector } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
+import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import {
   User,
   Token,
@@ -11,6 +11,7 @@ import {
   ForgotPasswordRequest,
   ResetPasswordRequest,
   ChangePasswordRequest,
+  ChangePasswordResponse,
   UserUpdate
 } from '../models/auth.models';
 import { TokenService } from './token.service';
@@ -259,7 +260,7 @@ export class AuthService {
   /**
    * Change password (authenticated user)
    */
-  changePassword(currentPassword: string, newPassword: string): Observable<{ message: string }> {
+  changePassword(currentPassword: string, newPassword: string): Observable<ChangePasswordResponse> {
     const request: ChangePasswordRequest = { current_password: currentPassword, new_password: newPassword };
     const accessToken = this.tokenService.getAccessToken();
 
@@ -267,8 +268,14 @@ export class AuthService {
       'Authorization': `Bearer ${accessToken}`
     });
 
-    return this.http.post<{ message: string }>(`${this.baseService.urlBack}/auth/change-password`, request, { headers })
+    return this.http.post<ChangePasswordResponse>(`${this.baseService.urlBack}/auth/change-password`, request, { headers })
       .pipe(
+        // The previous tokens are revoked: keep the session with the new ones
+        switchMap(async (response) => {
+          const rememberMe = await this.tokenService.isRememberMe();
+          await this.tokenService.saveTokens(response.access_token, response.refresh_token, rememberMe);
+          return response;
+        }),
         catchError(this.handleError)
       );
   }

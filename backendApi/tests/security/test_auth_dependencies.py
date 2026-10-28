@@ -94,6 +94,15 @@ async def test_default_admin_must_change_password_before_api_access():
         })
         assert changed.status_code == 200
 
-        allowed = await client.get("/protected", headers=headers)
+        # The tokens issued with the default password are revoked
+        assert (await client.get("/protected", headers=headers)).status_code == 401
+        refresh = await client.post("/auth/refresh", json={"refresh_token": login.json()["refresh_token"]})
+        assert refresh.status_code == 401
+
+        # The current session continues with the new tokens
+        new_headers = {"Authorization": f"Bearer {changed.json()['access_token']}"}
+        allowed = await client.get("/protected", headers=new_headers)
         assert allowed.status_code == 200
-        assert (await client.get("/auth/me", headers=headers)).json()["must_change_password"] is False
+        assert (await client.get("/auth/me", headers=new_headers)).json()["must_change_password"] is False
+        refresh = await client.post("/auth/refresh", json={"refresh_token": changed.json()["refresh_token"]})
+        assert refresh.status_code == 200

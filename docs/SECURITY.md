@@ -104,6 +104,7 @@ Patterns are regular expressions defined in `SecurityConfig.SUSPICIOUS_REQUEST_P
 ## 🔑 Authentication & Authorization
 
 - **JWT** access tokens (`JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, 60 min by default) and refresh tokens (`JWT_REFRESH_TOKEN_EXPIRE_DAYS`, 90 days by default), signed with `JWT_SECRET_KEY` (min. 32 characters, no default value — see [Application secrets](#application-secrets))
+- **Token revocation**: changing the password (`POST /auth/change-password`, password reset, or password update through `PUT /auth/me` / `PUT /auth/users/{id}`) revokes all the tokens issued before, so other sessions are logged out. `POST /auth/change-password` returns new tokens for the current session
 - **Password hashing** with Argon2id (`passlib`)
 - **Password policy**: at least 8 characters, one uppercase, one lowercase and one special character
 - **Roles**: `admin` and `user`; datasets and workflows are owned by a user and can be shared
@@ -284,6 +285,7 @@ Test files: `test_path_security.py`, `test_security_middleware.py`, `test_inject
 - ✅ Rate limiting, IP blocking and suspicious pattern detection (middleware)
 - ✅ SQL identifier injection, Elasticsearch wildcards and SSRF URLs
 - ✅ SQL injection through API output filter paths and group conjunctions, file access from DuckDB filter queries
+- ✅ Revocation of the tokens issued before a password change
 - ✅ M2M authentication (wrong credentials, deactivated accounts) and per-user isolation of service chain data
 - ✅ Proxy header spoofing and false positives of the middleware patterns
 - ✅ Encryption of sensitive dataset fields at rest

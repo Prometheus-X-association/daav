@@ -63,6 +63,13 @@ export interface ChangePasswordRequest {
   new_password: string;
 }
 
+/**
+ * The password change revokes the previous tokens: new ones are returned for the current session
+ */
+export interface ChangePasswordResponse extends Token {
+  message: string;
+}
+
 export interface UserUpdate {
   email?: string;
   full_name?: string;

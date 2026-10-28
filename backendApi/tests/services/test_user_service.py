@@ -220,6 +220,7 @@ async def test_update_user_success_own_profile(user_service_instance, mock_user,
         
         assert result.full_name == sample_user_update.full_name
         assert result.email == sample_user_update.email
+        assert result.token_version == 0  # Tokens kept when the password is not changed
         mock_save.assert_called_once()
 
 
@@ -297,6 +298,7 @@ async def test_update_user_with_password(user_service_instance, mock_user):
         )
         
         assert result.hashed_password == "new_hashed_password"
+        assert result.token_version == 1  # Previous tokens revoked
         mock_hash.assert_called_once_with("NewPassword123!")
         mock_save.assert_called_once()
 
@@ -435,6 +437,7 @@ async def test_change_password_success(user_service_instance, mock_user):
         
         assert result is True
         assert mock_user.hashed_password == "new_hashed"
+        assert mock_user.token_version == 1  # Previous tokens revoked
         mock_verify.assert_called_once_with(current_password, original_hashed_password)
         mock_hash.assert_called_once_with(new_password)
         mock_save.assert_called_once()

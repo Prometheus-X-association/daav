@@ -266,7 +266,10 @@ async def change_password(
     Change current user password
     
     Accessible while a password change is pending, and clears it on success.
-    
+
+    The tokens issued before the change are revoked (other sessions are logged out):
+    new tokens are returned for the current session.
+
     - **current_password**: Current password for verification
     - **new_password**: New password (must meet complexity requirements)
     """
@@ -276,7 +279,11 @@ async def change_password(
             password_data.current_password,
             password_data.new_password
         )
-        return {"message": "Password changed successfully"}
+        user = await user_service.get_user_by_id(current_user.id)
+        return {
+            "message": "Password changed successfully",
+            **auth_service.create_tokens(user).model_dump()
+        }
     except HTTPException:
         raise
     except ValueError as e:
