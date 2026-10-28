@@ -15,6 +15,9 @@ from app.enums.user_role import UserRole
 
 logger = logging.getLogger(__name__)
 
+# Password of the admin account created on first startup; it must be changed on first login
+DEFAULT_ADMIN_PASSWORD = "Admin123!"
+
 
 class UserService(metaclass=SingletonMeta):
     """Service for managing users"""
@@ -277,9 +280,16 @@ class UserService(metaclass=SingletonMeta):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Current password is incorrect"
                 )
-            
+
+            if new_password == current_password:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="New password must be different from the current password"
+                )
+
             # Hash and set new password
             user.hashed_password = get_password_hash(new_password)
+            user.must_change_password = False
             user.updated_at = datetime.now(timezone.utc)
             await user.save()
             
@@ -357,12 +367,17 @@ class UserService(metaclass=SingletonMeta):
                     username="admin",
                     email="admin@example.com",
                     full_name="System Administrator",
-                    password="Admin123!",  # Must be changed on first login
+                    password=DEFAULT_ADMIN_PASSWORD,
                     role=UserRole.ADMIN
                 )
-                
+
                 admin = await self.create_user(admin_data)
-                logger.warning("⚠️ DEFAULT ADMIN CREATED - Username: admin, Password: Admin123! - CHANGE THIS IMMEDIATELY!")
+                admin.must_change_password = True
+                await admin.save()
+                logger.warning(
+                    f"⚠️ DEFAULT ADMIN CREATED - Username: admin, Password: {DEFAULT_ADMIN_PASSWORD} "
+                    "- A password change will be required on first login"
+                )
                 return admin
             
             # Check if admin exists

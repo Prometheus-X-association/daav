@@ -168,6 +168,34 @@ async def test_login_updates_last_login(auth_service_instance, test_user):
         # last_login should be updated (different from original or None)
 
 
+@pytest.mark.asyncio
+async def test_login_with_default_password_requires_change(auth_service_instance, test_admin):
+    """Test that logging in with the default admin password requires a password change"""
+    assert test_admin.must_change_password is False
+    
+    with patch('app.services.auth_service.verify_password', return_value=True), \
+         patch('app.services.auth_service.create_access_token', return_value="access_token"), \
+         patch('app.services.auth_service.create_refresh_token', return_value="refresh_token"):
+        
+        await auth_service_instance.login("adminuser", "Admin123!")
+        
+        updated_admin = await User.get(test_admin.id)
+        assert updated_admin.must_change_password is True
+
+
+@pytest.mark.asyncio
+async def test_login_with_custom_password_does_not_require_change(auth_service_instance, test_user):
+    """Test that logging in with a non-default password does not require a password change"""
+    with patch('app.services.auth_service.verify_password', return_value=True), \
+         patch('app.services.auth_service.create_access_token', return_value="access_token"), \
+         patch('app.services.auth_service.create_refresh_token', return_value="refresh_token"):
+        
+        await auth_service_instance.login("testuser", "Test123!")
+        
+        updated_user = await User.get(test_user.id)
+        assert updated_user.must_change_password is False
+
+
 # ============================================
 # REFRESH TOKEN TESTS
 # ============================================
@@ -420,6 +448,23 @@ async def test_reset_password_success(auth_service_instance, test_user):
         ).to_list()
         assert len(reset_tokens) == 1
         assert reset_tokens[0].used is True
+
+
+@pytest.mark.asyncio
+async def test_reset_password_clears_password_change_requirement(auth_service_instance, test_user):
+    """Test that resetting the password clears the pending password change flag"""
+    test_user.must_change_password = True
+    await test_user.save()
+    
+    with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock, return_value=True), \
+         patch('app.services.auth_service.get_password_hash', return_value="hashed"), \
+         patch('app.services.auth_service.verify_password', return_value=True):
+        
+        await auth_service_instance.forgot_password(test_user.email)
+        await auth_service_instance.reset_password("plain_token", "NewPassword123!")
+        
+        updated_user = await User.get(test_user.id)
+        assert updated_user.must_change_password is False
 
 
 @pytest.mark.asyncio

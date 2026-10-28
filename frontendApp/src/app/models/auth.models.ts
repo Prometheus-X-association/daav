@@ -9,6 +9,7 @@ export interface User {
   full_name: string;
   role: UserRole;
   is_active: boolean;
+  must_change_password: boolean;
   last_login: string | null;
   created_at: string;
   updated_at: string;

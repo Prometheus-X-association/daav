@@ -15,7 +15,7 @@ from app.utils.auth_utils import (
     verify_token_type,
     ensure_utc_aware
 )
-from app.services.user_service import UserService
+from app.services.user_service import UserService, DEFAULT_ADMIN_PASSWORD
 from app.services.email_service import EmailService
 from app.config.settings import settings
 from app.utils.singleton import SingletonMeta
@@ -91,7 +91,14 @@ class AuthService(metaclass=SingletonMeta):
                     detail="Incorrect username or password",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            
+
+            # Accounts still using the default admin password (e.g. created before this flag
+            # existed) must change it before accessing the application
+            if not user.must_change_password and password == DEFAULT_ADMIN_PASSWORD:
+                user.must_change_password = True
+                await user.save()
+                logger.warning(f"User {user.username} logged in with the default password, password change required")
+
             # Update last login
             await self.user_service.update_last_login(user.id)
             
@@ -385,9 +392,10 @@ class AuthService(metaclass=SingletonMeta):
 
             # Update password
             user.hashed_password = get_password_hash(new_password)
+            user.must_change_password = False
             user.updated_at = datetime.now(timezone.utc)
             await user.save()
-            
+
             # Mark token as used
             matching_token.used = True
             await matching_token.save()

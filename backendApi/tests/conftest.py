@@ -117,6 +117,7 @@ def mock_user():
     user.full_name = "Test User"
     user.role = UserRole.USER
     user.is_active = True
+    user.must_change_password = False
     user.owned_datasets = []
     user.owned_workflows = []
     user.shared_datasets = []

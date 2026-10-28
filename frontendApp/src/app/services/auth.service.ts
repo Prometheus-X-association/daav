@@ -73,6 +73,11 @@ export class AuthService {
    * Load user data (datasets, workflows) after authentication
    */
   private async loadUserData(): Promise<void> {
+    // The API refuses data access until the pending password change is done
+    if (this.currentUserValue?.must_change_password) {
+      return;
+    }
+
     try {
       // Lazy injection to avoid circular dependency
       const { DatasetService } = await import('./dataset.service');

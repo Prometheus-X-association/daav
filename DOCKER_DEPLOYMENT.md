@@ -19,7 +19,7 @@ The backend image runs on `python:3.13-slim` with Gunicorn and `WORKERS` Uvicorn
 - MongoDB credentials (`MONGO_INITDB_ROOT_*` and `MONGODB_URL`, plus Mongo Express settings if used)
 - `CORS_ORIGINS` (backend) and `CORS_ORIGIN` (frontend) to your public domain
 - `FRONTEND_URL` and the `SMTP_*` variables if password reset by email is needed
-- The default application admin password (`admin` / `Admin123!`), from the UI after first login
+- The default application admin password (`admin` / `Admin123!`): the UI requires changing it at first login, do it before exposing the application
 
 ### Frontend
 The frontend uses different environment configurations:

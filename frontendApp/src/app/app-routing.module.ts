@@ -22,6 +22,12 @@ const routes: Routes = [
   },
   // Protected routes
   {
+    path: 'change-password',
+    canActivate: [AuthGuard],
+    data: { passwordChangeRoute: true },
+    loadChildren: () => import('./pages/change-password/change-password.module').then(m => m.ChangePasswordPageModule)
+  },
+  {
     path: '',
     canActivate: [AuthGuard],
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule)

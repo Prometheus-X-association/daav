@@ -541,6 +541,8 @@ docker-compose up -d
 - Username: `admin`
 - Password: `Admin123!`
 
+A password change is required at first login before the application can be used.
+
 ### Configuration
 
 The default configuration should work out-of-the-box. For customization:
@@ -740,7 +742,7 @@ Small manual tests to prove individual features work correctly.
 3. Enter password: `Admin123!`
 4. Click "Login" button
 
-**Expected Result:** User is logged in and redirected to the main dashboard.
+**Expected Result:** User is logged in and redirected to the main dashboard (on first login with the default password, the user is first redirected to the change password page).
 
 **Result:** Validated
 

@@ -84,7 +84,8 @@ uvicorn app.main:app --reload --port 8000
 
 On first launch (when no user exists) the backend creates a default admin user:
 Username: `admin`, Password: `Admin123!`.
-Change it immediately from the frontend or the API.
+A password change is required at first login: until it is done, the API only allows
+`GET /auth/me` and `POST /auth/change-password`, and the frontend redirects to the change password page.
 
 **API Documentation**: http://localhost:8000/docs
 

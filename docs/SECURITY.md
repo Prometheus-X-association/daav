@@ -109,7 +109,7 @@ Patterns are regular expressions defined in `SecurityConfig.SUSPICIOUS_REQUEST_P
 - **Roles**: `admin` and `user`; datasets and workflows are owned by a user and can be shared
 - **Registration**: only admins can create users unless `ALLOW_PUBLIC_REGISTRATION=true`; only admins can create admin users
 - **Password reset** by email (SMTP settings, token valid `PASSWORD_RESET_TOKEN_EXPIRE_HOURS`)
-- **Default admin**: `admin` / `Admin123!` is created when no user exists — change it immediately
+- **Default admin**: `admin` / `Admin123!` is created when no user exists. A password change is required at first login (`must_change_password` flag): until then, every endpoint except `GET /auth/me` and `POST /auth/change-password` returns `403 Password change required`. Any account logging in with this default password gets the same requirement
 
 ## 💉 Injection & SSRF Protection
 
