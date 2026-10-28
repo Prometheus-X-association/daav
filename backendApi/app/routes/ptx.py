@@ -215,11 +215,12 @@ async def executeChainService(
             detail="Missing workflowId in params"
         )
 
-    requestjson = await request.json()
     service_chain_id = service_chain_match.group(1)
+    # Only the users authenticated by this request can read the data back
     await pdc_service.store_servicechain_data(
         service_chain_id=service_chain_id,
-        data=payload.data
+        data=payload.data,
+        user_ids=[str(auth_user_data['user'].id) for auth_user_data in authenticated_users]
     )
     pdc_headers = PdcChainHeaders(
         Authorization=Authorization if Authorization is not None else "",
@@ -228,7 +229,6 @@ async def executeChainService(
     )
 
     dataset_service.pdcChainData = payload.data
-    print(requestjson)
     dataset_service.pdcChainHeaders = pdc_headers
     workflow_data = await workflow_service.get_workflow(workflow_id)
     print(type(workflow_data))
@@ -250,14 +250,14 @@ async def executeChainService(
 
 @router.get("/serviceChain/data/{service_chain_id}")
 async def get_servicechain_data(service_chain_id: str, current_user: CurrentUser):
-    """retrieve service chain data by its ID"""
-    return await pdc_service.get_servicechain_data(service_chain_id)
+    """retrieve service chain data by its ID (only the data received for the current user)"""
+    return await pdc_service.get_servicechain_data(service_chain_id, str(current_user.id))
 
 
 @router.delete("/serviceChain/data/remove/{service_chain_id}")
 async def delete_service_chain_data(service_chain_id: str, current_user: CurrentUser):
     """delete service chain data  in pdc_service"""
-    status = await pdc_service.delete_servicechain_data(service_chain_id)
+    status = await pdc_service.delete_servicechain_data(service_chain_id, str(current_user.id))
     if status:
         logger.info(f"{service_chain_id} deleted in pdc service")
         return True

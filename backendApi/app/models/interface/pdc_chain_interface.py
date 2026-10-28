@@ -51,10 +51,16 @@ class PdcChainHeaders(BaseModel):
 
 
 class ServiceChainData(Document):
-    """Data received from a PDC service chain, shared by all backend workers"""
-    id: Optional[str] = Field(default=None, alias="_id", description="Service chain ID")
+    """Data received from a PDC service chain for one user, shared by all backend workers"""
+    id: Optional[str] = Field(default=None, alias="_id", description="<service chain ID>:<user ID>")
+    service_chain_id: str
+    user_id: str = Field(..., description="User authenticated by the PDC request, the only one allowed to read the data")
     data: Any = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @staticmethod
+    def document_id(service_chain_id: str, user_id: str) -> str:
+        return f"{service_chain_id}:{user_id}"
 
     class Settings:
         name = "service_chain_data"

@@ -1,6 +1,6 @@
 import httpx
 import requests
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import HTTPException
 from pydantic import BaseModel
 from app.config.settings import settings
@@ -125,26 +125,32 @@ class PdcService(metaclass=SingletonMeta):
             }
         return None
 
-    async def store_servicechain_data(self, service_chain_id: str, data: Any) -> bool:
-        """save service chain data (in MongoDB, so every worker can read it)"""
+    async def store_servicechain_data(self, service_chain_id: str, data: Any, user_ids: List[str]) -> bool:
+        """save service chain data for each user (in MongoDB, so every worker can read it)"""
         if isinstance(data, BaseModel):
             data = data.model_dump(mode="json")
-        await ServiceChainData(id=service_chain_id, data=data).save()
+        for user_id in user_ids:
+            await ServiceChainData(
+                id=ServiceChainData.document_id(service_chain_id, user_id),
+                service_chain_id=service_chain_id,
+                user_id=user_id,
+                data=data,
+            ).save()
         return True
 
-    async def get_servicechain_data(self, service_chain_id: str) -> Optional[Dict[str, Any]]:
-        """get service chain data"""
-        document = await ServiceChainData.get(service_chain_id)
+    async def get_servicechain_data(self, service_chain_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """get service chain data stored for the user"""
+        document = await ServiceChainData.get(ServiceChainData.document_id(service_chain_id, user_id))
         if document is None:
             return None
         return {
-            "service_chain_id": document.id,
+            "service_chain_id": document.service_chain_id,
             "data": document.data,
         }
 
-    async def delete_servicechain_data(self, service_chain_id: str) -> bool:
-        """delete service chain data by its ID"""
-        document = await ServiceChainData.get(service_chain_id)
+    async def delete_servicechain_data(self, service_chain_id: str, user_id: str) -> bool:
+        """delete service chain data stored for the user"""
+        document = await ServiceChainData.get(ServiceChainData.document_id(service_chain_id, user_id))
         if document is None:
             return False
         await document.delete()

@@ -80,3 +80,35 @@ class TestDrupalFilterConverter:
             filter_data_with_duckdb(data_file, where=where, params=params)
         assert "read_text" in str(exc_info.value)
         assert "not found" in str(exc_info.value).lower()
+
+    def _group_query(self, conjunction: str) -> str:
+        return _query({
+            "filter[g][group][conjunction]": conjunction,
+            "filter[a][condition][path]": "name",
+            "filter[a][condition][value]": "a",
+            "filter[a][condition][memberOf]": "g",
+            "filter[c][condition][path]": "name",
+            "filter[c][condition][value]": "c",
+            "filter[c][condition][memberOf]": "g",
+        })
+
+    @pytest.mark.parametrize("conjunction", ["OR", "or"])
+    def test_group_conjunction(self, converter, data_file, conjunction):
+        where, params = converter.convert_query_string_to_where(self._group_query(conjunction))
+        assert where == '("name" = ? OR "name" = ?)'
+        rows = filter_data_with_duckdb(data_file, where=where, params=params)
+        assert sorted(row["name"] for row in rows) == ["a", "c"]
+
+    def test_group_conjunction_is_whitelisted(self, converter):
+        with pytest.raises(ValueError, match="conjunction"):
+            converter.convert_query_string_to_where(self._group_query("OR 1=1 OR"))
+
+    def test_duckdb_query_cannot_access_files(self, data_file):
+        # Defense in depth: even an injected clause cannot read files once the data is loaded
+        with pytest.raises(Exception) as exc_info:
+            filter_data_with_duckdb(
+                data_file,
+                where="name IN (SELECT content FROM read_text(?))",
+                params=[data_file],
+            )
+        assert "disabled by configuration" in str(exc_info.value)

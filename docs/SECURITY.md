@@ -110,13 +110,14 @@ Patterns are regular expressions defined in `SecurityConfig.SUSPICIOUS_REQUEST_P
 - **Registration**: only admins can create users unless `ALLOW_PUBLIC_REGISTRATION=true`; only admins can create admin users
 - **Password reset** by email (SMTP settings, token valid `PASSWORD_RESET_TOKEN_EXPIRE_HOURS`)
 - **Default admin**: `admin` / `Admin123!` is created when no user exists. A password change is required at first login (`must_change_password` flag): until then, every endpoint except `GET /auth/me` and `POST /auth/change-password` returns `403 Password change required`. Any account logging in with this default password gets the same requirement
+- **PDC (M2M) requests** (`/ptx/executeChainService`, `/ptx/pdcInput`, `/api/...`, `/output/...`): authenticated by matching request headers against the credentials configured by each user (constant-time comparison, deactivated accounts are ignored). Service chain data received this way is stored for each authenticated user and can only be read or deleted by that user
 
 ## 💉 Injection & SSRF Protection
 
 Dataset models validate user-provided connection parameters (`app/models/interface/dataset_interface.py`):
 - **MySQL**: `database` and `table` must be plain SQL identifiers (`[A-Za-z0-9_]`, max 64 chars)
 - **Elasticsearch**: `index` must be a valid index name; wildcard expressions are rejected
-- **API output filters**: Drupal JSON:API filters on `/api/...` and `/output/...` are converted to parameterized DuckDB queries; values are bound as parameters and field paths are quoted as SQL identifiers (`app/utils/drupal_filter_converter.py`)
+- **API output filters**: Drupal JSON:API filters on `/api/...` and `/output/...` are converted to parameterized DuckDB queries; values are bound as parameters, field paths are quoted as SQL identifiers and group conjunctions are restricted to `AND` / `OR` (`app/utils/drupal_filter_converter.py`). Once the output file is loaded, file and network access is disabled on the DuckDB connection, so that a filter can never read other files
 - **SSRF**: API and Elasticsearch URLs must use `http`/`https` and must not target `localhost` or private/internal IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `169.254.0.0/16`, `::1`, `fc00::/7`)
 
 ## 📁 Authorized Directories
@@ -271,7 +272,7 @@ cd backendApi
 python -m pytest tests/security -v
 ```
 
-Test files: `test_path_security.py`, `test_security_middleware.py`, `test_injection_validators.py`, `test_secret_keys.py` (plus `tests/models/interface/test_dataset_interface.py` and `tests/services/test_reencryption_service.py` for field encryption and `tests/utils/test_drupal_filter_converter.py` for API output filters).
+Test files: `test_path_security.py`, `test_security_middleware.py`, `test_injection_validators.py`, `test_secret_keys.py`, `test_m2m_auth.py` (plus `tests/models/interface/test_dataset_interface.py` and `tests/services/test_reencryption_service.py` for field encryption and `tests/utils/test_drupal_filter_converter.py` for API output filters).
 
 ### Tested Scenarios
 - ✅ Unix/Windows path traversal
@@ -282,7 +283,8 @@ Test files: `test_path_security.py`, `test_security_middleware.py`, `test_inject
 - ✅ Access outside authorized directories
 - ✅ Rate limiting, IP blocking and suspicious pattern detection (middleware)
 - ✅ SQL identifier injection, Elasticsearch wildcards and SSRF URLs
-- ✅ SQL injection through API output filter paths
+- ✅ SQL injection through API output filter paths and group conjunctions, file access from DuckDB filter queries
+- ✅ M2M authentication (wrong credentials, deactivated accounts) and per-user isolation of service chain data
 - ✅ Proxy header spoofing and false positives of the middleware patterns
 - ✅ Encryption of sensitive dataset fields at rest
 - ✅ Temporary secret generation, refusal of public placeholder secrets, re-encryption with the current key

@@ -29,7 +29,10 @@ class DrupalFilterConverter:
         'IS NULL': 'IS NULL',
         'IS NOT NULL': 'IS NOT NULL',
     }
-    
+
+    # Allowed group conjunctions (inserted in the SQL, so never taken as is from the query string)
+    CONJUNCTIONS = ('AND', 'OR')
+
     def __init__(self, table_prefix: str = '', field_mapping: Optional[Dict[str, str]] = None):
         """
         Initialize the converter.
@@ -163,7 +166,9 @@ class DrupalFilterConverter:
         # Build group conditions AFTER root conditions
         for group_label, group_data in groups.items():
             if group_label in conditions_by_group and conditions_by_group[group_label]:
-                conjunction = group_data.get('conjunction', 'AND')
+                conjunction = str(group_data.get('conjunction', 'AND')).upper()
+                if conjunction not in self.CONJUNCTIONS:
+                    raise ValueError(f"Unsupported filter group conjunction: {conjunction!r}")
                 group_sql_parts = []
                 
                 # Process conditions in this group

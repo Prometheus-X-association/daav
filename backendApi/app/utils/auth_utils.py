@@ -1,3 +1,4 @@
+import hmac
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, TypedDict
@@ -248,6 +249,10 @@ async def authenticate_m2m_credentials(request_headers: Headers, users: List[Use
         authenticated_users = []
         
         for user in users:
+            # Deactivated accounts must not be usable through their M2M credentials either
+            if not user.is_active:
+                continue
+
             # Check if user has credentials configured
             if not user.config or not user.config.credentials:
                 continue
@@ -264,8 +269,8 @@ async def authenticate_m2m_credentials(request_headers: Headers, users: List[Use
                         header_value = header_val
                         break
                 
-                # If header matches credential value
-                if header_value and header_value == cred_value:
+                # If header matches credential value (constant-time comparison)
+                if header_value and cred_value and hmac.compare_digest(header_value.encode(), cred_value.encode()):
                     user_matched_credentials[cred_key] = cred_value
             
             # If user has at least one matching credential, add to authenticated list

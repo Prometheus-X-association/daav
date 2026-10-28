@@ -537,7 +537,12 @@ def filter_data_with_duckdb(filepath: str, select: Optional[str] = None, where: 
         con = duckdb.connect(":memory:")
         
         con.execute("CREATE TABLE temp_data AS SELECT * FROM read_json(?)", [filepath])
-        
+
+        # The WHERE clause is built from the query string: once the data is loaded,
+        # forbid any file or network access (and re-enabling it) from the query
+        con.execute("SET enable_external_access = false")
+        con.execute("SET lock_configuration = true")
+
         # Construct SQL query
         query = "SELECT "
         query += select if select else "*"
