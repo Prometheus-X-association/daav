@@ -103,7 +103,7 @@ Patterns are regular expressions defined in `SecurityConfig.SUSPICIOUS_REQUEST_P
 
 ## 🔑 Authentication & Authorization
 
-- **JWT** access tokens (`JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, 60 min by default) and refresh tokens (`JWT_REFRESH_TOKEN_EXPIRE_DAYS`, 90 days by default), signed with `JWT_SECRET_KEY` (min. 32 characters, required in production)
+- **JWT** access tokens (`JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, 60 min by default) and refresh tokens (`JWT_REFRESH_TOKEN_EXPIRE_DAYS`, 90 days by default), signed with `JWT_SECRET_KEY` (min. 32 characters, no default value — see [Application secrets](#application-secrets))
 - **Password hashing** with Argon2id (`passlib`)
 - **Password policy**: at least 8 characters, one uppercase, one lowercase and one special character
 - **Roles**: `admin` and `user`; datasets and workflows are owned by a user and can be shared
@@ -156,33 +156,43 @@ Dataset models validate user-provided connection parameters (`app/models/interfa
 
 The list is defined in `SecurityConfig.ALLOWED_FILE_EXTENSIONS` (`app/config/security.py`).
 
+<a id="application-secrets"></a>
+## 🗝️ Application Secrets
+
+`JWT_SECRET_KEY` (signs the authentication tokens) and `FIELD_ENCRYPTION_KEY` (encrypts the dataset credentials) have **no default value**. They are read from the environment or from `backendApi/.env`.
+
+If one of them is not set, the backend does not stop:
+1. On first start, a temporary key is generated and stored in `SECRETS_DIR` (`backendApi/secrets/` locally, the `backend-secrets` volume at `/app/secrets` in Docker) as `JWT_SECRET_KEY_TMP` / `FIELD_ENCRYPTION_KEY_TMP` (file readable by the owner only). It is reused on every restart and shared by all workers.
+2. An **error** is logged at every start until the key is configured.
+
+To configure the keys, copy the generated values to the real variables and **save them in a secrets vault** (password manager, HashiCorp Vault...):
+
+```bash
+# Docker
+docker compose exec backend cat /app/secrets/JWT_SECRET_KEY_TMP /app/secrets/FIELD_ENCRYPTION_KEY_TMP
+# Local install
+cat backendApi/secrets/JWT_SECRET_KEY_TMP backendApi/secrets/FIELD_ENCRYPTION_KEY_TMP
+```
+
+Then set `JWT_SECRET_KEY=...` and `FIELD_ENCRYPTION_KEY=...` in `backendApi/.env` or in `docker-compose.yml` and restart the backend. You can also generate your own values:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"                                  # JWT_SECRET_KEY
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"     # FIELD_ENCRYPTION_KEY
+```
+
+| Key | If it is lost or changed |
+|---|---|
+| `JWT_SECRET_KEY` | Users have to log in again |
+| `FIELD_ENCRYPTION_KEY` | Dataset credentials can no longer be decrypted and must be re-entered (unless the previous key is still available as `FIELD_ENCRYPTION_KEY_TMP`, see below) |
+
+The placeholder JWT secrets shipped by previous versions of `docker-compose.yml`, `.env.example` and the settings are public: they are refused and treated as not set.
+
+> ⚠️ `docker compose down -v` deletes the `backend-secrets` volume. Configure the keys before relying on the generated ones.
+
 ## 🔐 Encryption of Sensitive Dataset Fields
 
-Dataset credentials (MySQL passwords, API tokens, PTX tokens, etc.) are encrypted at rest in MongoDB using **Fernet** (AES-128-CBC + HMAC-SHA256).
-
-### Key resolution (priority order)
-
-| Priority | Source | How to set |
-|----------|--------|------------|
-| 1 | `FIELD_ENCRYPTION_KEY` env var | Explicit dedicated Fernet key |
-| 2 | `JWT_SECRET_KEY` env var | **Automatic** — key derived via HKDF-SHA256, no extra config needed |
-| 3 | Neither | Plain text stored + warning in logs |
-
-If `JWT_SECRET_KEY` is already set (required for JWT auth), dataset credentials are automatically encrypted — no additional variable needed.
-
-### Generate a dedicated key (optional)
-
-If you want to use a separate encryption key (recommended in production for key rotation):
-
-```bash
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-```
-
-Then add it to your `.env` or `docker-compose.yml`:
-
-```bash
-FIELD_ENCRYPTION_KEY=your-generated-key-here
-```
+Dataset credentials (MySQL passwords, API tokens, PTX tokens, etc.) are encrypted at rest in MongoDB using **Fernet** (AES-128-CBC + HMAC-SHA256) with `FIELD_ENCRYPTION_KEY` (or its temporary value, see above).
 
 ### Encrypted fields per dataset type
 
@@ -194,9 +204,13 @@ FIELD_ENCRYPTION_KEY=your-generated-key-here
 | PTX/PDC | `token`, `refreshToken`, `secret_key`, `service_key` |
 | API | `bearerToken`, `basicToken`, `clientSecret` |
 
-### Migration
+### Migration and key change
 
-Existing plain-text values in the database are readable without any action. New writes and updates are automatically encrypted. The `enc:` prefix distinguishes encrypted values from plain ones.
+The `enc:` prefix distinguishes encrypted values from plain ones. At every start, the backend re-encrypts the stored credentials with the current `FIELD_ENCRYPTION_KEY`:
+- plain-text values (stored by previous versions) are encrypted;
+- values encrypted with a previous key are decrypted and re-encrypted. Previous keys accepted for decryption: the key derived (HKDF-SHA256) from `JWT_SECRET_KEY` or from the former public placeholder JWT secrets (used by previous versions when `FIELD_ENCRYPTION_KEY` was not set), and `FIELD_ENCRYPTION_KEY_TMP` when a different `FIELD_ENCRYPTION_KEY` has been configured.
+
+Values that cannot be decrypted with any known key are left unchanged and reported as errors in the logs: the credentials of these datasets must be re-entered.
 
 ---
 
@@ -204,9 +218,10 @@ Existing plain-text values in the database are readable without any action. New 
 
 ### Environment Variables
 ```bash
-# JWT secret (required, min 32 chars) and optional dedicated encryption key
-JWT_SECRET_KEY=change-this-to-a-strong-random-secret-key-min-32-characters
-# FIELD_ENCRYPTION_KEY=
+# Secrets (no default value: temporary keys are generated in SECRETS_DIR if empty)
+JWT_SECRET_KEY=
+FIELD_ENCRYPTION_KEY=
+# SECRETS_DIR=secrets
 
 # Security middleware
 SECURITY_ENABLED=true
@@ -256,7 +271,7 @@ cd backendApi
 python -m pytest tests/security -v
 ```
 
-Test files: `test_path_security.py`, `test_security_middleware.py`, `test_injection_validators.py` (plus `tests/models/interface/test_dataset_interface.py` for field encryption and `tests/utils/test_drupal_filter_converter.py` for API output filters).
+Test files: `test_path_security.py`, `test_security_middleware.py`, `test_injection_validators.py`, `test_secret_keys.py` (plus `tests/models/interface/test_dataset_interface.py` and `tests/services/test_reencryption_service.py` for field encryption and `tests/utils/test_drupal_filter_converter.py` for API output filters).
 
 ### Tested Scenarios
 - ✅ Unix/Windows path traversal
@@ -270,6 +285,7 @@ Test files: `test_path_security.py`, `test_security_middleware.py`, `test_inject
 - ✅ SQL injection through API output filter paths
 - ✅ Proxy header spoofing and false positives of the middleware patterns
 - ✅ Encryption of sensitive dataset fields at rest
+- ✅ Temporary secret generation, refusal of public placeholder secrets, re-encryption with the current key
 
 ## 🚀 Deployment Recommendations
 

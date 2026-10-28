@@ -4,6 +4,10 @@ import asyncio
 import os
 from typing import get_origin, ClassVar
 from unittest.mock import Mock
+
+# Fixed test secrets (set before the app is imported), so that no temporary key is generated
+os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-with-at-least-32-characters"
+os.environ["FIELD_ENCRYPTION_KEY"] = "2frZC2o4MLN2F1sSxJk7Y0Kj0I7j9N2G5Q7e4Wj7iNw="
 import mongomock
 import beanie.odm.utils.parsing as _beanie_parsing
 from mongomock_motor import AsyncMongoMockClient

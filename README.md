@@ -41,7 +41,8 @@ docker-compose up -d
 | MongoDB | — | Database (internal Docker network only, port not published) |
 | Mongo Express | 8083 | Database admin (optional, `admin` profile) |
 
-> ⚠️ The default credentials in `docker-compose.yml` (MongoDB `admin/admin123`, `JWT_SECRET_KEY`) are for local use only — change them before any deployment.
+> ⚠️ The default MongoDB credentials in `docker-compose.yml` (`admin/admin123`) are for local use only — change them before any deployment.
+> `JWT_SECRET_KEY` and `FIELD_ENCRYPTION_KEY` have no default value: on first start, temporary keys are generated and an error is logged until you copy them to your configuration and save them in a secrets vault (see [Application secrets](docs/SECURITY.md#application-secrets)).
 
 #### Useful Docker Commands
 ```bash
@@ -137,10 +138,11 @@ HOST=0.0.0.0
 PORT=8000
 CORS_ORIGINS=http://localhost:4200,http://localhost:8080
 
-# Authentication (JWT_SECRET_KEY must be at least 32 characters)
-JWT_SECRET_KEY=change-this-to-a-strong-random-secret-key-min-32-characters
+# Secrets — no default value. If empty, temporary keys are generated in backendApi/secrets/
+# and an error is logged until they are copied here (keep a copy in a secrets vault)
+JWT_SECRET_KEY=           # min. 32 characters
+FIELD_ENCRYPTION_KEY=     # Fernet key encrypting the dataset credentials
 ALLOW_PUBLIC_REGISTRATION=false
-# FIELD_ENCRYPTION_KEY=   # Optional Fernet key for dataset credentials (derived from JWT_SECRET_KEY if omitted)
 
 # File Upload
 MAX_FILE_SIZE=100MB
@@ -195,6 +197,7 @@ The backend test suite includes comprehensive coverage of all critical functiona
 - **`test_path_security.py`**: Path traversal protection, dangerous pattern detection, Unix/Windows path attack prevention, null byte injection protection
 - **`test_security_middleware.py`**: Rate limiting enforcement, request validation, suspicious pattern detection (and false positives), IP blocking, proxy header spoofing
 - **`test_injection_validators.py`**: SQL identifier validation (MySQL), Elasticsearch index wildcard rejection, SSRF protection on API/Elastic URLs
+- **`test_secret_keys.py`**: Temporary secret generation (persistence, file permissions, concurrent workers), refusal of public placeholder secrets, error logging
 
 #### 🗃️ Model Tests
 - **`test_dataset_interface.py`**: Encryption of sensitive dataset fields before persistence and plaintext restoration after write
@@ -206,6 +209,7 @@ The backend test suite includes comprehensive coverage of all critical functiona
 - **`test_dataset_service.py`**: Dataset operations (File, MySQL, PTX), PDC chain context management, file format support (CSV, JSON, Parquet), pagination, user isolation
 - **`test_pdc_service.py`**: PDC API integration, contract/ecosystem/participant fetching, service offering management, HTTP error handling, timeout/connection errors
 - **`test_email_service.py`**: Email sending (plain text/HTML), password reset emails, SMTP configuration, authentication errors, multipart message structure
+- **`test_reencryption_service.py`**: Re-encryption of stored dataset credentials (plain text, previous keys, temporary key), undecryptable values
 - **`test_migration_service.py`**: Config migration from INI files, dataset/workflow migration, validation errors, backup creation, mixed results handling
 
 #### 🔄 Node Transform Tests

@@ -26,6 +26,8 @@ from app.models.interface.user_interface import User,PasswordResetToken
 from app.models.interface.pdc_chain_interface import ServiceChainData
 
 from app.services.migration_service import MigrationService
+from app.services.reencryption_service import reencrypt_sensitive_fields
+from app.config.secret_keys import log_temporary_secrets
 from app.services.user_service import UserService
 
 from app.routes import datasets, workflows, ptx, output, api, auth
@@ -40,6 +42,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"Debug mode: {settings.debug}")
     logger.info(f"Log level: {settings.log_level}")
+    log_temporary_secrets(settings.temporary_secrets)
     
     try:
         # Initialize database connection with settings
@@ -55,6 +58,19 @@ async def lifespan(app: FastAPI):
             logger.info(f"Beanie test after init: {count} datasets found")
         except Exception as e:
             logger.error(f"Beanie test failed: {e}")
+
+        # Encrypt plain text credentials and re-encrypt those using a previous key
+        try:
+            counts = await reencrypt_sensitive_fields()
+            if counts["reencrypted"]:
+                logger.info(f"{counts['reencrypted']} sensitive dataset field(s) re-encrypted with the current FIELD_ENCRYPTION_KEY")
+            if counts["failed"]:
+                logger.error(
+                    f"{counts['failed']} sensitive dataset field(s) cannot be decrypted with any known key: "
+                    "re-enter the credentials of these datasets"
+                )
+        except Exception as e:
+            logger.error(f"Re-encryption of sensitive dataset fields failed: {e}", exc_info=True)
         
         # Ensure admin user exists (create default admin if no users exist)
         logger.info("Checking for admin user...")

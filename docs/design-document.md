@@ -304,8 +304,8 @@ Various configuration example :
 **backend .env file (backendApi/.env, template in backendApi/.env.example) :** 
 MONGODB_URL=mongodb://localhost:27017
 DATABASE_NAME=daav_datasets
-JWT_SECRET_KEY=...            # min 32 chars, CHANGE IN PRODUCTION
-FIELD_ENCRYPTION_KEY=         # optional Fernet key, derived from JWT_SECRET_KEY if empty
+JWT_SECRET_KEY=...            # min 32 chars, no default: a temporary key is generated in SECRETS_DIR if empty
+FIELD_ENCRYPTION_KEY=...      # Fernet key for dataset credentials, no default: a temporary key is generated if empty
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
 JWT_REFRESH_TOKEN_EXPIRE_DAYS=90
 ALLOW_PUBLIC_REGISTRATION=false

@@ -15,7 +15,7 @@ To customize, you can:
 The backend image runs on `python:3.13-slim` with Gunicorn and `WORKERS` Uvicorn workers (default 4).
 
 **Before deploying to production**, change at least:
-- `JWT_SECRET_KEY` (min. 32 characters) — also used to derive the dataset credentials encryption key unless `FIELD_ENCRYPTION_KEY` is set (see [SECURITY.md](docs/SECURITY.md))
+- Set `JWT_SECRET_KEY` and `FIELD_ENCRYPTION_KEY`: they have no default value. If they are missing, temporary keys are generated in the `backend-secrets` volume and an error is logged at every start. Copy them with `docker compose exec backend cat /app/secrets/JWT_SECRET_KEY_TMP /app/secrets/FIELD_ENCRYPTION_KEY_TMP`, set them in `backendApi/.env` or `docker-compose.yml` and save them in a secrets vault — losing `FIELD_ENCRYPTION_KEY` makes the stored dataset credentials unreadable (see [SECURITY.md](docs/SECURITY.md#application-secrets))
 - MongoDB credentials (`MONGO_INITDB_ROOT_*` and `MONGODB_URL`, plus Mongo Express settings if used)
 - `CORS_ORIGINS` (backend) and `CORS_ORIGIN` (frontend) to your public domain
 - `FRONTEND_URL` and the `SMTP_*` variables if password reset by email is needed
@@ -60,6 +60,16 @@ The backend has its own CORS whitelist, set by `CORS_ORIGINS` (comma-separated) 
 - **mongodb-config**: MongoDB configuration
 - **backend-uploads**: Uploaded files
 - **backend-logs**: Application logs
+- **backend-secrets**: Temporary keys generated when `JWT_SECRET_KEY` / `FIELD_ENCRYPTION_KEY` are not set (deleted by `docker compose down -v`)
+
+### Migrating a legacy `config.ini`
+
+`config.ini` files are not copied into the image (they contain credentials). To migrate a legacy `backendApi/app/config.ini` into MongoDB, copy it into the running container and restart the backend; it is renamed to `config.ini.backup` once migrated:
+
+```bash
+docker compose cp backendApi/app/config.ini backend:/app/app/config.ini
+docker compose restart backend
+```
 
 ## 🔧 Troubleshooting
 
