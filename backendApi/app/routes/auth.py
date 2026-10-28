@@ -238,8 +238,15 @@ async def update_current_user(
     
     - **email**: New email address (optional)
     - **full_name**: New full name (optional)
-    - **password**: New password (optional, must meet complexity requirements)
+
+    The password cannot be changed here: use `POST /auth/change-password`, which
+    requires the current password (a stolen token alone must not allow taking over the account).
     """
+    if "password" in user_update.model_fields_set:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use POST /auth/change-password to change your password"
+        )
     try:
         updated_user = await user_service.update_user(
             current_user.id,

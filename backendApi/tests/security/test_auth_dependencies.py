@@ -106,3 +106,48 @@ async def test_default_admin_must_change_password_before_api_access():
         assert (await client.get("/auth/me", headers=new_headers)).json()["must_change_password"] is False
         refresh = await client.post("/auth/refresh", json={"refresh_token": changed.json()["refresh_token"]})
         assert refresh.status_code == 200
+
+
+# ============================================
+# PROFILE UPDATE (API)
+# ============================================
+
+@pytest.mark.asyncio
+async def test_profile_update_cannot_change_password():
+    """Test that PUT /auth/me refuses a password change, which requires the current password"""
+    from fastapi import FastAPI
+    from httpx import ASGITransport, AsyncClient
+
+    from app.enums.user_role import UserRole
+    from app.models.interface.user_interface import UserCreate
+    from app.routes.auth import router as auth_router
+    from app.services.user_service import UserService
+
+    await UserService().create_user(UserCreate(
+        username="profileuser",
+        email="profile@example.com",
+        full_name="Profile User",
+        password="Initial123!",
+        role=UserRole.USER
+    ))
+
+    app = FastAPI()
+    app.include_router(auth_router)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        login = await client.post("/auth/login", json={"username": "profileuser", "password": "Initial123!"})
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        refused = await client.put("/auth/me", headers=headers, json={"password": "Hijacked123!"})
+        assert refused.status_code == 400
+        assert "/auth/change-password" in refused.json()["detail"]
+
+        # The password and the session are unchanged
+        assert (await client.get("/auth/me", headers=headers)).status_code == 200
+        relogin = await client.post("/auth/login", json={"username": "profileuser", "password": "Initial123!"})
+        assert relogin.status_code == 200
+
+        # The other profile fields can still be updated
+        updated = await client.put("/auth/me", headers=headers, json={"full_name": "Renamed User"})
+        assert updated.status_code == 200
+        assert updated.json()["full_name"] == "Renamed User"
