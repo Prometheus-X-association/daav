@@ -40,6 +40,7 @@ docker-compose up -d
 | Backend | 8081 | FastAPI REST API |
 | MongoDB | — | Database (internal Docker network only, port not published) |
 | Mongo Express | 8083 | Database admin (optional, `admin` profile) |
+| Elasticsearch | 9200 | Test node (optional, `elastic` profile, published on 127.0.0.1 only) |
 
 > ⚠️ The default MongoDB credentials in `docker-compose.yml` (`admin/admin123`) are for local use only — change them before any deployment.
 > `JWT_SECRET_KEY` and `FIELD_ENCRYPTION_KEY` have no default value: on first start, temporary keys are generated and an error is logged until you copy them to your configuration and save them in a secrets vault (see [Application secrets](docs/SECURITY.md#application-secrets)).
@@ -48,6 +49,11 @@ docker-compose up -d
 ```bash
 # Start with MongoDB admin interface
 docker-compose --profile admin up -d
+
+# Start an Elasticsearch test node and load the sample indices (see docs/ELASTICSEARCH.md)
+# (requires ELASTIC_PASSWORD, and ALLOWED_PRIVATE_HOSTS=elasticsearch in backendApi/.env)
+ELASTIC_PASSWORD=<password> docker-compose --profile elastic up -d
+ES_PASSWORD=<password> docs/test-files/elasticsearch/seed.sh
 
 # View logs
 docker-compose logs -f
@@ -190,6 +196,11 @@ pytest tests/nodes       # Nodes and transforms
 pytest tests/core        # Workflow engine
 ```
 
+**Elasticsearch integration tests** (`tests/integration`) run against a real node and are skipped unless `ES_TEST_URL` is set:
+```bash
+ES_TEST_URL=http://localhost:9200 ES_TEST_USER=elastic ES_TEST_PASSWORD=<password> pytest tests/integration
+```
+
 ### Test Coverage
 
 The backend test suite includes comprehensive coverage of all critical functionality:
@@ -198,6 +209,7 @@ The backend test suite includes comprehensive coverage of all critical functiona
 - **`test_path_security.py`**: Path traversal protection, dangerous pattern detection, Unix/Windows path attack prevention, null byte injection protection
 - **`test_security_middleware.py`**: Rate limiting enforcement, request validation, suspicious pattern detection (and false positives), IP blocking, proxy header spoofing
 - **`test_injection_validators.py`**: SQL identifier validation (MySQL), Elasticsearch index wildcard rejection, SSRF protection on API/Elastic URLs
+- **`test_ssrf.py`**: SSRF checks with DNS resolution (hostnames resolving to internal addresses), `ALLOWED_PRIVATE_HOSTS` allowlist
 - **`test_secret_keys.py`**: Temporary secret generation (persistence, file permissions, concurrent workers), refusal of public placeholder secrets, error logging
 
 #### 🗃️ Model Tests
@@ -211,7 +223,11 @@ The backend test suite includes comprehensive coverage of all critical functiona
 - **`test_pdc_service.py`**: PDC API integration, contract/ecosystem/participant fetching, service offering management, HTTP error handling, timeout/connection errors
 - **`test_email_service.py`**: Email sending (plain text/HTML), password reset emails, SMTP configuration, authentication errors, multipart message structure
 - **`test_reencryption_service.py`**: Re-encryption of stored dataset credentials (plain text, previous keys, temporary key), undecryptable values
+- **`test_elastic_service.py`**: Elasticsearch client options and authentication modes, error translation, query parsing, paginated and point-in-time reads, bulk indexing, mapping inference
 - **`test_migration_service.py`**: Config migration from INI files, dataset/workflow migration, validation errors, backup creation, mixed results handling
+
+#### 🔌 Node Tests
+- **`test_elastic_nodes.py`**: Elasticsearch input (query, fields, maximum, sample) and output (fail / replace / append, id field, rejected documents) nodes
 
 #### 🔄 Node Transform Tests
 - **`test_filter_transform.py`**: DataFrame filtering with AND/OR conditions, rule validation, Parquet support
@@ -248,7 +264,7 @@ About 70 spec files cover:
 - **Workflow editor**: `core/workflow-editor`, `core/workflow-node-editor`, `nodes/node-block`
 - **Nodes**: every input, transform and output node (`nodes/inputs`, `nodes/transforms`, `nodes/outputs`)
 - **Components**: node rendering, sockets, connections, widgets, data mapper/filter, modals, dashboards, user profile
-- **Models & services**: dataset models (API, MongoDB, MySQL, PTX), dataset/workflow/loading services
+- **Models & services**: dataset models (API, MongoDB, MySQL, Elasticsearch, PTX), dataset/workflow/loading/Elasticsearch services
 
 ## 📖 Documentation
 
@@ -257,6 +273,7 @@ About 70 spec files cover:
 - [Plugin Development Guide](docs/PLUGGINS.md) - Create custom nodes for the platform
 - [Security Guide](docs/SECURITY.md) - Security measures, encryption and configuration
 - [Node User Guide](docs/README.md) - How to use each node in the workflow editor
+- [Elasticsearch](docs/ELASTICSEARCH.md) - Connect a cluster, dashboard, Elasticsearch input/output nodes and local test cluster
 - [Design Document](docs/design-document.md) - Prometheus-X building block design document
 
 ## Contributing

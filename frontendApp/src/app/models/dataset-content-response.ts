@@ -13,8 +13,10 @@ export interface Pagination {
 }
 
 export interface DatasetContentParams {
-  database: string;
-  table: string;
+  database?: string;
+  table?: string;
+  /** Elasticsearch index (index names are not valid SQL identifiers) */
+  index?: string;
 }
 
 export interface DatasetContentRequest {

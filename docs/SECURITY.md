@@ -120,7 +120,8 @@ Dataset models validate user-provided connection parameters (`app/models/interfa
 - **MySQL**: `database` and `table` must be plain SQL identifiers (`[A-Za-z0-9_]`, max 64 chars)
 - **Elasticsearch**: `index` must be a valid index name; wildcard expressions are rejected
 - **API output filters**: Drupal JSON:API filters on `/api/...` and `/output/...` are converted to parameterized DuckDB queries; values are bound as parameters, field paths are quoted as SQL identifiers and group conjunctions are restricted to `AND` / `OR` (`app/utils/drupal_filter_converter.py`). Once the output file is loaded, file and network access is disabled on the DuckDB connection, so that a filter can never read other files
-- **SSRF**: API and Elasticsearch URLs must use `http`/`https` and must not target `localhost` or private/internal IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `169.254.0.0/16`, `::1`, `fc00::/7`)
+- **SSRF**: API and Elasticsearch URLs must use `http`/`https` and must not target `localhost` or private/internal addresses (private, loopback, link-local, reserved ranges, including IPv4-mapped IPv6 addresses) (`app/utils/ssrf.py`). The URL is checked when the dataset is saved, and for Elasticsearch the hostname is also resolved right before each connection: a hostname that resolves to an internal address is refused
+- **ALLOWED_PRIVATE_HOSTS**: comma-separated hostnames or IPs allowed to point to internal addresses anyway, for data sources on the same network (e.g. the `elasticsearch` service of the Docker Compose `elastic` profile). Keep it empty unless needed
 
 ## 📁 Authorized Directories
 

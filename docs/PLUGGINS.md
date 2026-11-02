@@ -403,13 +403,14 @@ Node (app/nodes/node.py - base class)
 #### Database Inputs  
 - **DataMongoBlock**: Read from MongoDB collections
 - **DataMysqlBlock**: Read from MySQL databases
+- **DataElasticBlock**: Read from Elasticsearch indices (optional query, fields and maximum number of documents)
 
 #### API/Service Inputs
 - **DataHuggingBlock**: Import from Hugging Face datasets (placeholder: `process()` is not implemented yet)
 - **DataLrsBlock**: Read from LRS (Learning Record Store) (placeholder: `process()` is not implemented yet)
 - **ServiceChainInput**: Fetch data from Service Chain services
 
-> There is no backend `DataApiBlock` or `DataElasticBlock` node: these only exist as unregistered frontend stubs (see Frontend Node Hierarchy).
+> There is no backend `DataApiBlock` node: it only exists as an unregistered frontend stub (see Frontend Node Hierarchy).
 
 ### Existing Output Nodes
 
@@ -421,6 +422,7 @@ Your platform supports these output destinations:
 #### Database Outputs
 - **MongoOutput**: Write to MongoDB collections  
 - **MysqlOutput**: Write to MySQL databases
+- **ElasticOutput**: Index into Elasticsearch (fail / replace / append, optional document id field)
 
 #### API/Service Outputs
 - **ApiOutput**: Send data to API endpoints
@@ -546,7 +548,7 @@ NodeBlock (base class)
 ├── InputDataBlock (for data sources)
 │   ├── DataFileBlock
 │   ├── DataApiBlock        (stub, not registered)
-│   ├── DataElasticBlock    (stub, not registered)
+│   ├── DataElasticBlock
 │   ├── DataMongoBlock
 │   ├── DataMysqlBlock
 │   ├── DataLrsBlock        (stub, not registered)
@@ -555,6 +557,7 @@ NodeBlock (base class)
 ├── OutputDataBlock (for data destinations)
 │   ├── FileOutput
 │   ├── MongoOutput
+│   ├── ElasticOutput
 │   ├── MysqlOutput
 │   ├── ApiOutput
 │   ├── PdcOutput

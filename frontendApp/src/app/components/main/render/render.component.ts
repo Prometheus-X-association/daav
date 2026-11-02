@@ -4,6 +4,7 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { LoadingService } from 'src/app/services/loading.service';
 import { DataRenderTypes } from 'src/app/models/data-render-types';
 import { Dataset } from 'src/app/models/dataset'
+import { DatasetType } from 'src/app/enums/dataset-type';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { MatTab } from '@angular/material/tabs';
 import { isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
@@ -152,7 +153,11 @@ export class RenderComponent implements OnInit, OnChanges {
         this.data.selectedDataset = dataset;
       }
 
-      this.datasetService.getContentDataset(this.data.selectedDataset,this.data.pagination, {database, table}).subscribe((res) => {
+      // Elasticsearch index names are sent apart: they are not valid SQL table names
+      const params = this.data.selectedDataset?.type === DatasetType.ElasticSearch
+        ? { index: table || null }
+        : { database, table };
+      this.datasetService.getContentDataset(this.data.selectedDataset,this.data.pagination, params).subscribe((res) => {
         this.data.pagination.nextUrl = null;
         if (res) {
           if (res.data) {

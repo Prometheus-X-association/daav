@@ -61,6 +61,18 @@ The backend has its own CORS whitelist, set by `CORS_ORIGINS` (comma-separated) 
 - **backend-uploads**: Uploaded files
 - **backend-logs**: Application logs
 - **backend-secrets**: Temporary keys generated when `JWT_SECRET_KEY` / `FIELD_ENCRYPTION_KEY` are not set (deleted by `docker compose down -v`)
+- **elasticsearch-data**: Data of the Elasticsearch test node (`elastic` profile)
+
+### Elasticsearch test node (`elastic` profile)
+
+A single-node Elasticsearch 8.15, for tests only: security enabled, HTTP without TLS, published on `127.0.0.1:9200`.
+
+```bash
+ELASTIC_PASSWORD=<password> docker compose --profile elastic up -d
+ES_PASSWORD=<password> docs/test-files/elasticsearch/seed.sh   # sample indices
+```
+
+The backend reaches it at `http://elasticsearch:9200`, a private address: add `ALLOWED_PRIVATE_HOSTS=elasticsearch` to `backendApi/.env`. See [Elasticsearch](docs/ELASTICSEARCH.md).
 
 ### Migrating a legacy `config.ini`
 

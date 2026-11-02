@@ -87,6 +87,24 @@ Nodes are building blocks in DAAV’s workflow editor. Each node represents a st
 5. Wait for the loader and status update.
 6. Output is available for connection.
 
+#### DataElasticBlock (Elasticsearch Input)
+**Purpose:** Read the documents of an Elasticsearch index.
+**Interface Parameters:**
+- Dataset selection: Dropdown to choose an Elasticsearch dataset.
+- Index selection: Dropdown of the indices visible with the dataset credentials (only when the dataset does not fix an index).
+- Query (optional): a Lucene query string (`category:books AND price:>20`) or a JSON Query DSL clause (`{"term": {"in_stock": true}}`). Empty reads all documents.
+- Fields (optional): comma-separated list of the fields to keep. Empty keeps the whole document.
+- Max documents (optional): stop after this number of documents. Empty reads the whole result.
+- Include _id: adds the document id as an `_id` column.
+- Status indicator: Shows node readiness.
+**How to Use:**
+1. Add the node to your workflow.
+2. Select an Elasticsearch dataset, then an index (if prompted).
+3. Optionally type a query, fields or a maximum: the output preview is refreshed after typing.
+4. Output is available for connection. Nested objects are kept as objects (use the Flatten node to get flat columns).
+
+See [Elasticsearch](ELASTICSEARCH.md) for the connection settings, the privileges and an example workflow.
+
 #### ServiceChainInput (Service Chain Input Prometheusx integration)
 **Purpose:** Load data from a service chain (PTX or other contract-based source).
 **Prerequisites:** Add a key/value credential from the pdc (on vision trust side use the the identifier of the credential pair).
@@ -176,6 +194,22 @@ This node is a special input that must be paired with ServiceChainOutput. Both a
 3. Connect input data.
 4. Wait for status update.
 5. Download or view results as provided.
+
+#### ElasticOutput (Elasticsearch Output)
+**Purpose:** Index data into an Elasticsearch index.
+**Interface Parameters:**
+- Dataset selection: Dropdown to choose an Elasticsearch dataset.
+- Index: existing indices are suggested; a new name creates the index.
+- If index already exists: `Fail` (default), `Replace` (the index is deleted and created again) or `Append`.
+- Id field (optional): column used as document `_id`. Documents with an existing id are replaced, so running the workflow again updates them instead of duplicating them. Empty: ids are generated.
+- Status indicator: Shows node readiness.
+**How to Use:**
+1. Add the node to your workflow and connect input data (nested, or flat e.g. after a Flatten node).
+2. Select an Elasticsearch dataset and type or pick the index.
+3. Choose the behaviour when the index exists and, optionally, the id field.
+4. Run the workflow: the status message gives the number of indexed documents.
+
+Like the other outputs, running the node on the sample writes the sample. See [Elasticsearch](ELASTICSEARCH.md) for the index mappings, the `_id` column, the required privileges and the dataset dashboard.
 
 #### MongoOutput (MongoDB Output)
 **Purpose:** Save data to a MongoDB collection.

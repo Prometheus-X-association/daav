@@ -201,9 +201,9 @@ Input Sources → Transform Nodes → Output Destinations
 
 ## Future Roadmap
 
-Already available: visual drag-and-drop pipeline editor (Rete.js), database connectors (MySQL, MongoDB) and container-based deployment (Docker Compose).
+Already available: visual drag-and-drop pipeline editor (Rete.js), database connectors (MySQL, MongoDB, Elasticsearch) and container-based deployment (Docker Compose).
 
-- **Enhanced Connectors**: Integration with more data sources (Elasticsearch, LRS, Hugging Face and cloud services — some are partially implemented)
+- **Enhanced Connectors**: Integration with more data sources (LRS, Hugging Face and cloud services — some are partially implemented)
 - **Advanced Monitoring**: Performance metrics and pipeline optimization suggestions
 - **Real-time Processing**: Stream processing capabilities for live data
 - **Machine Learning Integration**: Built-in ML model training and inference nodes

@@ -156,7 +156,13 @@ class Settings(BaseSettings):
         description="List of whitelisted domains that can access routes without authentication"
     )
 
-    @field_validator('directory_white_list', 'cors_origins', 'domain_whitelist', mode='before')
+    # SSRF - hosts allowed to resolve to private/internal addresses (e.g. docker-compose services)
+    allowed_private_hosts: Union[List[str], str] = Field(
+        default=[],
+        description="Hostnames or IPs of data sources allowed to point to private or internal addresses"
+    )
+
+    @field_validator('directory_white_list', 'cors_origins', 'domain_whitelist', 'allowed_private_hosts', mode='before')
     @classmethod
     def parse_str_list_tolist(cls, v):
         """Parse from string or list to list"""

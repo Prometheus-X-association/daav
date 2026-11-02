@@ -173,26 +173,49 @@
           <!-- FORM FOR ELASTIC SEARCH-->
           <ng-container *ngIf="formDatabase.value.type === 'elastic'">
             <ion-item>
-              <ion-input label="Enter the URL" labelPlacement="stacked" type="text" placeholder="URL"
-                formControlName="url" i18n></ion-input>
+              <ion-input label="Enter the URL" labelPlacement="stacked" type="text" placeholder="https://my-cluster.example.com:9200"
+                formControlName="url" i18n-label i18n-placeholder></ion-input>
             </ion-item>
             <ion-item>
-              <ion-input label="Enter the username" labelPlacement="stacked" type="text" placeholder="Username"
-                formControlName="name" i18n></ion-input>
+              <ion-input label="Index (leave empty to browse all indices)" labelPlacement="stacked" type="text" placeholder="Index"
+                formControlName="index" i18n-label i18n-placeholder></ion-input>
             </ion-item>
             <ion-item>
-              <ion-input label="Enter the password" labelPlacement="stacked" type="text" placeholder="Password"
-                formControlName="password" i18n></ion-input>
+              <ion-select label="Authentication" formControlName="authMode" (ionChange)="onElasticAuthModeChange()" i18n-label>
+                <ion-select-option value="none" i18n>None</ion-select-option>
+                <ion-select-option value="basic" i18n>User and password</ion-select-option>
+                <ion-select-option value="apiKey" i18n>API key</ion-select-option>
+                <ion-select-option value="bearer" i18n>Bearer token</ion-select-option>
+              </ion-select>
             </ion-item>
+            @if (formDatabase.value.authMode === 'basic') {
+              <ion-item>
+                <ion-input label="Enter the username" labelPlacement="stacked" type="text" placeholder="Username"
+                  formControlName="user" autocomplete="off" i18n-label i18n-placeholder></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-input label="Enter the password" labelPlacement="stacked" type="password" placeholder="Password"
+                  formControlName="password" autocomplete="new-password" i18n-label i18n-placeholder></ion-input>
+              </ion-item>
+            }
+            @if (formDatabase.value.authMode === 'apiKey') {
+              <ion-item>
+                <ion-input label="Enter the API key (encoded)" labelPlacement="stacked" type="password" placeholder="API key"
+                  formControlName="key" autocomplete="off" i18n-label i18n-placeholder></ion-input>
+              </ion-item>
+            }
+            @if (formDatabase.value.authMode === 'bearer') {
+              <ion-item>
+                <ion-input label="Enter the bearer token" labelPlacement="stacked" type="password" placeholder="Bearer token"
+                  formControlName="bearerToken" autocomplete="off" i18n-label i18n-placeholder></ion-input>
+              </ion-item>
+            }
+            @if (dataset && formDatabase.value.authMode !== 'none') {
+              <ion-note class="ion-padding-start" i18n>Leave the secret fields empty to keep the stored credentials.</ion-note>
+            }
             <ion-item>
-              <ion-input label="Enter the API key" labelPlacement="stacked" type="text" placeholder="API key"
-                formControlName="api key" i18n></ion-input>
+              <ion-toggle formControlName="verifyCerts" i18n>Verify TLS certificates</ion-toggle>
             </ion-item>
-            <ion-item>
-              <ion-input label="Enter the bearer token" labelPlacement="stacked" type="text" placeholder="Bearer token"
-                formControlName="bearerToken" i18n></ion-input>
-            </ion-item>
-
           </ng-container>
 
 

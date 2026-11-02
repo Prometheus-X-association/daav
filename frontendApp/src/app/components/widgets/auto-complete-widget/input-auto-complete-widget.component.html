@@ -1,4 +1,5 @@
-<mat-form-field class="formField">
+<!-- stop pointerdown on the whole field: a click on the label must focus the input, not start a node drag -->
+<mat-form-field class="formField" (pointerdown)="$event.stopPropagation()">
   <mat-label>{{data.label}}</mat-label>
   <input (pointerdown)="$event.stopPropagation()" (input)="onInputChange($event)" [disabled]="data.disabled"
     (keydown.enter)="$event.stopPropagation()"

@@ -65,9 +65,9 @@
   </mat-tab>
   }
   <mat-tab dynamicHeight label="{{
-      data.datasetParams.database
-        ? data.datasetParams.database + ' / '
-        : data.selectedDataset['database'] + ' / '
+      (data.datasetParams.database || data.selectedDataset?.['database'])
+        ? (data.datasetParams.database || data.selectedDataset['database']) + ' / '
+        : ''
     }}{{ data.datasetParams.table ? data.datasetParams.table : '' }}" [disabled]="!data.datasetParams.table" #tab>
     <div id="table-paginator-container">
       <div class="table-infos">
