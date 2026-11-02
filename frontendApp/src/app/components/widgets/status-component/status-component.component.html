@@ -1,4 +1,4 @@
-<div class="circle" [matTooltip]="data.statusMessage" (pointerdown)="$event.stopPropagation()"
+<div class="circle" role="img" [attr.aria-label]="statusLabel()" [matTooltip]="data.statusMessage" (pointerdown)="$event.stopPropagation()"
 (dblclick)="$event.stopPropagation()"
   [ngClass]="{red: data.status === enumStatus.Error, green: data.status === enumStatus.Valid, yellow: data.status === enumStatus.Incomplete,orange: data.status === enumStatus.Complete}">
 </div>

@@ -2,8 +2,8 @@
   <ion-toolbar color="primary">
     <ion-title>User Profile</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="dismiss()">
-        <ion-icon name="close" slot="icon-only"></ion-icon>
+      <ion-button aria-label="Close" (click)="dismiss()">
+        <ion-icon name="close" slot="icon-only" aria-hidden="true"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -15,7 +15,7 @@
     <ion-card class="user-info-card">
       <ion-card-header>
         <div class="user-avatar">
-          <ion-icon name="person-circle" class="avatar-icon"></ion-icon>
+          <ion-icon name="person-circle" class="avatar-icon" aria-hidden="true"></ion-icon>
         </div>
         <ion-card-title>{{ user.full_name }}</ion-card-title>
         <ion-card-subtitle>{{ user.username }}</ion-card-subtitle>
@@ -25,7 +25,7 @@
         <ion-list lines="none">
           <!-- Email -->
           <ion-item>
-            <ion-icon name="mail-outline" slot="start"></ion-icon>
+            <ion-icon name="mail-outline" slot="start" aria-hidden="true"></ion-icon>
             <ion-label>
               <p>Email</p>
               <h3>{{ user.email }}</h3>
@@ -34,7 +34,7 @@
 
           <!-- Role -->
           <ion-item>
-            <ion-icon name="shield-outline" slot="start"></ion-icon>
+            <ion-icon name="shield-outline" slot="start" aria-hidden="true"></ion-icon>
             <ion-label>
               <p>Role</p>
               <h3>{{ user.role | titlecase }}</h3>
@@ -46,7 +46,7 @@
 
           <!-- Account Status -->
           <ion-item>
-            <ion-icon name="information-circle-outline" slot="start"></ion-icon>
+            <ion-icon name="information-circle-outline" slot="start" aria-hidden="true"></ion-icon>
             <ion-label>
               <p>Account Status</p>
               <h3>{{ user.is_active ? 'Active' : 'Inactive' }}</h3>
@@ -58,7 +58,7 @@
 
           <!-- Last Login -->
           <ion-item>
-            <ion-icon name="time-outline" slot="start"></ion-icon>
+            <ion-icon name="time-outline" slot="start" aria-hidden="true"></ion-icon>
             <ion-label>
               <p>Last Login</p>
               <h3>{{ getFormattedDate(user.last_login) }}</h3>
@@ -67,7 +67,7 @@
 
           <!-- Member Since -->
           <ion-item>
-            <ion-icon name="calendar-outline" slot="start"></ion-icon>
+            <ion-icon name="calendar-outline" slot="start" aria-hidden="true"></ion-icon>
             <ion-label>
               <p>Member Since</p>
               <h3>{{ getFormattedDate(user.created_at) }}</h3>
@@ -81,7 +81,7 @@
     <ion-card class="action-card">
       <ion-card-header>
         <ion-card-title>
-          <ion-icon name="key-outline"></ion-icon>
+          <ion-icon name="key-outline" aria-hidden="true"></ion-icon>
           Security
         </ion-card-title>
       </ion-card-header>
@@ -89,7 +89,7 @@
       <ion-card-content>
         <ion-button expand="block" fill="outline" (click)="toggleChangePassword()"
           [color]="showChangePassword ? 'medium' : 'primary'">
-          <ion-icon [name]="showChangePassword ? 'chevron-up-outline' : 'lock-closed-outline'" slot="start"></ion-icon>
+          <ion-icon [name]="showChangePassword ? 'chevron-up-outline' : 'lock-closed-outline'" slot="start" aria-hidden="true"></ion-icon>
           {{ showChangePassword ? 'Cancel' : 'Change Password' }}
         </ion-button>
 
@@ -122,8 +122,8 @@
 
             <ion-button expand="block" type="submit" [disabled]="loading || changePasswordForm.invalid"
               class="submit-btn">
-              <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
-              <span *ngIf="!loading">Update Password</span>
+              <ion-spinner *ngIf="loading" name="crescent" aria-hidden="true"></ion-spinner>
+              <span [class.sr-only]="loading">Update Password</span>
             </ion-button>
           </form>
         </div>
@@ -134,7 +134,7 @@
     <ion-card class="action-card">
       <ion-card-header>
         <ion-card-title>
-          <ion-icon name="key"></ion-icon>
+          <ion-icon name="key" aria-hidden="true"></ion-icon>
           Credentials
         </ion-card-title>
       </ion-card-header>
@@ -142,7 +142,7 @@
       <ion-card-content>
         <ion-button expand="block" fill="outline" (click)="toggleCredentials()"
           [color]="showCredentials ? 'medium' : 'tertiary'">
-          <ion-icon [name]="showCredentials ? 'chevron-up-outline' : 'key-outline'" slot="start"></ion-icon>
+          <ion-icon [name]="showCredentials ? 'chevron-up-outline' : 'key-outline'" slot="start" aria-hidden="true"></ion-icon>
           {{ showCredentials ? 'Hide Credentials' : 'Manage Credentials' }}
         </ion-button>
 
@@ -168,7 +168,7 @@
 
               <ion-button expand="block" type="submit" [disabled]="loading || credentialForm.invalid" color="primary"
                 class="add-credential-btn">
-                <ion-icon name="add-outline" slot="start"></ion-icon>
+                <ion-icon name="add-outline" slot="start" aria-hidden="true"></ion-icon>
                 Add Credential
               </ion-button>
             </form>
@@ -180,7 +180,7 @@
 
             <ion-list class="credentials-ion-list">
               <ion-item *ngFor="let credential of getCredentials(); trackBy: trackByCredentialKey" class="credential-item">
-                <ion-icon name="key-outline" slot="start"></ion-icon>
+                <ion-icon name="key-outline" slot="start" aria-hidden="true"></ion-icon>
                 <ion-label class="credential-label">
                   <h3>{{ credential.key }}</h3>
 
@@ -207,12 +207,12 @@
                       <div class="edit-actions">
                         <ion-button fill="clear" size="small" (click)="cancelEditCredential()" color="medium"
                           type="button">
-                          <ion-icon name="close-outline" slot="start"></ion-icon>
+                          <ion-icon name="close-outline" slot="start" aria-hidden="true"></ion-icon>
                           Cancel
                         </ion-button>
                         <ion-button fill="clear" size="small" type="submit" color="primary"
                           [disabled]="loading || editCredentialForm.invalid">
-                          <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+                          <ion-icon name="checkmark-outline" slot="start" aria-hidden="true"></ion-icon>
                           Save
                         </ion-button>
                       </div>
@@ -221,11 +221,11 @@
                 </ion-label>
 
                 <div slot="end" class="credential-actions" *ngIf="editingCredential !== credential.key">
-                  <ion-button fill="clear" size="small" (click)="startEditCredential(credential.key)">
-                    <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+                  <ion-button fill="clear" size="small" [attr.aria-label]="'Edit credential ' + credential.key" (click)="startEditCredential(credential.key)">
+                    <ion-icon name="create-outline" slot="icon-only" aria-hidden="true"></ion-icon>
                   </ion-button>
-                  <ion-button fill="clear" size="small" color="danger" (click)="deleteCredential(credential.key)">
-                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                  <ion-button fill="clear" size="small" color="danger" [attr.aria-label]="'Delete credential ' + credential.key" (click)="deleteCredential(credential.key)">
+                    <ion-icon name="trash-outline" slot="icon-only" aria-hidden="true"></ion-icon>
                   </ion-button>
                 </div>
               </ion-item>
@@ -247,7 +247,7 @@
     <ion-card class="action-card" *ngIf="isAdmin()">
       <ion-card-header>
         <ion-card-title>
-          <ion-icon name="people-outline"></ion-icon>
+          <ion-icon name="people-outline" aria-hidden="true"></ion-icon>
           User Management
         </ion-card-title>
       </ion-card-header>
@@ -255,7 +255,7 @@
       <ion-card-content>
         <ion-button expand="block" fill="outline" (click)="toggleUserManagement()"
           [color]="showUserManagement ? 'medium' : 'secondary'">
-          <ion-icon [name]="showUserManagement ? 'chevron-up-outline' : 'people-outline'" slot="start"></ion-icon>
+          <ion-icon [name]="showUserManagement ? 'chevron-up-outline' : 'people-outline'" slot="start" aria-hidden="true"></ion-icon>
           {{ showUserManagement ? 'Hide Users' : 'Manage Users' }}
         </ion-button>
 
@@ -263,13 +263,13 @@
         <div class="user-management-section" *ngIf="showUserManagement">
           <!-- Create New User Button -->
           <ion-button expand="block" color="primary" (click)="createNewUser()" class="create-user-btn">
-            <ion-icon name="person-add-outline" slot="start"></ion-icon>
+            <ion-icon name="person-add-outline" slot="start" aria-hidden="true"></ion-icon>
             Create New User
           </ion-button>
 
           <!-- Loading State -->
-          <div class="loading-users" *ngIf="loadingUsers">
-            <ion-spinner name="crescent"></ion-spinner>
+          <div class="loading-users" role="status" *ngIf="loadingUsers">
+            <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
             <p>Loading users...</p>
           </div>
 
@@ -279,7 +279,7 @@
               <ion-card-content>
                 <div class="user-item-header">
                   <div class="user-info">
-                    <ion-icon name="person-circle-outline" class="user-icon"></ion-icon>
+                    <ion-icon name="person-circle-outline" class="user-icon" aria-hidden="true"></ion-icon>
                     <div class="user-details">
                       <h3>{{ managedUser.full_name }}</h3>
                       <p class="username">{{ '@' + managedUser.username }}</p>
@@ -298,11 +298,11 @@
 
                 <div class="user-meta">
                   <p>
-                    <ion-icon name="calendar-outline"></ion-icon>
+                    <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
                     Joined: {{ getFormattedDate(managedUser.created_at) }}
                   </p>
                   <p>
-                    <ion-icon name="time-outline"></ion-icon>
+                    <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
                     Last login: {{ getFormattedDate(managedUser.last_login) }}
                   </p>
                 </div>
@@ -312,17 +312,17 @@
                   <ion-button size="small" fill="outline" [color]="managedUser.is_active ? 'warning' : 'success'"
                     (click)="managedUser.is_active ? deactivateUser(managedUser) : activateUser(managedUser)">
                     <ion-icon [name]="managedUser.is_active ? 'eye-off-outline' : 'eye-outline'"
-                      slot="start"></ion-icon>
+                      slot="start" aria-hidden="true"></ion-icon>
                     {{ managedUser.is_active ? 'Deactivate' : 'Activate' }}
                   </ion-button>
 
                   <ion-button size="small" fill="outline" color="secondary" (click)="changeUserPassword(managedUser)">
-                    <ion-icon name="key-outline" slot="start"></ion-icon>
+                    <ion-icon name="key-outline" slot="start" aria-hidden="true"></ion-icon>
                     Change Password
                   </ion-button>
 
                   <ion-button size="small" fill="outline" color="danger" (click)="deleteUser(managedUser)">
-                    <ion-icon name="trash-outline" slot="start"></ion-icon>
+                    <ion-icon name="trash-outline" slot="start" aria-hidden="true"></ion-icon>
                     Delete
                   </ion-button>
                 </div>
@@ -330,7 +330,7 @@
                 <!-- Can't modify self -->
                 <div class="user-actions" *ngIf="managedUser.id === user.id">
                   <ion-note color="medium">
-                    <ion-icon name="lock-closed-outline"></ion-icon>
+                    <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
                     You cannot modify your own account from here
                   </ion-note>
                 </div>
@@ -340,7 +340,7 @@
 
           <!-- Empty State -->
           <div class="empty-state" *ngIf="!loadingUsers && allUsers.length === 0">
-            <ion-icon name="people-outline" class="empty-icon"></ion-icon>
+            <ion-icon name="people-outline" class="empty-icon" aria-hidden="true"></ion-icon>
             <p>No users found</p>
           </div>
         </div>
@@ -351,7 +351,7 @@
     <ion-card class="action-card">
       <ion-card-header>
         <ion-card-title>
-          <ion-icon name="settings-outline"></ion-icon>
+          <ion-icon name="settings-outline" aria-hidden="true"></ion-icon>
           Account Actions
         </ion-card-title>
       </ion-card-header>
@@ -359,13 +359,13 @@
       <ion-card-content>
         <!-- Logout Button -->
         <ion-button expand="block" color="medium" (click)="onLogout()" class="action-btn">
-          <ion-icon name="log-out-outline" slot="start"></ion-icon>
+          <ion-icon name="log-out-outline" slot="start" aria-hidden="true"></ion-icon>
           Logout
         </ion-button>
 
         <!-- Deactivate Account Button -->
         <ion-button expand="block" color="danger" fill="outline" (click)="onDeactivateAccount()" class="action-btn">
-          <ion-icon name="trash-outline" slot="start"></ion-icon>
+          <ion-icon name="trash-outline" slot="start" aria-hidden="true"></ion-icon>
           Deactivate Account
         </ion-button>
       </ion-card-content>
@@ -373,8 +373,8 @@
   </div>
 
   <!-- Loading State -->
-  <div class="loading-state" *ngIf="!user">
-    <ion-spinner name="crescent"></ion-spinner>
+  <div class="loading-state" role="status" *ngIf="!user">
+    <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
     <p>Loading user profile...</p>
   </div>
 </ion-content>

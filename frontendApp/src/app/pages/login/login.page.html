@@ -7,7 +7,7 @@
 <ion-content class="ion-padding">
   <div class="login-container">
     <div class="logo-section">
-      <ion-icon name="lock-closed" class="logo-icon"></ion-icon>
+      <ion-icon name="lock-closed" class="logo-icon" aria-hidden="true"></ion-icon>
       <h1>Welcome Back</h1>
       <p class="subtitle">Sign in to continue</p>
     </div>
@@ -28,8 +28,8 @@
           <ion-icon name="person-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
         </ion-input>
       </ion-item>
-      <div class="error-message" *ngIf="getFieldError('username')">
-        <ion-icon name="alert-circle-outline"></ion-icon>
+      <div class="error-message" role="alert" *ngIf="getFieldError('username')">
+        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
         <span>{{ getFieldError('username') }}</span>
       </div>
 
@@ -49,16 +49,15 @@
           <ion-input-password-toggle slot="end"></ion-input-password-toggle>
         </ion-input>
       </ion-item>
-      <div class="error-message" *ngIf="getFieldError('password')">
-        <ion-icon name="alert-circle-outline"></ion-icon>
+      <div class="error-message" role="alert" *ngIf="getFieldError('password')">
+        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
         <span>{{ getFieldError('password') }}</span>
       </div>
 
       <!-- Remember Me & Forgot Password -->
       <div class="options-row">
         <ion-item lines="none" class="remember-me-item">
-          <ion-checkbox formControlName="rememberMe" slot="start"></ion-checkbox>
-          <ion-label>Remember Me</ion-label>
+          <ion-checkbox formControlName="rememberMe" labelPlacement="end" justify="start">Remember Me</ion-checkbox>
         </ion-item>
 
         <ion-button
@@ -79,8 +78,8 @@
         [disabled]="loading"
         class="login-btn"
       >
-        <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
-        <span *ngIf="!loading">Sign In</span>
+        <ion-spinner *ngIf="loading" name="crescent" aria-hidden="true"></ion-spinner>
+        <span [class.sr-only]="loading">Sign In</span>
       </ion-button>
 
       <!-- Divider -->

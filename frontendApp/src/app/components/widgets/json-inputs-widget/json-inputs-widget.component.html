@@ -15,15 +15,15 @@
           <cdk-accordion-item #accordionItem="cdkAccordionItem" class="example-accordion-item">
             <ion-item slot="header" (click)="accordionItem.toggle()">
               <ion-label>Input Example #{{$index + 1}}</ion-label>
-              <ion-button slot="end" fill="clear" color="danger" (click)="removeInputExample($index); $event.stopPropagation()">
-                <ion-icon name="trash-outline"></ion-icon>
+              <ion-button slot="end" fill="clear" color="danger" [attr.aria-label]="'Delete input example ' + ($index + 1)" (click)="removeInputExample($index); $event.stopPropagation()">
+                <ion-icon slot="icon-only" name="trash-outline" aria-hidden="true"></ion-icon>
               </ion-button>
-              @if (accordionItem.expanded) {
-                <ion-icon slot="end" name="chevron-up-outline"></ion-icon>
-              }
-              @else {
-                <ion-icon slot="end" name="chevron-down-outline"></ion-icon>
-              }
+              <!-- the label carries the state because ion-button does not forward aria-expanded updates -->
+              <ion-button slot="end" fill="clear"
+                [attr.aria-label]="(accordionItem.expanded ? 'Collapse' : 'Expand') + ' input example ' + ($index + 1)"
+                (click)="accordionItem.toggle(); $event.stopPropagation()">
+                <ion-icon slot="icon-only" [name]="accordionItem.expanded ? 'chevron-up-outline' : 'chevron-down-outline'" aria-hidden="true"></ion-icon>
+              </ion-button>
             </ion-item>
             @if(accordionItem.expanded) {
               <div  class="ion-padding">
@@ -35,8 +35,8 @@
       </cdk-accordion>
 
       <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-        <ion-fab-button (click)="addInputExample()">
-          <ion-icon name="add"></ion-icon>
+        <ion-fab-button aria-label="Add input example" (click)="addInputExample()">
+          <ion-icon name="add" aria-hidden="true"></ion-icon>
         </ion-fab-button>
       </ion-fab>
     </ion-content>

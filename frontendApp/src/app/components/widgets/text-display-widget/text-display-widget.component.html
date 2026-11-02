@@ -1,13 +1,13 @@
 <div class="text-display-widget">
-    <label *ngIf="data.label" class="text-display-label">
+    <span *ngIf="data.label" class="text-display-label">
       {{ data.label }}
-    </label>
+    </span>
     
     <div class="text-display-content" >
       <span class="text-value" [title]="data.value">
         {{ data.value }}
       </span>
-    <ion-button (pointerdown)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()" *ngIf="data.copyable" class="copy-button" size="small" (click)="onCopy(data.value,$event)"><ion-icon slot="icon-only" name="copy-outline"
+    <ion-button (pointerdown)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()" *ngIf="data.copyable" class="copy-button" size="small" [attr.aria-label]="'Copy ' + (data.label || 'value')" (click)="onCopy(data.value,$event)"><ion-icon slot="icon-only" name="copy-outline" aria-hidden="true"
         ></ion-icon>
     </ion-button>
     </div>

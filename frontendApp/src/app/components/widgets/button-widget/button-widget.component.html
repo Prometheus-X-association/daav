@@ -1,5 +1,5 @@
 <button mat-icon-button (pointerdown)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()" [disabled]="data.disabled"
-  (click)="data.onClick()" [ngClass]="data.className ? data.className : ''"><mat-icon *ngIf="data.icon"
-    aria-hidden="false" aria-label="data.label" [fontIcon]="data.icon"></mat-icon>
+  (click)="data.onClick()" [ngClass]="data.className ? data.className : ''"
+  [attr.aria-label]="data.ariaLabel"><mat-icon *ngIf="data.icon" [fontIcon]="data.icon"></mat-icon>
   <ng-container *ngIf="data.label">{{data.label}}</ng-container>
 </button>

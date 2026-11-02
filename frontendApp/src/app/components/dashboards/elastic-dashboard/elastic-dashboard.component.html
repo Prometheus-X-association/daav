@@ -6,7 +6,7 @@
       <ion-button fill="clear" size="small" (click)="loadInfo(); loadIndices()" i18n>Refresh</ion-button>
     </div>
     @if (infoError) {
-      <p class="error">{{ infoError }}</p>
+      <p class="error" role="alert">{{ infoError }}</p>
     } @else if (info) {
       <div class="cluster-grid">
         <div class="stat">
@@ -31,15 +31,15 @@
       <h3 i18n>Indices</h3>
       <ion-toggle [(ngModel)]="includeHidden" (ionChange)="loadIndices()" labelPlacement="start" i18n>Hidden indices</ion-toggle>
     </div>
-    <ion-searchbar [(ngModel)]="indexFilter" placeholder="Filter indices" i18n-placeholder [debounce]="150"></ion-searchbar>
+    <ion-searchbar [(ngModel)]="indexFilter" placeholder="Filter indices" i18n-placeholder aria-label="Filter indices" i18n-aria-label [debounce]="150"></ion-searchbar>
     @if (indicesError) {
-      <p class="error">{{ indicesError }}</p>
+      <p class="error" role="alert">{{ indicesError }}</p>
     }
     <div class="table-wrapper">
       <table class="indices">
         <thead>
           <tr>
-            <th></th>
+            <th><span class="sr-only" i18n>Health</span></th>
             <th i18n>Index</th>
             <th class="num" i18n>Documents</th>
             <th class="num" i18n>Size</th>
@@ -48,9 +48,10 @@
         </thead>
         <tbody>
           @for (index of filteredIndices; track index.index) {
+            <!-- the row stays clickable with the mouse; the button inside makes it reachable with the keyboard -->
             <tr (click)="selectIndex(index)" [class.selected]="selectedIndex?.index === index.index">
-              <td><span class="dot" [class]="'dot health-' + (index.health ?? 'unknown')" [title]="index.health ?? index.status"></span></td>
-              <td>{{ index.index }} @if (index.status === 'close') { <em i18n>(closed)</em> }</td>
+              <td><span class="dot" [class]="'dot health-' + (index.health ?? 'unknown')" [title]="index.health ?? index.status" aria-hidden="true"></span><span class="sr-only">{{ index.health ?? index.status }}</span></td>
+              <td><button type="button" class="index-name" [attr.aria-current]="selectedIndex?.index === index.index ? 'true' : null">{{ index.index }}</button> @if (index.status === 'close') { <em i18n>(closed)</em> }</td>
               <td class="num">{{ index.docsCount === null ? '-' : (index.docsCount | number) }}</td>
               <td class="num">{{ formatSize(index.sizeBytes) }}</td>
               <td>{{ index.aliases.join(', ') }}</td>
@@ -74,7 +75,7 @@
 
       <h4 i18n>Query</h4>
       <p class="hint" i18n>Lucene syntax (e.g. <code>category:books AND price:&gt;20</code>) or a JSON Query DSL clause (e.g. <code>{{ '{' }}"term": {{ '{' }}"in_stock": true{{ '}}' }}</code>). Leave empty to match all documents.</p>
-      <ion-textarea class="query" [(ngModel)]="queryText" [autoGrow]="true" rows="2" fill="outline"
+      <ion-textarea class="query" [(ngModel)]="queryText" [autoGrow]="true" rows="2" fill="outline" aria-label="Query" i18n-aria-label
         placeholder="*" (keydown.control.enter)="runQuery()"></ion-textarea>
       <div class="actions">
         <ion-button size="small" (click)="runQuery()" [disabled]="queryRunning" i18n>Run (Ctrl+Enter)</ion-button>
@@ -86,7 +87,7 @@
         }
       </div>
       @if (queryError) {
-        <p class="error">{{ queryError }}</p>
+        <p class="error" role="alert">{{ queryError }}</p>
       }
       @if (queryResult?.data?.length) {
         <div class="table-wrapper">
@@ -109,7 +110,7 @@
 
       <h4 i18n>Mapping</h4>
       @if (mappingError) {
-        <p class="error">{{ mappingError }}</p>
+        <p class="error" role="alert">{{ mappingError }}</p>
       } @else if (mapping) {
         <div class="mapping"><ngx-json-viewer [json]="mapping" [expanded]="false"></ngx-json-viewer></div>
       }
@@ -135,10 +136,10 @@
       placeholder='{"properties": {"title": {"type": "text"}, "price": {"type": "double"}}}'></ion-textarea>
     <div class="actions">
       <ion-button size="small" (click)="createIndex()" [disabled]="!newIndexName.trim() || creating" i18n>Create</ion-button>
-      @if (createMessage) { <span class="success">{{ createMessage }}</span> }
+      @if (createMessage) { <span class="success" role="status">{{ createMessage }}</span> }
     </div>
     @if (createError) {
-      <p class="error">{{ createError }}</p>
+      <p class="error" role="alert">{{ createError }}</p>
     }
   </section>
 </div>

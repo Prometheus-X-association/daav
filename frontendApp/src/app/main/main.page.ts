@@ -66,11 +66,11 @@ export class MainPage {
   }[] = [
     {
     class: "",
-    name: "Thème par défaut"
+    name: "Default theme"
   },
   {
     class: "theme-ptx",
-    name: "Thème PTX"
+    name: "PTX theme"
   }
 ]
 
@@ -140,6 +140,8 @@ fonts: string[] = ["poppins", "OpenDyslexic"]
   }
 
   isMenuOpen = false;
+  currentTheme = "";
+  currentFont = "";
   menuIcon = "settings-outline";
   htmlClassList = document.querySelector("html").classList
   body = document.querySelector("body")
@@ -172,6 +174,7 @@ fonts: string[] = ["poppins", "OpenDyslexic"]
     if (value && value !== "") {
       this.htmlClassList.add(value)
     }
+    this.currentTheme = value || "";
 
     localStorage.setItem("theme", value)
   }
@@ -182,6 +185,7 @@ fonts: string[] = ["poppins", "OpenDyslexic"]
     if (value && value !== "") {
       this.htmlClassList.add(value)
     }
+    this.currentFont = value || "";
 
     localStorage.setItem("font", value);
   }

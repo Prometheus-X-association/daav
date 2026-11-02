@@ -107,7 +107,7 @@ $color-text-secondary: #6c757d;
     padding-bottom: 12px;
     border-bottom: 1px solid #e9ecef;
 
-    h2 {
+    h3 {
       margin: 0;
       font-size: 1.3em;
       font-weight: 700;
@@ -250,10 +250,13 @@ $color-text-secondary: #6c757d;
     font-weight: 600;
   }
 
-  p {
+  // Sub-section titles keep the look of the former paragraphs
+  p,
+  h3 {
     margin: 0;
     color: #666;
     font-size: 0.95em;
+    font-weight: normal;
   }
 }
 

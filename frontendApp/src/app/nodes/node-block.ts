@@ -54,6 +54,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
       this.playButtonControl = new ButtonControl(()=>{
         this.execute();
       },null,"play_arrow","playButton");
+      this.playButtonControl.ariaLabel = "Run node";
       this.playButtonControl.disabled = (this.status === StatusNode.Incomplete);
       this.addControl("play",this.playButtonControl);
       area.update("control", this.playButtonControl.id);

@@ -6,7 +6,7 @@
 
   <!-- Service Offerings -->
   <div class="section-header">
-    <p>Service offerings</p>
+    <h3>Service offerings</h3>
   </div>
   <div class="horizontal-scroll-container">
     <ng-container *ngIf="isLoadingCatalog">
@@ -56,7 +56,7 @@
   
   <!-- Software Resources -->
   <div class="section-header">
-    <p>Software resources</p>
+    <h3>Software resources</h3>
   </div>
   <div class="horizontal-scroll-container">
     <ng-container *ngIf="isLoadingCatalog">
@@ -106,7 +106,7 @@
   
   <!-- Data Resources -->
   <div class="section-header">
-    <p>Data resources</p>
+    <h3>Data resources</h3>
   </div>
   <div class="horizontal-scroll-container">
     <ng-container *ngIf="isLoadingCatalog">
@@ -175,7 +175,7 @@
     
         <div class="contract-details">
           <div class="contract-header">
-            <h2>{{ contract.name }}</h2>
+            <h3>{{ contract.name }}</h3>
             <p class="status-indicator"
                [ngClass]="{
                  'signed': contract.status === 'signed',
@@ -222,7 +222,7 @@
   </div>
 
   <!-- Loading skeleton to display data exchange history -->
-  <div *ngIf="isLoadingHistory" class="loading-container">
+  <div *ngIf="isLoadingHistory" class="loading-container" role="status" aria-label="Loading data exchanges">
     <ion-card *ngFor="let item of getSkeletonArray(3)" class="exchange-skeleton-card">
       <ion-card-header>
         <ion-skeleton-text 
@@ -245,7 +245,10 @@
       [class.expanded]="isExchangeExpanded(i)">
       
       <!-- Exchange Header -->
-      <ion-card-header class="exchange-header" (click)="toggleExchange(i)">
+      <ion-card-header class="exchange-header" role="button" tabindex="0"
+        [attr.aria-expanded]="isExchangeExpanded(i)" [attr.aria-controls]="'exchange-details-' + i"
+        (click)="toggleExchange(i)" (keydown.enter)="toggleExchange(i)"
+        (keydown.space)="$event.preventDefault(); toggleExchange(i)">
         <div class="header-info">
           <div class="exchange-title">
             <ion-card-title>{{ exchange.resources[0]?.name || 'Unnamed Resource' }}</ion-card-title>
@@ -265,19 +268,19 @@
           </div>
           <div class="exchange-meta">
             <span class="execution-count">
-              <ion-icon name="repeat-outline"></ion-icon>
+              <ion-icon name="repeat-outline" aria-hidden="true"></ion-icon>
               {{ getExecutionCount(exchange) }} executions
             </span>
           </div>
         </div>
         <ion-icon 
           [name]="isExchangeExpanded(i) ? 'chevron-up-outline' : 'chevron-down-outline'"
-          class="expand-icon">
+          class="expand-icon" aria-hidden="true">
         </ion-icon>
       </ion-card-header>
 
       <!-- Exchange Details (Expanded) -->
-      <ion-card-content *ngIf="isExchangeExpanded(i)" class="exchange-details">
+      <ion-card-content *ngIf="isExchangeExpanded(i)" class="exchange-details" [id]="'exchange-details-' + i">
 
        <!-- Executions History -->
         <div class="details-section">
@@ -290,7 +293,7 @@
               <div class="execution-info">
                 <span class="execution-id">iD: {{ execution.id }}</span>  
                 <ng-container *ngIf="execution.createdAt">
-                  <ion-icon name="time-outline"></ion-icon>
+                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
                   <span class="execution-date">
                     {{ formatDate(execution.createdAt) }}
                   </span>
@@ -306,7 +309,7 @@
                 size="small" 
                 (click)="toggleShowAllExecutions(i)"
                 class="show-more-button">
-                <ion-icon name="chevron-down-outline" slot="start"></ion-icon>
+                <ion-icon name="chevron-down-outline" slot="start" aria-hidden="true"></ion-icon>
                 Show {{ getHiddenExecutionsCount(exchange) }} more executions
               </ion-button>
               
@@ -316,7 +319,7 @@
                 size="small" 
                 (click)="toggleShowAllExecutions(i)"
                 class="show-less-button">
-                <ion-icon name="chevron-up-outline" slot="start"></ion-icon>
+                <ion-icon name="chevron-up-outline" slot="start" aria-hidden="true"></ion-icon>
                 Show less
               </ion-button>
             </div>
@@ -328,7 +331,7 @@
 
   <!-- Empty state -->
   <div *ngIf="!isLoadingHistory && dataExchanges.length === 0" class="empty-state">
-    <ion-icon name="swap-horizontal-outline" class="empty-icon"></ion-icon>
+    <ion-icon name="swap-horizontal-outline" class="empty-icon" aria-hidden="true"></ion-icon>
     <h3>No Data Exchanges Found</h3>
     <p>There are no data exchanges in the history for this connexion.</p>
   </div>

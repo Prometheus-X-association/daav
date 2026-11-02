@@ -36,6 +36,26 @@
   src: url(assets/font/OpenDyslexic-Regular.otf);
 }
 
+// Hides content visually while keeping it available to screen readers
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+// Visible keyboard focus for native controls styled by the app
+.icon-button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--darkPtx);
+  outline-offset: 2px;
+}
+
 ::selection {
   color: var(--white);
   background-color: var(--pinkPtx);
@@ -48,6 +68,8 @@
   // NEUTRAL ---------------------------------------------------------
   --black: #1e1e1e;
   --grayDark: #9a9a9a;
+  // Secondary text: 5.9:1 on white (WCAG AA)
+  --grayText: #636469;
   --grayMedium: #cdcdcd;
   --grayLight: #eeeeee;
   --white: #ffffff;
@@ -87,7 +109,10 @@
   --ion-color-primary-tint: var(--darkPtxLight);
   --ion-color-primary-contrast: var(--white);
 
-  --ion-color-secondary: var(--bluePtx);
+  // Darker than --bluePtx so secondary text reaches 4.97:1 on white (WCAG AA)
+  --ion-color-secondary: #007c85;
+  --ion-color-secondary-rgb: 0, 124, 133;
+  --ion-color-secondary-shade: #006d75;
   --ion-color-secondary-tint: var(--bluePtxLight);
   --ion-color-secondary-contrast: var(--white);
 
@@ -99,9 +124,13 @@
   --ion-color-dark-tint: var(--grayDark);
   --ion-color-dark-contrast: var(--white);
 
-  --ion-color-medium: var(--grayMedium);
-  --ion-color-medium-tint: var(--grayLight);
-  --ion-color-medium-contrast: var(--black);
+  // Medium is only used for secondary text and muted buttons, so it must stay readable on white
+  --ion-color-medium: var(--grayText);
+  --ion-color-medium-rgb: 99, 100, 105;
+  --ion-color-medium-shade: #57585c;
+  --ion-color-medium-tint: #737479;
+  --ion-color-medium-contrast: var(--white);
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
 
   --ion-color-light: var(--white);
   --ion-color-light-tint: var(--grayLight);
@@ -169,7 +198,8 @@ ion-modal {
 
   ion-content {
     min-height: 50vh;
-    min-width: 600px;
+    // Capped to the viewport so the modal still reflows on narrow screens
+    min-width: min(600px, 100vw);
     overflow: auto;
     padding: 0px;
   }

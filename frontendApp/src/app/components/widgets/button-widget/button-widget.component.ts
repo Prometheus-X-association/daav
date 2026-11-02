@@ -7,7 +7,9 @@ export class ButtonControl extends ClassicPreset.Control {
     public label?: string,
     public icon?: string,
     public className?: string,
-    public disabled?: boolean
+    public disabled?: boolean,
+    // Accessible name, required when the button only shows an icon
+    public ariaLabel?: string
   ) {
     super();
   }

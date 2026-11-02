@@ -23,10 +23,14 @@
             </div>
           </ion-button>
           <div class="iconsContainer">
-            <ion-icon name="create-outline" (click)="openModal(dataset)"></ion-icon>
+            <button type="button" class="icon-button" [attr.aria-label]="'Edit dataset ' + dataset.name" (click)="openModal(dataset)">
+              <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+            </button>
           </div>
           <div class="iconsContainer">
-            <ion-icon name="trash-outline" (click)="datasetService.delete(dataset)"></ion-icon>
+            <button type="button" class="icon-button" [attr.aria-label]="'Delete dataset ' + dataset.name" (click)="datasetService.delete(dataset)">
+              <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+            </button>
           </div>
         </ion-item>
       }

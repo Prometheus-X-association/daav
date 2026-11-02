@@ -3,42 +3,42 @@
   <div class="dataset-info-section">
     <h3>Dataset Information</h3>
 
-    <div class="info-grid">
+    <dl class="info-grid">
       <div class="info-item">
-        <label>Dataset Name:</label>
-        <span>{{ dataset.name || 'Unnamed Dataset' }}</span>
+        <dt>Dataset Name:</dt>
+        <dd><span>{{ dataset.name || 'Unnamed Dataset' }}</span></dd>
       </div>
 
       <div class="info-item">
-        <label>Dataset ID:</label>
-        <span>{{ dataset.id }}</span>
+        <dt>Dataset ID:</dt>
+        <dd><span>{{ dataset.id }}</span></dd>
       </div>
 
       <div class="info-item" *ngIf="dataset.filePath">
-        <label>File Path:</label>
-        <span>{{ dataset.filePath || 'Not specified' }}</span>
+        <dt>File Path:</dt>
+        <dd><span>{{ dataset.filePath || 'Not specified' }}</span></dd>
       </div>
 
       <div class="info-item" *ngIf="dataset.folder">
-        <label>Folder:</label>
-        <span>{{ dataset.folder || 'Default folder' }}</span>
+        <dt>Folder:</dt>
+        <dd><span>{{ dataset.folder || 'Default folder' }}</span></dd>
       </div>
 
       <div class="info-item">
-        <label>Input Type:</label>
-        <span class="input-type-badge">{{ dataset.inputType || 'Unknown' }}</span>
+        <dt>Input Type:</dt>
+        <dd><span class="input-type-badge">{{ dataset.inputType || 'Unknown' }}</span></dd>
       </div>
 
       <div class="info-item" *ngIf="dataset.csvDelimiter">
-        <label>CSV Delimiter:</label>
-        <span class="delimiter-display">{{ getDelimiterDisplay(dataset.csvDelimiter) }}</span>
+        <dt>CSV Delimiter:</dt>
+        <dd><span class="delimiter-display">{{ getDelimiterDisplay(dataset.csvDelimiter) }}</span></dd>
       </div>
 
       <div class="info-item" *ngIf="dataset.csvHeader">
-        <label>CSV Header:</label>
-        <span>{{ dataset.csvHeader }}</span>
+        <dt>CSV Header:</dt>
+        <dd><span>{{ dataset.csvHeader }}</span></dd>
       </div>
-    </div>
+    </dl>
   </div>
 
   <!-- Configuration Section -->

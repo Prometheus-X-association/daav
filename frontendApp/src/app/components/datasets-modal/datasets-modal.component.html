@@ -17,11 +17,11 @@
             <ion-item>
               <div id="datatypes">
                 <ion-label id="datatypes-title" i18n>Data types</ion-label>
-                <ion-radio-group id="datatypes-options" formControlName="type" (ionChange)="onSelectionChange()">
+                <ion-radio-group id="datatypes-options" formControlName="type" aria-labelledby="datatypes-title" (ionChange)="onSelectionChange()">
                   @for(a of datasetTypes; track a.dataType; let x = $index){
                     <ion-card class="radio-container">
                       <ion-radio class="datatypes-radio cards" color="transparent" value="{{ a.dataType }}" (click)="onSelected($event)">
-                        <ion-icon name="{{ a.logo }}" color="primary"></ion-icon>
+                        <ion-icon name="{{ a.logo }}" color="primary" aria-hidden="true"></ion-icon>
                         {{ a.dataName }}
                       </ion-radio>
                     </ion-card>
@@ -47,7 +47,7 @@
             <ion-item>
               <span class="container">
                 <ion-label class="label" id="folder-label" i18n>Drop or select a folder</ion-label>
-                <input type="file" placeholder="File" formControlName="file" (change)="uploadFile($event)"  accept=".json, .csv, .parquet, .feather, .avro, .orc" webkitdirectory directory multiple i18n>
+                <input type="file" aria-labelledby="folder-label" formControlName="file" (change)="uploadFile($event)"  accept=".json, .csv, .parquet, .feather, .avro, .orc" webkitdirectory directory multiple>
               </span>
             </ion-item>
             <ion-item>
@@ -55,13 +55,13 @@
                formControlName="filePath" (change)="uploadFile($event)" i18n></ion-input>
             </ion-item>
             <div *ngIf="uploadProgress !== null">
-              <progress [value]="uploadProgress" max="100"></progress>
+              <progress [value]="uploadProgress" max="100" aria-label="Upload progress" i18n-aria-label></progress>
             </div>
             @if (isCsvFile) {
               <ion-item class="csv-input">
                 <span class="container">
-                  <ion-label class="label" i18n>CSV header</ion-label>
-                  <ion-radio-group label="Enter a local path" formControlName="csvHeader" id="csv-header-radio" i18n>
+                  <ion-label class="label" id="csv-header-label" i18n>CSV header</ion-label>
+                  <ion-radio-group formControlName="csvHeader" id="csv-header-radio" aria-labelledby="csv-header-label">
                     <ion-radio labelPlacement="end" value="true">yes</ion-radio>
                     <ion-radio labelPlacement="end" value="false">no</ion-radio>
                   </ion-radio-group>
