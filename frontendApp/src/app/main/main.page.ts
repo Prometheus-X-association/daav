@@ -29,6 +29,7 @@ export class MainPage {
   datasetSelected: any;
   transformationView: string = "list";
   loadProjectId: string;
+  sidePanelCollapsed = false;
 
   get Tabs(){
     return Tabs;
@@ -93,6 +94,25 @@ fonts: string[] = ["poppins", "OpenDyslexic"]
     this.transformationView = view;
   }
 
+  get isWorkflowOpen(): boolean {
+    return this.matTabIndex === Tabs.transformation && this.transformationView === 'rete';
+  }
+
+  // The side panel can only be collapsed while a workflow is open in the editor
+  get isSidePanelCollapsed(): boolean {
+    return this.sidePanelCollapsed && this.isWorkflowOpen;
+  }
+
+  toggleSidePanel() {
+    this.sidePanelCollapsed = !this.sidePanelCollapsed;
+  }
+
+  closeWorkflow() {
+    this.loadProjectId = undefined;
+    this.sidePanelCollapsed = false;
+    this.transformationView = 'list';
+  }
+
   ionViewWillEnter() {
   }
 
@@ -103,6 +123,10 @@ fonts: string[] = ["poppins", "OpenDyslexic"]
   createWorkflow() {
     if (this.workflowEditor) {
       this.workflowEditor.newProject();
+    }
+    else{
+      // The editor is created afterwards: make sure it does not reopen the last loaded workflow
+      this.loadProjectId = undefined;
     }
   }
 

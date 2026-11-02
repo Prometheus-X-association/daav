@@ -67,6 +67,33 @@ ion-menu {
     }
 }
 
+// Collapsed left column (workflow open) ---------------------------------------
+ion-split-pane.side-collapsed {
+    ion-menu {
+        min-width: 48px;
+        width: 48px;
+
+        > ion-header,
+        > ion-content {
+            display: none;
+        }
+    }
+}
+
+#side-panel-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    padding-top: 12px;
+    border-right: 1px solid var(--darkPtx);
+    background-color: var(--white);
+
+    ion-button {
+        --color: var(--darkPtx);
+    }
+}
+
 // Left column title ---------------------------------------------------------
 #datasets {
     --border-color: transparent;
@@ -75,6 +102,11 @@ ion-menu {
     z-index: 100 !important;
     top: 0%;
     left: 0%;
+}
+
+#collapse-side-panel {
+    --color: var(--white);
+    margin: 0;
 }
 
 #datasets::part(native) {
