@@ -1,0 +1,32 @@
+<section class="panel" aria-labelledby="security-password-title">
+  <h2 id="security-password-title">Change password</h2>
+  <p class="panel-intro">Your other sessions are logged out once the password is changed.</p>
+
+  <form [formGroup]="changePasswordForm" (ngSubmit)="onChangePassword()">
+    <div class="form-fields">
+      <ion-input fill="outline" label="Current password" labelPlacement="floating"
+        formControlName="currentPassword" type="password" autocomplete="current-password">
+        <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+      </ion-input>
+
+      <ion-input fill="outline" label="New password" labelPlacement="floating" formControlName="newPassword"
+        type="password" autocomplete="new-password" helperText="At least 8 characters">
+        <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+      </ion-input>
+
+      <ion-input fill="outline" label="Confirm new password" labelPlacement="floating"
+        formControlName="confirmPassword" type="password" autocomplete="new-password">
+        <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+      </ion-input>
+    </div>
+
+    <div class="form-actions">
+      <ion-button type="submit" [disabled]="loading || changePasswordForm.invalid">
+        @if (loading) {
+          <ion-spinner name="crescent" slot="start" aria-hidden="true"></ion-spinner>
+        }
+        Update password
+      </ion-button>
+    </div>
+  </form>
+</section>

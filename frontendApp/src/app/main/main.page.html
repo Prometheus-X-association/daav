@@ -3,29 +3,11 @@
     <ion-menu contentId="main">
 
       <ion-header>
-        <ion-toolbar>
-          <ion-title id="menu-title">DAAV</ion-title>
-          <ion-buttons slot="end">
-              <ion-button aria-label="User profile" i18n-aria-label (click)="openUserProfile()">
-                <ion-icon name="person-circle" slot="icon-only" aria-hidden="true"></ion-icon>
-              </ion-button>
-              <ion-button aria-controls="theme-menu" [attr.aria-label]="isMenuOpen ? 'Close display settings' : 'Open display settings'" (click)="toggleMenu()"><ion-icon [name]="menuIcon" slot="icon-only" aria-hidden="true"></ion-icon></ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-        <div id="theme-menu" [class.is-open]="isMenuOpen">
-          <span id="theme-btns-title" i18n>Themes</span>
-          <div id="theme-btns" role="group" aria-labelledby="theme-btns-title">
-            @for (theme of themes; track theme.class) {
-              <ion-button [attr.aria-pressed]="currentTheme === theme.class" (click)="applyTheme(theme.class)">{{theme.name}}</ion-button>
-            }
-          </div>
-          <span id="font-btns-title" i18n>Fonts</span>
-          <div id="font-btns" role="group" aria-labelledby="font-btns-title">
-          @for (font of fonts; track font) {
-            <ion-button [attr.aria-pressed]="currentFont === font" (click)="applyFont(font)">{{font.charAt(0).toUpperCase() + font.slice(1)}}</ion-button>
-          }
-          </div>
-        </div>
+        <app-toolbar>
+          <ion-button aria-label="Account" i18n-aria-label title="Account" i18n-title routerLink="/account">
+            <ion-icon name="person-circle" slot="icon-only" aria-hidden="true"></ion-icon>
+          </ion-button>
+        </app-toolbar>
       </ion-header>
 
       <ion-content>

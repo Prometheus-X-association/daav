@@ -1,0 +1,132 @@
+// Styles shared by the sections of the account page
+
+:host {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.panel {
+    padding: 24px;
+    border: 1px solid var(--grayMedium);
+    border-radius: 10px;
+    background-color: var(--white);
+
+    h2 {
+        margin: 0 0 16px;
+        font-size: 1.125rem;
+        font-weight: 800;
+        color: var(--darkPtx);
+    }
+
+    .panel-intro {
+        margin: -8px 0 16px;
+        font-size: 0.9rem;
+        color: var(--grayText);
+    }
+
+    &.danger {
+        border-color: var(--ion-color-danger);
+
+        h2 {
+            color: var(--ion-color-danger);
+        }
+    }
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+
+    h2 {
+        margin: 0;
+    }
+}
+
+.form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 480px;
+
+    &.inline {
+        flex-direction: row;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        max-width: none;
+
+        ion-input {
+            flex: 1 1 220px;
+        }
+    }
+}
+
+.form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px 16px;
+    color: var(--grayText);
+    text-align: center;
+
+    ion-icon {
+        font-size: 2.5rem;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+        padding: 12px;
+        border-bottom: 1px solid var(--grayLight);
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    th {
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--grayText);
+        border-bottom-color: var(--grayMedium);
+        white-space: nowrap;
+    }
+
+    tbody tr:hover {
+        background-color: var(--grayLight);
+    }
+
+    .actions {
+        text-align: right;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 576px) {
+    .panel {
+        padding: 16px;
+    }
+}

@@ -39,6 +39,12 @@ const routes: Routes = [
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule)
   },
   {
+    path: 'account',
+    title: 'Account - DAAV',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./pages/account/account.module').then(m => m.AccountPageModule)
+  },
+  {
     path: 'workflow',
     title: 'Workflow - DAAV',
     canActivate: [AuthGuard],

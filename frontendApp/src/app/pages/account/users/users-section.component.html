@@ -1,0 +1,91 @@
+<section class="panel" aria-labelledby="users-list-title">
+  <div class="panel-header">
+    <h2 id="users-list-title">
+      Users
+      @if (!loadingUsers) {
+        <span class="users-count">({{ allUsers.length }})</span>
+      }
+    </h2>
+    <div class="panel-header-actions">
+      <ion-button fill="outline" aria-label="Refresh the users" [disabled]="loadingUsers" (click)="loadAllUsers()">
+        <ion-icon name="refresh-outline" slot="icon-only" aria-hidden="true"></ion-icon>
+      </ion-button>
+      <ion-button (click)="createNewUser()">
+        <ion-icon name="person-add-outline" slot="start" aria-hidden="true"></ion-icon>
+        Create user
+      </ion-button>
+    </div>
+  </div>
+
+  @if (loadingUsers) {
+    <div class="empty-state" role="status">
+      <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+      <p>Loading users...</p>
+    </div>
+  }
+  @else if (allUsers.length === 0) {
+    <div class="empty-state">
+      <ion-icon name="people-outline" aria-hidden="true"></ion-icon>
+      <p>No users found</p>
+    </div>
+  }
+  @else {
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">User</th>
+            <th scope="col">Email</th>
+            <th scope="col">Role</th>
+            <th scope="col">Status</th>
+            <th scope="col">Member since</th>
+            <th scope="col">Last login</th>
+            <th scope="col" class="actions"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (managedUser of allUsers; track managedUser.id) {
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <span class="full-name">{{ managedUser.full_name }}</span>
+                  <span class="username">{{ '@' + managedUser.username }}</span>
+                </div>
+              </td>
+              <td class="email">{{ managedUser.email }}</td>
+              <td>
+                <ion-badge [color]="managedUser.role === 'admin' ? 'danger' : 'primary'">{{ managedUser.role | uppercase }}</ion-badge>
+              </td>
+              <td>
+                <ion-badge [color]="managedUser.is_active ? 'success' : 'warning'">{{ managedUser.is_active ? 'ACTIVE' : 'INACTIVE' }}</ion-badge>
+              </td>
+              <td class="date" [title]="getFullDate(managedUser.created_at)">{{ getFormattedDate(managedUser.created_at) }}</td>
+              <td class="date" [title]="getFullDate(managedUser.last_login)">{{ getFormattedDate(managedUser.last_login) }}</td>
+              <td class="actions">
+                @if (managedUser.id !== currentUserId) {
+                  <ion-button fill="clear" color="medium"
+                    [attr.aria-label]="(managedUser.is_active ? 'Deactivate ' : 'Activate ') + managedUser.username"
+                    [title]="managedUser.is_active ? 'Deactivate' : 'Activate'"
+                    (click)="managedUser.is_active ? deactivateUser(managedUser) : activateUser(managedUser)">
+                    <ion-icon [name]="managedUser.is_active ? 'eye-off-outline' : 'eye-outline'" slot="icon-only" aria-hidden="true"></ion-icon>
+                  </ion-button>
+                  <ion-button fill="clear" color="medium" [attr.aria-label]="'Change the password of ' + managedUser.username"
+                    title="Change password" (click)="changeUserPassword(managedUser)">
+                    <ion-icon name="key-outline" slot="icon-only" aria-hidden="true"></ion-icon>
+                  </ion-button>
+                  <ion-button fill="clear" color="danger" [attr.aria-label]="'Delete ' + managedUser.username"
+                    title="Delete" (click)="deleteUser(managedUser)">
+                    <ion-icon name="trash-outline" slot="icon-only" aria-hidden="true"></ion-icon>
+                  </ion-button>
+                }
+                @else {
+                  <ion-note class="self-note">You</ion-note>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

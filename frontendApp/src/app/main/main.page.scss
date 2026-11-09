@@ -7,42 +7,6 @@ ion-split-pane {
 // Site title ---------------------------------------------------------
 ion-header {
     box-shadow: none !important;
-
-    #theme-menu {
-        display: none;
-        position: absolute;
-        top: 63px;
-        left: 0;
-        background-color: var(--grayLight);
-        box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 4px 0px;
-        width: 350px;
-        border: 1px solid black;
-        width: 100%;
-        padding: 1em;
-        z-index: 99;
-
-        &.is-open {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-        }
-
-        #theme-btns {
-            margin-bottom: 1em;
-        }
-
-        #theme-btns,
-        #font-btns {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-
-            ion-button {
-                width: 100%;
-                box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 4px 0px;
-            }
-        }
-    }
 }
 
 // Left column ---------------------------------------------------------
@@ -50,17 +14,6 @@ ion-menu {
     min-width: 350px;
     width: 20vw;
     padding: 0;
-
-    ion-title {
-        color: var(--darkPtx) !important;
-        font-weight: 900 !important;
-        font-size: 1.8em;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        padding-left: 30px;
-        background-color: transparent;
-        font-family: 'poppins' !important;
-    }
 
     ion-content {
         border-right: 1px solid var(--darkPtx);
