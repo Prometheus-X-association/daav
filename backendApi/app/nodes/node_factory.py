@@ -98,7 +98,7 @@ class NodeFactory:
                 node_data.id, 
                 node_data.data, 
                 node_data.revision, 
-                node_data.data['status']
+                node_data.data.get('status')
             )
             logger.debug(f"Successfully created node: {node_type} with id: {node_data.id}")
             return node_instance

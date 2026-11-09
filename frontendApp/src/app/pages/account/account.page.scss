@@ -1,0 +1,177 @@
+ion-split-pane {
+    --side-width: 350px;
+    --side-max-width: 350px;
+    --border: 0px solid var(--grayDark);
+}
+
+ion-header {
+    box-shadow: none !important;
+}
+
+// Left column ---------------------------------------------------------
+ion-menu {
+    min-width: 350px;
+    width: 20vw;
+    padding: 0;
+
+    ion-content {
+        border-right: 1px solid var(--darkPtx);
+    }
+}
+
+.side-title {
+    --border-color: transparent;
+    --background: var(--darkPtx);
+    position: sticky;
+    z-index: 100;
+    top: 0;
+
+    &::part(native) {
+        color: var(--white);
+        padding: 4px 5px 4px 30px;
+        font-weight: 900;
+    }
+}
+
+.user-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 30px;
+    border-bottom: 1px solid var(--grayMedium);
+
+    .user-avatar {
+        flex-shrink: 0;
+        font-size: 48px;
+        color: var(--darkPtx);
+    }
+
+    .user-names {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .full-name {
+        font-weight: 800;
+        color: var(--darkPtx);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .username {
+        font-size: 0.875rem;
+        color: var(--grayText);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.account-nav {
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 12px 0;
+    }
+
+    a {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 30px;
+        border-left: 4px solid transparent;
+        color: var(--black);
+        text-decoration: none;
+        transition: var(--custom-transition);
+
+        ion-icon {
+            font-size: 1.25rem;
+            color: var(--darkPtx);
+        }
+
+        &:hover {
+            background-color: var(--bluePtxLight);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--darkPtx);
+            outline-offset: -2px;
+        }
+
+        &.active {
+            border-left-color: var(--bluePtx);
+            background-color: var(--bluePtxLight);
+            color: var(--darkPtx);
+            font-weight: 800;
+        }
+    }
+}
+
+.logout-btn {
+    margin: 0;
+    border-right: 1px solid var(--darkPtx);
+
+    &::part(native) {
+        padding: 20px;
+        background-color: var(--bluePtxLight);
+        transition: var(--custom-transition);
+        color: var(--darkPtx);
+        font-weight: 800;
+        border-top: 1px solid var(--darkPtx);
+        box-shadow: none !important;
+    }
+
+    &:hover::part(native) {
+        background-color: var(--bluePtx);
+        color: var(--white);
+    }
+}
+
+// Central panel ---------------------------------------------------------
+#account-main ion-content {
+    --background: var(--white);
+}
+
+.account-topbar {
+    display: flex;
+    align-items: flex-end;
+    min-height: 63px;
+    padding: 0 40px 12px;
+    border-bottom: 1px solid var(--darkPtx);
+
+    h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--darkPtx);
+    }
+}
+
+.account-panel {
+    max-width: 1100px;
+    padding: 24px 40px 40px;
+}
+
+.section-description {
+    margin: 0 0 24px;
+    color: var(--grayText);
+}
+
+@media (max-width: 768px) {
+    ion-split-pane {
+        --side-width: 260px;
+        --side-max-width: 260px;
+    }
+
+    ion-menu {
+        min-width: 260px;
+    }
+
+    .account-topbar,
+    .account-panel {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}

@@ -1,5 +1,5 @@
 import { WorkflowService } from '../../services/worflow.service';
-import { Component, ElementRef, Injector, ViewChild, AfterViewInit, OnInit, input, Input, OnChanges, SimpleChanges, AfterContentInit, AfterViewChecked, DestroyRef, inject } from '@angular/core';
+import { Component, ElementRef, Injector, ViewChild, AfterViewInit, OnInit, input, Input, Output, EventEmitter, OnChanges, SimpleChanges, AfterContentInit, AfterViewChecked, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkflowEditor } from '../../core/workflow-editor';
 import { environment } from 'src/environments/environment';
@@ -7,6 +7,8 @@ import { Project } from '../../models/interfaces/project';
 import { AppUtils } from '../../models/app-utils';
 import { ActivatedRoute } from '@angular/router';
 import { $localize } from '@angular/localize/init';
+import { MatDialog } from '@angular/material/dialog';
+import { ConfirmDeletionModalComponent } from '../../components/confirm-deletion-modal/confirm-deletion-modal.component';
 
 @Component({
     selector: 'app-workflow',
@@ -16,10 +18,12 @@ import { $localize } from '@angular/localize/init';
 })
 export class WorkflowPage implements AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialog = inject(MatDialog);
   workflow: WorkflowEditor;
   exported: Project;
   toolbar: HTMLElement;
   @Input() projectId: string;
+  @Output() closed = new EventEmitter<void>();
 
   constructor(private injector: Injector,private route: ActivatedRoute,public workflowService : WorkflowService) {
     this.route.queryParams
@@ -37,6 +41,7 @@ export class WorkflowPage implements AfterViewInit {
       if (el) {
         this.workflow = new WorkflowEditor(el, this.injector);
         this.workflow.name = this.getDefaultName();
+        this.workflow.markAsSaved();
       }
       if (!environment.production) {
         (window as any).workflow = this.workflow;
@@ -91,6 +96,7 @@ export class WorkflowPage implements AfterViewInit {
     if (project.id){
       this.workflowService.updateWorkflow(project).subscribe({next : data =>{
         console.log(data);
+        this.workflow.markAsSaved(project);
         this.workflowService.getWorkflows().subscribe({
           next: (data) => {
             console.log(data);
@@ -104,6 +110,7 @@ export class WorkflowPage implements AfterViewInit {
       this.workflowService.createWorkflow(project).subscribe({
         next: (data) => {
           this.workflow.id = data.id;
+          this.workflow.markAsSaved({ ...project, id: data.id });
           this.workflowService.getWorkflows().subscribe({
             next: (data) => {
               console.log(data);
@@ -116,6 +123,24 @@ export class WorkflowPage implements AfterViewInit {
         }
       });
     }
+  }
+
+  /**
+   * Close the workflow, asking for confirmation when it has unsaved changes
+   */
+  public closeProject(){
+    if (!this.workflow?.hasUnsavedChanges()){
+      this.closed.emit();
+      return;
+    }
+    const dialogRef = this.dialog.open(ConfirmDeletionModalComponent, {
+      data: { message: $localize `:@@closeUnsavedWorkflow:This workflow has unsaved changes. Close it anyway?` }
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === true) {
+        this.closed.emit();
+      }
+    });
   }
 
   private getDefaultName(){

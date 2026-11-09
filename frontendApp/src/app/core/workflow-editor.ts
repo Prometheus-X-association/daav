@@ -66,6 +66,9 @@ import { TextDisplayControl, TextDisplayWidgetComponent } from '../components/wi
 
 class Connection<N extends NodeBlock> extends ClassicPreset.Connection<N, N> {}
 
+// Keys refreshed by executions or widget UI state, ignored when detecting unsaved changes
+const VOLATILE_KEYS = new Set(['status', 'statusMessage', 'errorStacktrace', 'dataOutput', 'list', 'oldValue', 'showPassword']);
+
 export type Schemes = GetSchemes<NodeBlock, Connection<NodeBlock>>;
 
 export type AreaExtra = AngularArea2D<Schemes>| ContextMenuExtra;
@@ -92,6 +95,7 @@ export class WorkflowEditor {
   injector: Injector;
   arrange: AutoArrangePlugin<Schemes, never>;
   contextMenu: ContextMenuPlugin<Schemes>;
+  private savedSignature: string;
 
   constructor(container: HTMLElement, injector: Injector) {
     this.injector = injector;
@@ -311,6 +315,7 @@ export class WorkflowEditor {
     this.project = null;
     this.revision = null;
     await this.nodeEditor.clear();
+    this.markAsSaved();
   }
 
   async importProject(project: Project) {
@@ -396,6 +401,7 @@ export class WorkflowEditor {
     });
     //await this.arrange.layout({options : {}});
     AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
+    this.markAsSaved();
   }
   /**
    *
@@ -476,6 +482,21 @@ export class WorkflowEditor {
   saveProject() {
     this.project = this.exportProject();
     //TODO push to server
+  }
+
+  /**
+   * Take the given project (current state by default) as the saved reference for unsaved changes detection
+   */
+  markAsSaved(project: Project = this.exportProject()) {
+    this.savedSignature = this.signature(project);
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.signature(this.exportProject()) !== this.savedSignature;
+  }
+
+  private signature(project: Project): string {
+    return JSON.stringify(project, (key, value) => VOLATILE_KEYS.has(key) ? undefined : value);
   }
 
   private buildDockContent() {

@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
-from typing import List, Optional, Union
-from pydantic import field_validator, ConfigDict, Field
+from typing import Dict, List, Optional, Union
+from pydantic import field_validator, model_validator, ConfigDict, Field, PrivateAttr
+
+from app.config.secret_keys import PUBLIC_DEFAULT_JWT_SECRETS, load_or_create_tmp_secret, tmp_secret_path
 
 try:
     from pydantic_settings import BaseSettings
@@ -64,9 +66,12 @@ class Settings(BaseSettings):
     )
     
     # JWT Configuration
-    jwt_secret_key: str = Field(
-        default="your-secret-key-change-this-in-production-please-min-32-chars",
-        description="Secret key for JWT token encoding/decoding. CHANGE THIS IN PRODUCTION!"
+    jwt_secret_key: Optional[str] = Field(
+        default=None,
+        description=(
+            "Secret key for JWT token encoding/decoding (min. 32 characters). "
+            "If not set, a temporary key is generated in SECRETS_DIR on first start."
+        )
     )
     jwt_algorithm: str = Field(
         default="HS256",
@@ -86,9 +91,18 @@ class Settings(BaseSettings):
         default=None,
         description=(
             "Fernet key for encrypting sensitive dataset fields (passwords, tokens) at rest in MongoDB. "
+            "If not set, a temporary key is generated in SECRETS_DIR on first start. "
             "Generate with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
         )
     )
+    secrets_dir: str = Field(
+        default="secrets",
+        validate_default=True,
+        description="Directory where temporary secrets (<NAME>_TMP) are generated when they are not configured"
+    )
+
+    # Secrets using a generated temporary value: {name: file path}
+    _temporary_secrets: Dict[str, str] = PrivateAttr(default_factory=dict)
 
     # Email Configuration (SMTP)
     smtp_host: str = Field(
@@ -142,7 +156,13 @@ class Settings(BaseSettings):
         description="List of whitelisted domains that can access routes without authentication"
     )
 
-    @field_validator('directory_white_list', 'cors_origins', 'domain_whitelist', mode='before')
+    # SSRF - hosts allowed to resolve to private/internal addresses (e.g. docker-compose services)
+    allowed_private_hosts: Union[List[str], str] = Field(
+        default=[],
+        description="Hostnames or IPs of data sources allowed to point to private or internal addresses"
+    )
+
+    @field_validator('directory_white_list', 'cors_origins', 'domain_whitelist', 'allowed_private_hosts', mode='before')
     @classmethod
     def parse_str_list_tolist(cls, v):
         """Parse from string or list to list"""
@@ -199,20 +219,23 @@ class Settings(BaseSettings):
     @field_validator('jwt_secret_key')
     @classmethod
     def validate_jwt_secret_key(cls, v):
-        """Validate JWT secret key length for security"""
-        if v == "your-secret-key-change-this-in-production-please-min-32-chars":
+        """Validate JWT secret key length for security. Public placeholder values are ignored."""
+        if not v:
+            return None
+        if v in PUBLIC_DEFAULT_JWT_SECRETS:
             import logging
-            logging.warning("⚠️  Using default JWT_SECRET_KEY - CHANGE THIS IN PRODUCTION!")
-        elif len(v) < 32:
+            logging.error("JWT_SECRET_KEY is set to a public placeholder value from the DAAV repository: it is ignored")
+            return None
+        if len(v) < 32:
             raise ValueError('JWT_SECRET_KEY must be at least 32 characters long for security')
         return v
 
     @field_validator('field_encryption_key')
     @classmethod
     def validate_field_encryption_key(cls, v):
-        """Validate Fernet key format. If not set, key is derived from JWT_SECRET_KEY at runtime."""
-        if v is None:
-            return v  # _get_fernet() will derive from JWT_SECRET_KEY automatically
+        """Validate Fernet key format. If not set, a temporary key is generated (see generate_missing_secrets)."""
+        if not v:
+            return None
         from cryptography.fernet import Fernet
         try:
             Fernet(v.encode())
@@ -244,6 +267,32 @@ class Settings(BaseSettings):
         app_dir = Path(__file__).parent.parent 
         upload_path = app_dir / v
         return str(upload_path.resolve())
+
+    @field_validator('secrets_dir', mode='before')
+    @classmethod
+    def resolve_secrets_dir(cls, v):
+        """Resolve the secrets directory from absolute path or relative to the backend root"""
+        if not v:
+            v = "secrets"
+        if os.path.isabs(v):
+            return v
+        backend_dir = Path(__file__).resolve().parent.parent.parent
+        return str(backend_dir / v)
+
+    @model_validator(mode='after')
+    def generate_missing_secrets(self):
+        """Use a temporary generated value for each secret that is not configured"""
+        for name in ("JWT_SECRET_KEY", "FIELD_ENCRYPTION_KEY"):
+            field = name.lower()
+            if not getattr(self, field):
+                setattr(self, field, load_or_create_tmp_secret(name, self.secrets_dir))
+                self._temporary_secrets[name] = str(tmp_secret_path(name, self.secrets_dir))
+        return self
+
+    @property
+    def temporary_secrets(self) -> Dict[str, str]:
+        """Secrets using a generated temporary value: {name: file path}"""
+        return dict(self._temporary_secrets)
 
 # Global settings instance
 settings = Settings()

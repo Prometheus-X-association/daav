@@ -6,11 +6,14 @@ import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ToastController } from '@ionic/angular';
 
+// Error detail returned by the API while the user must change their password
+const PASSWORD_CHANGE_REQUIRED_DETAIL = 'Password change required';
+
 /**
  * Error Interceptor
  * Handles HTTP errors globally:
  * - 401: Unauthorized - Try to refresh token or redirect to login
- * - 403: Forbidden - Show access denied message
+ * - 403: Forbidden - Redirect to password change if required, otherwise show access denied message
  * - 500: Server error - Show error message
  */
 @Injectable()
@@ -31,7 +34,13 @@ export class ErrorInterceptor implements HttpInterceptor {
         }
 
         if (error.status === 403) {
-          this.handle403Error();
+          if (error.error?.detail === PASSWORD_CHANGE_REQUIRED_DETAIL) {
+            this.router.navigate(['/change-password'], {
+              queryParams: { returnUrl: this.router.url }
+            });
+          } else {
+            this.handle403Error();
+          }
         }
 
         if (error.status >= 500) {

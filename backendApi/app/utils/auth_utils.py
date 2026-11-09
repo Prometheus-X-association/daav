@@ -1,8 +1,10 @@
+import hmac
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, TypedDict
 from fastapi.datastructures import Headers
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError as JWTError
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 from app.models.interface.auth_interface import TokenData
@@ -121,7 +123,8 @@ def decode_token(token: str) -> TokenData:
         user_id: str = payload.get("sub")
         username: str = payload.get("username")
         role: str = payload.get("role")
-        
+        token_version: int = payload.get("tv", 0)
+
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -129,7 +132,7 @@ def decode_token(token: str) -> TokenData:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        return TokenData(user_id=user_id, username=username, role=role)
+        return TokenData(user_id=user_id, username=username, role=role, token_version=token_version)
     
     except JWTError as e:
         raise HTTPException(
@@ -248,6 +251,10 @@ async def authenticate_m2m_credentials(request_headers: Headers, users: List[Use
         authenticated_users = []
         
         for user in users:
+            # Deactivated accounts must not be usable through their M2M credentials either
+            if not user.is_active:
+                continue
+
             # Check if user has credentials configured
             if not user.config or not user.config.credentials:
                 continue
@@ -264,8 +271,8 @@ async def authenticate_m2m_credentials(request_headers: Headers, users: List[Use
                         header_value = header_val
                         break
                 
-                # If header matches credential value
-                if header_value and header_value == cred_value:
+                # If header matches credential value (constant-time comparison)
+                if header_value and cred_value and hmac.compare_digest(header_value.encode(), cred_value.encode()):
                     user_matched_credentials[cred_key] = cred_value
             
             # If user has at least one matching credential, add to authenticated list

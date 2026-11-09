@@ -36,6 +36,23 @@ describe('DatasetsModalComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('should keep the Elasticsearch defaults when the form is reset (modal opening)', () => {
+    component.formDatabase.controls.authMode.setValue('apiKey');
+    component.formDatabase.controls.verifyCerts.setValue(false);
+    component.formDatabase.reset();
+    expect(component.formDatabase.value.authMode).toBe('basic');
+    expect(component.formDatabase.value.verifyCerts).toBeTrue();
+  });
+
+  it('should clear the credentials of the other Elasticsearch auth modes', () => {
+    component.formDatabase.patchValue({ user: 'u', password: 'p', key: 'k', bearerToken: 't', authMode: 'apiKey' });
+    component.onElasticAuthModeChange();
+    expect(component.formDatabase.value.key).toBe('k');
+    expect(component.formDatabase.value.user).toBe('');
+    expect(component.formDatabase.value.password).toBe('');
+    expect(component.formDatabase.value.bearerToken).toBe('');
+  });
+
   it('should populate form values on dataset change', () => {
     const dataset = {
       name: 'myDataset',

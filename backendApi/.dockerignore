@@ -1,2 +1,20 @@
 .venv
 __pycache__
+
+# Secrets and local configuration (passed at runtime by docker-compose)
+.env
+.env.*
+!.env.example
+*.ini
+secrets
+
+# Local runtime data
+logs
+*.log
+app/uploads
+
+# Tests and caches
+tests
+.pytest_cache
+htmlcov
+.coverage

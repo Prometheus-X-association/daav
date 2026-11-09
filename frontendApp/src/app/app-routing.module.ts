@@ -6,33 +6,53 @@ const routes: Routes = [
   // Authentication routes (public)
   {
     path: 'login',
+    title: 'Login - DAAV',
     loadChildren: () => import('./pages/login/login.module').then(m => m.LoginPageModule)
   },
   {
     path: 'register',
+    title: 'Create account - DAAV',
     loadChildren: () => import('./pages/register/register.module').then(m => m.RegisterPageModule)
   },
   {
     path: 'forgot-password',
+    title: 'Forgot password - DAAV',
     loadChildren: () => import('./pages/forgot-password/forgot-password.module').then(m => m.ForgotPasswordPageModule)
   },
   {
     path: 'reset-password',
+    title: 'Reset password - DAAV',
     loadChildren: () => import('./pages/reset-password/reset-password.module').then(m => m.ResetPasswordPageModule)
   },
   // Protected routes
   {
+    path: 'change-password',
+    title: 'Change password - DAAV',
+    canActivate: [AuthGuard],
+    data: { passwordChangeRoute: true },
+    loadChildren: () => import('./pages/change-password/change-password.module').then(m => m.ChangePasswordPageModule)
+  },
+  {
     path: '',
+    title: 'BB11 - DAAV',
     canActivate: [AuthGuard],
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule)
   },
   {
+    path: 'account',
+    title: 'Account - DAAV',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./pages/account/account.module').then(m => m.AccountPageModule)
+  },
+  {
     path: 'workflow',
+    title: 'Workflow - DAAV',
     canActivate: [AuthGuard],
     loadChildren: () => import('./pages/worflow/workflow.module').then( m => m.WorkflowPageModule)
   },
   {
     path: 'test-composant',
+    title: 'Test - DAAV',
     canActivate: [AuthGuard],
     loadChildren: () => import('./pages/test-composant/test-composant.module').then( m => m.TestComposantPageModule)
   },

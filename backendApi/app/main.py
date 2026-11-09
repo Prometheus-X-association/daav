@@ -23,11 +23,15 @@ from app.models.interface.dataset_interface import (
 )
 from app.models.interface.workflow_interface import IProject
 from app.models.interface.user_interface import User,PasswordResetToken
+from app.models.interface.pdc_chain_interface import ServiceChainData
 
 from app.services.migration_service import MigrationService
+from app.services.reencryption_service import reencrypt_sensitive_fields
+from app.services.elastic_service import ElasticServiceError
+from app.config.secret_keys import log_temporary_secrets
 from app.services.user_service import UserService
 
-from app.routes import datasets, workflows, ptx, output, api, auth
+from app.routes import datasets, elastic, workflows, ptx, output, api, auth
 from app.middleware.security import SecurityMiddleware
 
 @asynccontextmanager
@@ -39,13 +43,15 @@ async def lifespan(app: FastAPI):
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"Debug mode: {settings.debug}")
     logger.info(f"Log level: {settings.log_level}")
+    log_temporary_secrets(settings.temporary_secrets)
     
     try:
         # Initialize database connection with settings
         logger.info("Initializing database connection...")
         await db_config.connect(settings, [
             Dataset,FileDataset, MongoDataset, MysqlDataset,
-            ApiDataset, ElasticDataset, PTXDataset, IProject, User, PasswordResetToken
+            ApiDataset, ElasticDataset, PTXDataset, IProject, User, PasswordResetToken,
+            ServiceChainData
         ])
             # Test Beanie après initialisation
         try:
@@ -53,6 +59,19 @@ async def lifespan(app: FastAPI):
             logger.info(f"Beanie test after init: {count} datasets found")
         except Exception as e:
             logger.error(f"Beanie test failed: {e}")
+
+        # Encrypt plain text credentials and re-encrypt those using a previous key
+        try:
+            counts = await reencrypt_sensitive_fields()
+            if counts["reencrypted"]:
+                logger.info(f"{counts['reencrypted']} sensitive dataset field(s) re-encrypted with the current FIELD_ENCRYPTION_KEY")
+            if counts["failed"]:
+                logger.error(
+                    f"{counts['failed']} sensitive dataset field(s) cannot be decrypted with any known key: "
+                    "re-enter the credentials of these datasets"
+                )
+        except Exception as e:
+            logger.error(f"Re-encryption of sensitive dataset fields failed: {e}", exc_info=True)
         
         # Ensure admin user exists (create default admin if no users exist)
         logger.info("Checking for admin user...")
@@ -154,9 +173,16 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         }),
     )
 
+@app.exception_handler(ElasticServiceError)
+async def elastic_exception_handler(request: Request, exc: ElasticServiceError) -> JSONResponse:
+    """Elasticsearch errors (connection, credentials, invalid query...)"""
+    logger.warning(f"Elasticsearch error on {request.url}: {exc}")
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
+
 # Include ALL routers
 app.include_router(auth.router)
 app.include_router(datasets.router)
+app.include_router(elastic.router)
 app.include_router(workflows.router)
 app.include_router(ptx.router)
 app.include_router(output.router)

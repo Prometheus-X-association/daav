@@ -49,7 +49,6 @@ start_services() {
     echo "🌐 Service access:"
     echo "   - Frontend: http://localhost:8080"
     echo "   - Backend:  http://localhost:8081"
-    echo "   - MongoDB:  localhost:27017"
 }
 
 # Function to start with Mongo Express
@@ -61,7 +60,6 @@ start_with_admin() {
     echo "🌐 Service access:"
     echo "   - Frontend:      http://localhost:8080"
     echo "   - Backend:       http://localhost:8081"
-    echo "   - MongoDB:       localhost:27017"
     echo "   - Mongo Express: http://localhost:8083 (admin/admin123)"
 }
 

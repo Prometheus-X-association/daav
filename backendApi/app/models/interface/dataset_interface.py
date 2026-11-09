@@ -1,7 +1,5 @@
 from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 import re
-import ipaddress
-from urllib.parse import urlparse
 from bson import ObjectId
 from pydantic import BaseModel, Field, model_serializer, model_validator, ConfigDict, field_validator
 from beanie import Document, PydanticObjectId, UnionDoc, before_event, after_event, Insert, Replace, Save
@@ -9,23 +7,13 @@ from datetime import datetime
 from app.enums.type_connection import TypeConnection
 from fastapi_pagination import LimitOffsetPage
 from app.utils.encryption import encrypt_field, decrypt_field
+from app.utils.ssrf import check_url_static
 
 # SQL identifiers: only letters, digits, underscore (max 64 chars - MySQL limit)
 _SQL_IDENTIFIER_RE = re.compile(r'^[A-Za-z0-9_]{1,64}$')
 
 # Elasticsearch index names: letters, digits, underscore, hyphen, dot
 _ES_INDEX_RE = re.compile(r'^[a-z0-9_\-\.]{1,255}$')
-
-# Private / local networks to block to prevent SSRF
-_PRIVATE_NETWORKS = [
-    ipaddress.ip_network('10.0.0.0/8'),
-    ipaddress.ip_network('172.16.0.0/12'),
-    ipaddress.ip_network('192.168.0.0/16'),
-    ipaddress.ip_network('127.0.0.0/8'),
-    ipaddress.ip_network('169.254.0.0/16'),  # link-local / AWS metadata
-    ipaddress.ip_network('::1/128'),
-    ipaddress.ip_network('fc00::/7'),
-]
 
 def _validate_sql_identifier(value: Optional[str], field_name: str) -> Optional[str]:
     if not value:
@@ -38,28 +26,18 @@ def _validate_sql_identifier(value: Optional[str], field_name: str) -> Optional[
     return value
 
 def _validate_no_ssrf(value: Optional[str], field_name: str) -> Optional[str]:
+    return check_url_static(value, field_name)
+
+def _validate_es_index(value: Optional[str], field_name: str = 'index') -> Optional[str]:
     if not value:
         return value
-    try:
-        parsed = urlparse(value)
-    except Exception:
-        raise ValueError(f"'{field_name}' is not a valid URL.")
-    if parsed.scheme not in ('http', 'https'):
-        raise ValueError(f"'{field_name}' must use http or https scheme.")
-    hostname = parsed.hostname or ''
-    if hostname.lower() in ('localhost', '0.0.0.0', ''):
-        raise ValueError(f"'{field_name}' must not point to localhost.")
-    try:
-        ip = ipaddress.ip_address(hostname)
-        for network in _PRIVATE_NETWORKS:
-            if ip in network:
-                raise ValueError(
-                    f"'{field_name}' must not point to a private or internal address."
-                )
-    except ValueError as exc:
-        # Re-raise only SSRF-related errors; hostname strings (non-IP) are fine
-        if 'private' in str(exc) or 'internal' in str(exc) or 'localhost' in str(exc):
-            raise
+    if value in ('*', '_all', '.*'):
+        raise ValueError(f"'{field_name}' must not be a wildcard expression.")
+    if not _ES_INDEX_RE.match(value):
+        raise ValueError(
+            f"'{field_name}' contains invalid characters. "
+            "Only lowercase alphanumeric, underscore, hyphen, and dot are allowed (max 255)."
+        )
     return value
 
 class DatasetMetadata(BaseModel):
@@ -201,6 +179,10 @@ class ElasticDataset(Dataset):
     bearerToken: Optional[str] = None
     password: Optional[str] = None
     index: Optional[str] = None
+    # Authentication used to connect; when unset, the first credentials found are used
+    # (API key, then user/password, then bearer token)
+    authMode: Optional[Literal['none', 'basic', 'apiKey', 'bearer']] = None
+    verifyCerts: Optional[bool] = True
 
     _sensitive_fields: ClassVar[List[str]] = ['password', 'key', 'bearerToken']
 
@@ -209,19 +191,15 @@ class ElasticDataset(Dataset):
     def validate_url(cls, v):
         return _validate_no_ssrf(v, 'url')
 
+    @field_validator('authMode', mode='before')
+    @classmethod
+    def empty_auth_mode(cls, v):
+        return v or None
+
     @field_validator('index', mode='before')
     @classmethod
     def validate_index(cls, v):
-        if not v:
-            return v
-        if v in ('*', '_all', '.*'):
-            raise ValueError("'index' must not be a wildcard expression.")
-        if not _ES_INDEX_RE.match(v):
-            raise ValueError(
-                "'index' contains invalid characters. "
-                "Only lowercase alphanumeric, underscore, hyphen, and dot are allowed (max 255)."
-            )
-        return v
+        return _validate_es_index(v)
 
 class PTXDataset(Dataset):
     type: Literal['ptx']
@@ -292,6 +270,8 @@ class Pagination(BaseModel):
 class DatasetParams(BaseModel):
     database: Optional[str] = None
     table: Optional[str] = None
+    # Elasticsearch index (index names allow '-' and '.', unlike SQL identifiers)
+    index: Optional[str] = None
 
     @field_validator('database', mode='before')
     @classmethod
@@ -302,6 +282,11 @@ class DatasetParams(BaseModel):
     @classmethod
     def validate_table(cls, v):
         return _validate_sql_identifier(v, 'table')
+
+    @field_validator('index', mode='before')
+    @classmethod
+    def validate_index(cls, v):
+        return _validate_es_index(v)
 
 class ConnectionInfo(BaseModel):
     dataset: DatasetUnion

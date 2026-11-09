@@ -4,6 +4,10 @@ import asyncio
 import os
 from typing import get_origin, ClassVar
 from unittest.mock import Mock
+
+# Fixed test secrets (set before the app is imported), so that no temporary key is generated
+os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-with-at-least-32-characters"
+os.environ["FIELD_ENCRYPTION_KEY"] = "2frZC2o4MLN2F1sSxJk7Y0Kj0I7j9N2G5Q7e4Wj7iNw="
 import mongomock
 import beanie.odm.utils.parsing as _beanie_parsing
 from mongomock_motor import AsyncMongoMockClient
@@ -37,6 +41,7 @@ from app.models.interface.dataset_interface import (
 )
 from app.models.interface.workflow_interface import IProject
 from app.models.interface.user_interface import User, PasswordResetToken
+from app.models.interface.pdc_chain_interface import ServiceChainData
 from app.enums.user_role import UserRole
 
 _test_database = None
@@ -71,7 +76,8 @@ async def setup_test_db():
                 PTXDataset,
                 ApiDataset,
                 ElasticDataset,
-                IProject
+                IProject,
+                ServiceChainData
             ]
         )
     
@@ -82,7 +88,7 @@ async def clean_collections():
     """Clean all collections before each test."""
     if _test_database is not None:
         # Clean collections
-        for model in [User, PasswordResetToken, Dataset, FileDataset, MongoDataset, MysqlDataset, PTXDataset, ApiDataset, ElasticDataset, IProject]:
+        for model in [User, PasswordResetToken, Dataset, FileDataset, MongoDataset, MysqlDataset, PTXDataset, ApiDataset, ElasticDataset, IProject, ServiceChainData]:
             try:
                 await model.delete_all()
             except Exception:
@@ -111,6 +117,8 @@ def mock_user():
     user.full_name = "Test User"
     user.role = UserRole.USER
     user.is_active = True
+    user.must_change_password = False
+    user.token_version = 0
     user.owned_datasets = []
     user.owned_workflows = []
     user.shared_datasets = []

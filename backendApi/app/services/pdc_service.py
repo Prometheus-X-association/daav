@@ -1,9 +1,11 @@
 import httpx
 import requests
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import HTTPException
+from pydantic import BaseModel
 from app.config.settings import settings
 
+from app.models.interface.pdc_chain_interface import ServiceChainData
 from app.models.interface.pdc_interface import (
     PdcContract, 
     PdcEcosystem, 
@@ -24,7 +26,6 @@ class PdcService(metaclass=SingletonMeta):
             "Accept": "application/json",
             "User-Agent": "PDC-Service/1.0"
         }
-        self._servicechain_storage: Dict[str, Dict[str, Any]] = {}
     
     def _make_request(self, url: str, headers: Optional[dict] = None, timeout: Optional[int] = None) -> dict:
         """Make a GET request to PDC API with error handling"""
@@ -124,26 +125,36 @@ class PdcService(metaclass=SingletonMeta):
             }
         return None
 
-    def store_servicechain_data(self, service_chain_id: str, data: Dict[str, Any]) -> bool:
-        """save service chain data"""
-        self._servicechain_storage[service_chain_id] = {
-            "service_chain_id": service_chain_id,
-            "data": data,
-        }
+    async def store_servicechain_data(self, service_chain_id: str, data: Any, user_ids: List[str]) -> bool:
+        """save service chain data for each user (in MongoDB, so every worker can read it)"""
+        if isinstance(data, BaseModel):
+            data = data.model_dump(mode="json")
+        for user_id in user_ids:
+            await ServiceChainData(
+                id=ServiceChainData.document_id(service_chain_id, user_id),
+                service_chain_id=service_chain_id,
+                user_id=user_id,
+                data=data,
+            ).save()
         return True
-    
-    def get_servicechain_data(self, service_chain_id: str):
-        """get service chain data"""
-        if service_chain_id in self._servicechain_storage:
-            return self._servicechain_storage.get(service_chain_id)
-    
-    def delete_servicechain_data(self, service_chain_id: str) -> bool:
-        """delete service chain data by its ID"""
-        if service_chain_id in self._servicechain_storage:
-            del self._servicechain_storage[service_chain_id]
-            return True
-        return False
-    
+
+    async def get_servicechain_data(self, service_chain_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """get service chain data stored for the user"""
+        document = await ServiceChainData.get(ServiceChainData.document_id(service_chain_id, user_id))
+        if document is None:
+            return None
+        return {
+            "service_chain_id": document.service_chain_id,
+            "data": document.data,
+        }
+
+    async def delete_servicechain_data(self, service_chain_id: str, user_id: str) -> bool:
+        """delete service chain data stored for the user"""
+        document = await ServiceChainData.get(ServiceChainData.document_id(service_chain_id, user_id))
+        if document is None:
+            return False
+        await document.delete()
+        return True
 
     async def fetch_service_offering_async(self, client: httpx.AsyncClient, url: str, timeout: Optional[int] = None):
         """Fetch service offering asynchronously"""

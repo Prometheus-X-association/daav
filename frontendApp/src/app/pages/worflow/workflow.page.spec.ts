@@ -8,11 +8,13 @@ import { of } from 'rxjs';
 import { WorkflowPage } from './workflow.page';
 import { WorkflowService } from '../../services/worflow.service';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { MatDialog } from '@angular/material/dialog';
 
 describe('WorkflowPage', () => {
   let component: WorkflowPage;
   let fixture: ComponentFixture<WorkflowPage>;
   let workflowServiceSpy: any;
+  let dialogSpy: jasmine.SpyObj<MatDialog>;
 
   beforeEach(async () => {
     const activatedRouteSpy = {
@@ -29,6 +31,7 @@ describe('WorkflowPage', () => {
     workflowServiceSpy.updateWorkflow.and.returnValue(of({}));
     workflowServiceSpy.createWorkflow.and.returnValue(of({ id: 'new-id' }));
     workflowServiceSpy.getWorkflows.and.returnValue(of([]));
+    dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
     await TestBed.configureTestingModule({
       declarations: [WorkflowPage],
@@ -36,6 +39,7 @@ describe('WorkflowPage', () => {
       providers: [
         { provide: ActivatedRoute, useValue: activatedRouteSpy },
         { provide: WorkflowService, useValue: workflowServiceSpy },
+        { provide: MatDialog, useValue: dialogSpy },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
       ]
@@ -47,6 +51,8 @@ describe('WorkflowPage', () => {
       importProject: jasmine.createSpy('importProject'),
       resetWorkflow: jasmine.createSpy('resetWorkflow'),
       exportProject: jasmine.createSpy('exportProject').and.returnValue({ id: undefined }),
+      markAsSaved: jasmine.createSpy('markAsSaved'),
+      hasUnsavedChanges: jasmine.createSpy('hasUnsavedChanges').and.returnValue(false),
       name: ''
     } as any;
     fixture.detectChanges();
@@ -107,6 +113,7 @@ describe('WorkflowPage', () => {
 
     expect(workflowServiceSpy.createWorkflow).toHaveBeenCalled();
     expect(component.workflow.id).toBe('new-id');
+    expect(component.workflow.markAsSaved).toHaveBeenCalledWith({ id: 'new-id' } as any);
   });
 
   it('should update project when saveProject has an id', () => {
@@ -115,5 +122,36 @@ describe('WorkflowPage', () => {
     component.saveProject();
 
     expect(workflowServiceSpy.updateWorkflow).toHaveBeenCalled();
+    expect(component.workflow.markAsSaved).toHaveBeenCalledWith({ id: 'exists' } as any);
+  });
+
+  it('should close without confirmation when there are no unsaved changes', () => {
+    spyOn(component.closed, 'emit');
+
+    component.closeProject();
+
+    expect(dialogSpy.open).not.toHaveBeenCalled();
+    expect(component.closed.emit).toHaveBeenCalled();
+  });
+
+  it('should close after confirmation when there are unsaved changes', () => {
+    (component.workflow.hasUnsavedChanges as jasmine.Spy).and.returnValue(true);
+    dialogSpy.open.and.returnValue({ afterClosed: () => of(true) } as any);
+    spyOn(component.closed, 'emit');
+
+    component.closeProject();
+
+    expect(dialogSpy.open).toHaveBeenCalled();
+    expect(component.closed.emit).toHaveBeenCalled();
+  });
+
+  it('should stay open when closing with unsaved changes is cancelled', () => {
+    (component.workflow.hasUnsavedChanges as jasmine.Spy).and.returnValue(true);
+    dialogSpy.open.and.returnValue({ afterClosed: () => of(false) } as any);
+    spyOn(component.closed, 'emit');
+
+    component.closeProject();
+
+    expect(component.closed.emit).not.toHaveBeenCalled();
   });
 });

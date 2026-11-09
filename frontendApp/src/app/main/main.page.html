@@ -1,31 +1,13 @@
 <ion-content [fullscreen]="true">
-  <ion-split-pane when="xs" contentId="main">
+  <ion-split-pane when="xs" contentId="main" [class.side-collapsed]="isSidePanelCollapsed">
     <ion-menu contentId="main">
 
       <ion-header>
-        <ion-toolbar>
-          <ion-title id="menu-title">DAAV</ion-title>
-          <ion-buttons slot="end">
-              <ion-button (click)="openUserProfile()">
-                <ion-icon name="person-circle" slot="icon-only"></ion-icon>
-              </ion-button>
-              <ion-button aria-label="menu de thèmes" (click)="toggleMenu()"><ion-icon [name]="menuIcon"></ion-icon></ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-        <div id="theme-menu" [class.is-open]="isMenuOpen">
-          <span>Thèmes</span>
-          <div id="theme-btns">
-            @for (theme of themes; track theme.class) {
-              <ion-button (click)="applyTheme(theme.class)">{{theme.name}}</ion-button>
-            }
-          </div>
-          <span>Polices</span>
-          <div id="font-btns">
-          @for (font of fonts; track font) {
-            <ion-button (click)="applyFont(font)">{{font.charAt(0).toUpperCase() + font.slice(1)}}</ion-button>
-          }
-          </div>
-        </div>
+        <app-toolbar>
+          <ion-button aria-label="Account" i18n-aria-label title="Account" i18n-title routerLink="/account">
+            <ion-icon name="person-circle" slot="icon-only" aria-hidden="true"></ion-icon>
+          </ion-button>
+        </app-toolbar>
       </ion-header>
 
       <ion-content>
@@ -35,6 +17,11 @@
           }
           @else if(matTabIndex === 2){
             <ion-label>Workflows</ion-label>
+            @if (isWorkflowOpen) {
+              <ion-button id="collapse-side-panel" slot="end" fill="clear" aria-label="Collapse panel" i18n-aria-label (click)="toggleSidePanel()">
+                <ion-icon name="chevron-back-outline" slot="icon-only" aria-hidden="true"></ion-icon>
+              </ion-button>
+            }
           }
         </ion-item>
 
@@ -64,6 +51,13 @@
         }
       </ion-content>
 
+      @if (isSidePanelCollapsed) {
+        <div id="side-panel-rail">
+          <ion-button fill="clear" aria-label="Expand panel" i18n-aria-label (click)="toggleSidePanel()">
+            <ion-icon name="chevron-forward-outline" slot="icon-only" aria-hidden="true"></ion-icon>
+          </ion-button>
+        </div>
+      }
     </ion-menu>
 
     <div class="ion-page" id="main">
@@ -88,7 +82,7 @@
                 <app-transformation (transformationView)="changeTransformationView($event)" (createWorkflow)="createWorkflow()" (loadWorkflow)="loadWorkflow($event)"></app-transformation>
               }
               @else if (transformationView === 'rete') {
-                <app-workflow [projectId]="loadProjectId"/>
+                <app-workflow [projectId]="loadProjectId" (closed)="closeWorkflow()"/>
               }
             </ng-template>
           </mat-tab>

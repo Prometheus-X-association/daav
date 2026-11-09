@@ -18,7 +18,8 @@ from app.models.interface.auth_interface import (
 from app.services.auth_service import AuthService
 from app.services.user_service import UserService
 from app.middleware.auth import (
-    get_current_active_user, require_admin, CurrentUser, AdminUser, security
+    get_current_active_user, require_admin, CurrentUser, CurrentUserPendingPasswordChange, AdminUser, security,
+    PASSWORD_CHANGE_REQUIRED_DETAIL
 )
 from app.config.settings import settings
 
@@ -58,6 +59,12 @@ async def conditional_admin_check(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
+        )
+    
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=PASSWORD_CHANGE_REQUIRED_DETAIL
         )
     
     if current_user.role.value != "admin":
@@ -211,11 +218,12 @@ async def reset_password(request: ResetPasswordRequest):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: CurrentUser):
+async def get_current_user_info(current_user: CurrentUserPendingPasswordChange):
     """
     Get current authenticated user information
     
-    Requires valid access token
+    Requires valid access token. Accessible while a password change is pending
+    (see `must_change_password`).
     """
     return UserResponse.model_validate(current_user)
 
@@ -230,8 +238,15 @@ async def update_current_user(
     
     - **email**: New email address (optional)
     - **full_name**: New full name (optional)
-    - **password**: New password (optional, must meet complexity requirements)
+
+    The password cannot be changed here: use `POST /auth/change-password`, which
+    requires the current password (a stolen token alone must not allow taking over the account).
     """
+    if "password" in user_update.model_fields_set:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use POST /auth/change-password to change your password"
+        )
     try:
         updated_user = await user_service.update_user(
             current_user.id,
@@ -252,11 +267,16 @@ async def update_current_user(
 @router.post("/change-password")
 async def change_password(
     password_data: ChangePasswordRequest,
-    current_user: CurrentUser
+    current_user: CurrentUserPendingPasswordChange
 ):
     """
     Change current user password
     
+    Accessible while a password change is pending, and clears it on success.
+
+    The tokens issued before the change are revoked (other sessions are logged out):
+    new tokens are returned for the current session.
+
     - **current_password**: Current password for verification
     - **new_password**: New password (must meet complexity requirements)
     """
@@ -266,7 +286,11 @@ async def change_password(
             password_data.current_password,
             password_data.new_password
         )
-        return {"message": "Password changed successfully"}
+        user = await user_service.get_user_by_id(current_user.id)
+        return {
+            "message": "Password changed successfully",
+            **auth_service.create_tokens(user).model_dump()
+        }
     except HTTPException:
         raise
     except ValueError as e:

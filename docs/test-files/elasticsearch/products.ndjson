@@ -1,0 +1,100 @@
+{"index": {"_index": "products", "_id": "1"}}
+{"sku": "SKU-0001", "name": "Produit 1", "category": "electronics", "price": 14.46, "stock": 70, "in_stock": true, "rating": 1.6, "tags": [], "created_at": "2026-07-13", "supplier": {"name": "Fournisseur 2", "country": "CA"}}
+{"index": {"_index": "products", "_id": "2"}}
+{"sku": "SKU-0002", "name": "Produit 2", "category": "toys", "price": 17.83, "stock": 23, "in_stock": true, "rating": 3.0, "tags": [], "created_at": "2026-07-29", "supplier": {"name": "Fournisseur 4", "country": "CA"}}
+{"index": {"_index": "products", "_id": "3"}}
+{"sku": "SKU-0003", "name": "Produit 3", "category": "toys", "price": 111.78, "stock": 150, "in_stock": true, "rating": 4.5, "tags": ["bestseller"], "created_at": "2025-12-15", "supplier": {"name": "Fournisseur 5", "country": "FR"}}
+{"index": {"_index": "products", "_id": "4"}}
+{"sku": "SKU-0004", "name": "Produit 4", "category": "books", "price": 478.69, "stock": 86, "in_stock": false, "rating": 2.5, "tags": ["eco", "limited"], "created_at": "2025-02-14", "supplier": {"name": "Fournisseur 8", "country": "CA"}}
+{"index": {"_index": "products", "_id": "5"}}
+{"sku": "SKU-0005", "name": "Produit 5", "category": "electronics", "price": 486.61, "stock": 96, "in_stock": false, "rating": 2.2, "tags": ["limited", "new"], "created_at": "2025-03-13", "supplier": {"name": "Fournisseur 1", "country": "FR"}}
+{"index": {"_index": "products", "_id": "6"}}
+{"sku": "SKU-0006", "name": "Produit 6", "category": "garden", "price": 492.64, "stock": 59, "in_stock": true, "rating": 2.5, "tags": ["eco", "new", "bestseller"], "created_at": "2025-12-30", "supplier": {"name": "Fournisseur 4", "country": "BE"}}
+{"index": {"_index": "products", "_id": "7"}}
+{"sku": "SKU-0007", "name": "Produit 7", "category": "electronics", "price": 305.35, "stock": 43, "in_stock": true, "rating": 2.0, "tags": ["bestseller", "eco", "limited"], "created_at": "2026-07-25", "supplier": {"name": "Fournisseur 4", "country": "BE"}}
+{"index": {"_index": "products", "_id": "8"}}
+{"sku": "SKU-0008", "name": "Produit 8", "category": "electronics", "price": 116.07, "stock": 8, "in_stock": true, "rating": 2.6, "tags": [], "created_at": "2025-08-05", "supplier": {"name": "Fournisseur 6", "country": "FR"}}
+{"index": {"_index": "products", "_id": "9"}}
+{"sku": "SKU-0009", "name": "Produit 9", "category": "toys", "price": 199.02, "stock": 164, "in_stock": true, "rating": 2.1, "tags": ["limited"], "created_at": "2026-07-06", "supplier": {"name": "Fournisseur 5", "country": "CA"}}
+{"index": {"_index": "products", "_id": "10"}}
+{"sku": "SKU-0010", "name": "Produit 10", "category": "toys", "price": 449.12, "stock": 102, "in_stock": true, "rating": 5.0, "tags": ["limited"], "created_at": "2026-05-21", "supplier": {"name": "Fournisseur 2", "country": "FR"}}
+{"index": {"_index": "products", "_id": "11"}}
+{"sku": "SKU-0011", "name": "Produit 11", "category": "electronics", "price": 78.11, "stock": 40, "in_stock": true, "rating": 2.7, "tags": [], "created_at": "2026-01-30", "supplier": {"name": "Fournisseur 7", "country": "CA"}}
+{"index": {"_index": "products", "_id": "12"}}
+{"sku": "SKU-0012", "name": "Produit 12", "category": "toys", "price": 265.5, "stock": 141, "in_stock": true, "rating": 1.0, "tags": [], "created_at": "2026-07-04", "supplier": {"name": "Fournisseur 5", "country": "BE"}}
+{"index": {"_index": "products", "_id": "13"}}
+{"sku": "SKU-0013", "name": "Produit 13", "category": "electronics", "price": 148.16, "stock": 40, "in_stock": true, "rating": 4.8, "tags": ["limited", "new"], "created_at": "2026-06-04", "supplier": {"name": "Fournisseur 2", "country": "BE"}}
+{"index": {"_index": "products", "_id": "14"}}
+{"sku": "SKU-0014", "name": "Produit 14", "category": "kitchen", "price": 305.27, "stock": 39, "in_stock": true, "rating": 1.6, "tags": [], "created_at": "2025-11-28", "supplier": {"name": "Fournisseur 8", "country": "FR"}}
+{"index": {"_index": "products", "_id": "15"}}
+{"sku": "SKU-0015", "name": "Produit 15", "category": "electronics", "price": 464.69, "stock": 78, "in_stock": true, "rating": 2.0, "tags": [], "created_at": "2025-03-29", "supplier": {"name": "Fournisseur 8", "country": "FR"}}
+{"index": {"_index": "products", "_id": "16"}}
+{"sku": "SKU-0016", "name": "Produit 16", "category": "kitchen", "price": 383.39, "stock": 32, "in_stock": true, "rating": 4.8, "tags": ["eco"], "created_at": "2026-06-25", "supplier": {"name": "Fournisseur 7", "country": "FR"}}
+{"index": {"_index": "products", "_id": "17"}}
+{"sku": "SKU-0017", "name": "Produit 17", "category": "kitchen", "price": 378.12, "stock": 176, "in_stock": true, "rating": 2.2, "tags": ["bestseller", "limited"], "created_at": "2025-05-04", "supplier": {"name": "Fournisseur 4", "country": "FR"}}
+{"index": {"_index": "products", "_id": "18"}}
+{"sku": "SKU-0018", "name": "Produit 18", "category": "electronics", "price": 170.37, "stock": 150, "in_stock": true, "rating": 3.4, "tags": [], "created_at": "2025-03-14", "supplier": {"name": "Fournisseur 1", "country": "FR"}}
+{"index": {"_index": "products", "_id": "19"}}
+{"sku": "SKU-0019", "name": "Produit 19", "category": "electronics", "price": 452.9, "stock": 84, "in_stock": false, "rating": 2.0, "tags": ["new", "limited", "eco"], "created_at": "2026-08-08", "supplier": {"name": "Fournisseur 8", "country": "FR"}}
+{"index": {"_index": "products", "_id": "20"}}
+{"sku": "SKU-0020", "name": "Produit 20", "category": "toys", "price": 404.13, "stock": 48, "in_stock": false, "rating": 3.6, "tags": ["bestseller", "limited"], "created_at": "2026-04-24", "supplier": {"name": "Fournisseur 1", "country": "FR"}}
+{"index": {"_index": "products", "_id": "21"}}
+{"sku": "SKU-0021", "name": "Produit 21", "category": "electronics", "price": 202.51, "stock": 86, "in_stock": true, "rating": 1.4, "tags": ["new"], "created_at": "2026-07-04", "supplier": {"name": "Fournisseur 8", "country": "FR"}}
+{"index": {"_index": "products", "_id": "22"}}
+{"sku": "SKU-0022", "name": "Produit 22", "category": "toys", "price": 93.38, "stock": 118, "in_stock": true, "rating": 4.7, "tags": ["limited", "promo", "bestseller"], "created_at": "2026-07-08", "supplier": {"name": "Fournisseur 1", "country": "FR"}}
+{"index": {"_index": "products", "_id": "23"}}
+{"sku": "SKU-0023", "name": "Produit 23", "category": "books", "price": 84.82, "stock": 124, "in_stock": true, "rating": 4.5, "tags": [], "created_at": "2025-06-18", "supplier": {"name": "Fournisseur 7", "country": "FR"}}
+{"index": {"_index": "products", "_id": "24"}}
+{"sku": "SKU-0024", "name": "Produit 24", "category": "toys", "price": 134.07, "stock": 200, "in_stock": true, "rating": 2.1, "tags": ["new", "limited", "bestseller"], "created_at": "2025-08-11", "supplier": {"name": "Fournisseur 1", "country": "CA"}}
+{"index": {"_index": "products", "_id": "25"}}
+{"sku": "SKU-0025", "name": "Produit 25", "category": "kitchen", "price": 32.36, "stock": 80, "in_stock": false, "rating": 3.3, "tags": ["promo"], "created_at": "2026-06-05", "supplier": {"name": "Fournisseur 2", "country": "FR"}}
+{"index": {"_index": "products", "_id": "26"}}
+{"sku": "SKU-0026", "name": "Produit 26", "category": "electronics", "price": 298.33, "stock": 172, "in_stock": true, "rating": 2.6, "tags": ["limited"], "created_at": "2025-02-10", "supplier": {"name": "Fournisseur 2", "country": "CH"}}
+{"index": {"_index": "products", "_id": "27"}}
+{"sku": "SKU-0027", "name": "Produit 27", "category": "kitchen", "price": 283.48, "stock": 80, "in_stock": true, "rating": 1.8, "tags": ["new", "eco"], "created_at": "2026-02-10", "supplier": {"name": "Fournisseur 3", "country": "BE"}}
+{"index": {"_index": "products", "_id": "28"}}
+{"sku": "SKU-0028", "name": "Produit 28", "category": "toys", "price": 159.46, "stock": 192, "in_stock": true, "rating": 1.0, "tags": [], "created_at": "2025-03-17", "supplier": {"name": "Fournisseur 4", "country": "CA"}}
+{"index": {"_index": "products", "_id": "29"}}
+{"sku": "SKU-0029", "name": "Produit 29", "category": "garden", "price": 67.96, "stock": 89, "in_stock": true, "rating": 4.5, "tags": ["eco", "new"], "created_at": "2026-03-25", "supplier": {"name": "Fournisseur 5", "country": "CA"}}
+{"index": {"_index": "products", "_id": "30"}}
+{"sku": "SKU-0030", "name": "Produit 30", "category": "kitchen", "price": 5.9, "stock": 141, "in_stock": true, "rating": 3.7, "tags": ["eco"], "created_at": "2025-04-29", "supplier": {"name": "Fournisseur 2", "country": "CA"}}
+{"index": {"_index": "products", "_id": "31"}}
+{"sku": "SKU-0031", "name": "Produit 31", "category": "books", "price": 137.63, "stock": 154, "in_stock": true, "rating": 2.4, "tags": ["limited", "bestseller"], "created_at": "2025-09-15", "supplier": {"name": "Fournisseur 1", "country": "FR"}}
+{"index": {"_index": "products", "_id": "32"}}
+{"sku": "SKU-0032", "name": "Produit 32", "category": "toys", "price": 415.02, "stock": 11, "in_stock": false, "rating": 4.1, "tags": ["new", "bestseller"], "created_at": "2026-07-19", "supplier": {"name": "Fournisseur 7", "country": "CA"}}
+{"index": {"_index": "products", "_id": "33"}}
+{"sku": "SKU-0033", "name": "Produit 33", "category": "electronics", "price": 57.71, "stock": 176, "in_stock": true, "rating": 3.2, "tags": ["limited", "new"], "created_at": "2026-03-17", "supplier": {"name": "Fournisseur 3", "country": "FR"}}
+{"index": {"_index": "products", "_id": "34"}}
+{"sku": "SKU-0034", "name": "Produit 34", "category": "garden", "price": 183.6, "stock": 10, "in_stock": true, "rating": 1.8, "tags": ["promo"], "created_at": "2025-12-29", "supplier": {"name": "Fournisseur 7", "country": "CA"}}
+{"index": {"_index": "products", "_id": "35"}}
+{"sku": "SKU-0035", "name": "Produit 35", "category": "books", "price": 463.03, "stock": 60, "in_stock": true, "rating": 4.9, "tags": ["bestseller"], "created_at": "2025-01-26", "supplier": {"name": "Fournisseur 3", "country": "BE"}}
+{"index": {"_index": "products", "_id": "36"}}
+{"sku": "SKU-0036", "name": "Produit 36", "category": "toys", "price": 401.51, "stock": 188, "in_stock": true, "rating": 2.1, "tags": [], "created_at": "2026-01-27", "supplier": {"name": "Fournisseur 1", "country": "CH"}}
+{"index": {"_index": "products", "_id": "37"}}
+{"sku": "SKU-0037", "name": "Produit 37", "category": "books", "price": 101.39, "stock": 117, "in_stock": true, "rating": 4.3, "tags": ["new"], "created_at": "2025-01-25", "supplier": {"name": "Fournisseur 4", "country": "CH"}}
+{"index": {"_index": "products", "_id": "38"}}
+{"sku": "SKU-0038", "name": "Produit 38", "category": "garden", "price": 140.74, "stock": 17, "in_stock": true, "rating": 2.1, "tags": ["limited", "eco", "promo"], "created_at": "2025-04-29", "supplier": {"name": "Fournisseur 5", "country": "FR"}}
+{"index": {"_index": "products", "_id": "39"}}
+{"sku": "SKU-0039", "name": "Produit 39", "category": "kitchen", "price": 481.34, "stock": 67, "in_stock": false, "rating": 3.4, "tags": ["eco", "bestseller"], "created_at": "2026-06-08", "supplier": {"name": "Fournisseur 2", "country": "CH"}}
+{"index": {"_index": "products", "_id": "40"}}
+{"sku": "SKU-0040", "name": "Produit 40", "category": "kitchen", "price": 96.66, "stock": 11, "in_stock": true, "rating": 1.0, "tags": ["eco"], "created_at": "2026-03-18", "supplier": {"name": "Fournisseur 2", "country": "BE"}}
+{"index": {"_index": "products", "_id": "41"}}
+{"sku": "SKU-0041", "name": "Produit 41", "category": "kitchen", "price": 158.33, "stock": 31, "in_stock": true, "rating": 2.2, "tags": ["bestseller", "eco"], "created_at": "2026-02-17", "supplier": {"name": "Fournisseur 5", "country": "CA"}}
+{"index": {"_index": "products", "_id": "42"}}
+{"sku": "SKU-0042", "name": "Produit 42", "category": "books", "price": 97.54, "stock": 170, "in_stock": true, "rating": 3.7, "tags": ["limited"], "created_at": "2026-08-06", "supplier": {"name": "Fournisseur 5", "country": "CH"}}
+{"index": {"_index": "products", "_id": "43"}}
+{"sku": "SKU-0043", "name": "Produit 43", "category": "kitchen", "price": 417.2, "stock": 77, "in_stock": true, "rating": 2.7, "tags": ["bestseller", "limited"], "created_at": "2026-03-29", "supplier": {"name": "Fournisseur 4", "country": "CA"}}
+{"index": {"_index": "products", "_id": "44"}}
+{"sku": "SKU-0044", "name": "Produit 44", "category": "toys", "price": 397.28, "stock": 188, "in_stock": false, "rating": 1.3, "tags": ["promo", "new"], "created_at": "2025-11-14", "supplier": {"name": "Fournisseur 4", "country": "FR"}}
+{"index": {"_index": "products", "_id": "45"}}
+{"sku": "SKU-0045", "name": "Produit 45", "category": "books", "price": 14.16, "stock": 62, "in_stock": true, "rating": 3.4, "tags": [], "created_at": "2026-04-12", "supplier": {"name": "Fournisseur 7", "country": "CA"}}
+{"index": {"_index": "products", "_id": "46"}}
+{"sku": "SKU-0046", "name": "Produit 46", "category": "books", "price": 359.74, "stock": 98, "in_stock": true, "rating": 2.0, "tags": [], "created_at": "2025-04-20", "supplier": {"name": "Fournisseur 7", "country": "FR"}}
+{"index": {"_index": "products", "_id": "47"}}
+{"sku": "SKU-0047", "name": "Produit 47", "category": "books", "price": 402.45, "stock": 178, "in_stock": true, "rating": 1.2, "tags": ["promo"], "created_at": "2026-04-13", "supplier": {"name": "Fournisseur 3", "country": "CH"}}
+{"index": {"_index": "products", "_id": "48"}}
+{"sku": "SKU-0048", "name": "Produit 48", "category": "kitchen", "price": 493.97, "stock": 152, "in_stock": true, "rating": 4.0, "tags": ["limited", "bestseller", "eco"], "created_at": "2026-04-02", "supplier": {"name": "Fournisseur 3", "country": "CH"}}
+{"index": {"_index": "products", "_id": "49"}}
+{"sku": "SKU-0049", "name": "Produit 49", "category": "toys", "price": 131.08, "stock": 63, "in_stock": true, "rating": 2.1, "tags": ["new", "eco", "limited"], "created_at": "2025-03-21", "supplier": {"name": "Fournisseur 5", "country": "FR"}}
+{"index": {"_index": "products", "_id": "50"}}
+{"sku": "SKU-0050", "name": "Produit 50", "category": "garden", "price": 169.25, "stock": 138, "in_stock": false, "rating": 1.6, "tags": ["new", "limited", "promo"], "created_at": "2026-03-01", "supplier": {"name": "Fournisseur 7", "country": "BE"}}

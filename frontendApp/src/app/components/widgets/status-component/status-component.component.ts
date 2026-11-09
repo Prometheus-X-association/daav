@@ -32,6 +32,12 @@ export class StatusComponentComponent {
     this.cdr = cdr;
   }
 
+  /** Text alternative for the status color */
+  statusLabel(): string {
+    const label = `Status: ${StatusNode[this.data.status]}`;
+    return this.data.statusMessage ? `${label}. ${this.data.statusMessage}` : label;
+  }
+
   setOpen(isOpen: boolean) {
     this.isModalOpen = isOpen;
   }

@@ -226,6 +226,43 @@ describe('WorkflowEditor', () => {
       expect(workflowEditor.project?.id).toBe('test-id');
     });
 
+    it('should detect unsaved changes against the saved state', () => {
+      const workflowEditor = createWorkflowEditor();
+      workflowEditor.name = 'Test Project';
+      workflowEditor.markAsSaved();
+
+      expect(workflowEditor.hasUnsavedChanges()).toBe(false);
+
+      workflowEditor.name = 'Renamed Project';
+
+      expect(workflowEditor.hasUnsavedChanges()).toBe(true);
+
+      workflowEditor.markAsSaved();
+
+      expect(workflowEditor.hasUnsavedChanges()).toBe(false);
+    });
+
+    it('should ignore execution status and results when detecting unsaved changes', () => {
+      const workflowEditor = createWorkflowEditor();
+      const exportWithNode = (data: any) => ({
+        id: 'test-id',
+        name: 'Test Project',
+        revision: null,
+        schema: { nodes: [{ id: 'node-1', type: 'NodeBlock', data }], connections: [], revision: null },
+        dataConnectors: []
+      } as any);
+      const exportSpy = spyOn(workflowEditor, 'exportProject');
+
+      exportSpy.and.returnValue(exportWithNode({ status: 'new', dataOutput: {}, query: 'a' }));
+      workflowEditor.markAsSaved();
+
+      exportSpy.and.returnValue(exportWithNode({ status: 'complete', statusMessage: 'ok', dataOutput: { out: {} }, query: 'a' }));
+      expect(workflowEditor.hasUnsavedChanges()).toBe(false);
+
+      exportSpy.and.returnValue(exportWithNode({ status: 'complete', dataOutput: {}, query: 'b' }));
+      expect(workflowEditor.hasUnsavedChanges()).toBe(true);
+    });
+
     it('should call WorkflowService.executeNodeJson without nodeId', () => {
       const workflowEditor = createWorkflowEditor();
 

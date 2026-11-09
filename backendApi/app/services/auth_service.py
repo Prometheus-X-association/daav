@@ -15,7 +15,7 @@ from app.utils.auth_utils import (
     verify_token_type,
     ensure_utc_aware
 )
-from app.services.user_service import UserService
+from app.services.user_service import UserService, DEFAULT_ADMIN_PASSWORD
 from app.services.email_service import EmailService
 from app.config.settings import settings
 from app.utils.singleton import SingletonMeta
@@ -91,27 +91,20 @@ class AuthService(metaclass=SingletonMeta):
                     detail="Incorrect username or password",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            
+
+            # Accounts still using the default admin password (e.g. created before this flag
+            # existed) must change it before accessing the application
+            if not user.must_change_password and password == DEFAULT_ADMIN_PASSWORD:
+                user.must_change_password = True
+                await user.save()
+                logger.warning(f"User {user.username} logged in with the default password, password change required")
+
             # Update last login
             await self.user_service.update_last_login(user.id)
-            
-            # Create tokens
-            token_data = {
-                "sub": user.id,
-                "username": user.username,
-                "role": user.role.value
-            }
-            
-            access_token = create_access_token(token_data)
-            refresh_token = create_refresh_token(token_data)
-            
+
             logger.info(f"Login successful: {user.username}")
-            
-            return Token(
-                access_token=access_token,
-                refresh_token=refresh_token,
-                token_type="bearer"
-            )
+
+            return self.create_tokens(user)
         
         except HTTPException:
             raise
@@ -121,7 +114,45 @@ class AuthService(metaclass=SingletonMeta):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Login failed"
             )
-    
+
+    def create_tokens(self, user: User) -> Token:
+        """
+        Create access and refresh tokens for a user
+
+        Args:
+            user: Authenticated user
+
+        Returns:
+            Token: Access and refresh tokens
+        """
+        token_data = {
+            "sub": user.id,
+            "username": user.username,
+            "role": user.role.value,
+            "tv": user.token_version
+        }
+
+        return Token(
+            access_token=create_access_token(token_data),
+            refresh_token=create_refresh_token(token_data),
+            token_type="bearer"
+        )
+
+    @staticmethod
+    def _check_token_version(token_data: TokenData, user: User) -> None:
+        """
+        Refuse tokens issued before the last password change of the user
+
+        Raises:
+            HTTPException: If the token has been revoked
+        """
+        if token_data.token_version != user.token_version:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
     async def refresh_access_token(self, refresh_token: str) -> Token:
         """
         Generate new access token using refresh token
@@ -158,24 +189,12 @@ class AuthService(metaclass=SingletonMeta):
                     detail="User account is inactive",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            
-            # Create new tokens
-            new_token_data = {
-                "sub": user.id,
-                "username": user.username,
-                "role": user.role.value
-            }
-            
-            new_access_token = create_access_token(new_token_data)
-            new_refresh_token = create_refresh_token(new_token_data)
-            
+
+            self._check_token_version(token_data, user)
+
             logger.info(f"Token refreshed for user: {user.username}")
-            
-            return Token(
-                access_token=new_access_token,
-                refresh_token=new_refresh_token,
-                token_type="bearer"
-            )
+
+            return self.create_tokens(user)
         
         except HTTPException:
             raise
@@ -223,7 +242,9 @@ class AuthService(metaclass=SingletonMeta):
                     detail="User account is inactive",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            
+
+            self._check_token_version(token_data, user)
+
             return user
         
         except HTTPException:
@@ -385,9 +406,11 @@ class AuthService(metaclass=SingletonMeta):
 
             # Update password
             user.hashed_password = get_password_hash(new_password)
+            user.must_change_password = False
+            user.token_version += 1  # Revoke the tokens issued before the reset
             user.updated_at = datetime.now(timezone.utc)
             await user.save()
-            
+
             # Mark token as used
             matching_token.used = True
             await matching_token.save()

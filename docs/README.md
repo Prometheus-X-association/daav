@@ -11,11 +11,9 @@ Nodes are building blocks in DAAV’s workflow editor. Each node represents a st
 
 ### 2. Main Node Types
 
-	Lets you select and load a dataset file (CSV, Excel, etc.) into your workflow.
-
-	Allows you to apply filter rules to your data (e.g., select rows, columns, or conditions).
-
-	Lets you export or visualize the results of your workflow (e.g., download a file, send to API).
+- **Input nodes** (File, MySQL, MongoDB, Service Chain Input): load a dataset (file, database table/collection, PTX service chain) into your workflow.
+- **Transform nodes** (Filter, Flatten, Merge): filter rows, flatten nested data or merge several sources.
+- **Output nodes** (File, API, MongoDB, MySQL, PDC, Service Chain Output): export the results of your workflow (write a file or a table, expose them through an API, send them to the PTX ecosystem).
 
 ### 3. How to Build a Workflow
 
@@ -49,7 +47,7 @@ Nodes are building blocks in DAAV’s workflow editor. Each node represents a st
 ### Input Nodes
 
 #### DataFileBlock (File Input)
-**Purpose:** Load a tabular dataset (CSV, Excel, etc.) into your workflow.
+**Purpose:** Load a dataset file (CSV, JSON, Excel or Parquet) into your workflow.
 **Interface Parameters:**
 - Dataset selection: Dropdown to choose a file from available datasets.
 - Status indicator: Shows if the node is ready, incomplete, or in error.
@@ -89,6 +87,24 @@ Nodes are building blocks in DAAV’s workflow editor. Each node represents a st
 5. Wait for the loader and status update.
 6. Output is available for connection.
 
+#### DataElasticBlock (Elasticsearch Input)
+**Purpose:** Read the documents of an Elasticsearch index.
+**Interface Parameters:**
+- Dataset selection: Dropdown to choose an Elasticsearch dataset.
+- Index selection: Dropdown of the indices visible with the dataset credentials (only when the dataset does not fix an index).
+- Query (optional): a Lucene query string (`category:books AND price:>20`) or a JSON Query DSL clause (`{"term": {"in_stock": true}}`). Empty reads all documents.
+- Fields (optional): comma-separated list of the fields to keep. Empty keeps the whole document.
+- Max documents (optional): stop after this number of documents. Empty reads the whole result.
+- Include _id: adds the document id as an `_id` column.
+- Status indicator: Shows node readiness.
+**How to Use:**
+1. Add the node to your workflow.
+2. Select an Elasticsearch dataset, then an index (if prompted).
+3. Optionally type a query, fields or a maximum: the output preview is refreshed after typing.
+4. Output is available for connection. Nested objects are kept as objects (use the Flatten node to get flat columns).
+
+See [Elasticsearch](ELASTICSEARCH.md) for the connection settings, the privileges and an example workflow.
+
 #### ServiceChainInput (Service Chain Input Prometheusx integration)
 **Purpose:** Load data from a service chain (PTX or other contract-based source).
 **Prerequisites:** Add a key/value credential from the pdc (on vision trust side use the the identifier of the credential pair).
@@ -104,7 +120,9 @@ Any workflow using this node must end with a ServiceChainOutput to return the tr
 3. Configure any custom controls.
 4. Wait for status update.
 5. Output is available for connection.
-This node is a special output that must be paired with ServiceChainInput. Both are required for a workflow to interact with a service chain and properly exchange data with the PDC.
+
+This node is a special input that must be paired with ServiceChainOutput. Both are required for a workflow to interact with a service chain and properly exchange data with the PDC.
+
 ---
 
 ### Transform Nodes
@@ -153,21 +171,22 @@ This node is a special output that must be paired with ServiceChainInput. Both a
 ### Output Nodes
 
 #### ApiOutput (API Output)
-**Purpose:** Send data to an API endpoint.
+**Purpose:** Expose the workflow result as JSON through a DAAV API endpoint.
 **Interface Parameters:**
-- URL/token configuration: Controls for endpoint and authentication.
+- URL/token configuration: Custom path (must be unique across workflows) and optional access token.
 - Status indicator: Shows node readiness.
 **How to Use:**
 1. Add the node to your workflow.
-2. Configure API endpoint and token as needed.
+2. Configure the custom path and token as needed.
 3. Connect input data.
 4. Wait for status update.
-5. Output is available for connection or confirmation.
+5. The result is then available with `GET /api/{custom_path}` (or `GET /api/workflow/{workflow_id}`).
 
 #### FileOutput (File Output)
-**Purpose:** Save data to a file (CSV, Excel, etc.).
+**Purpose:** Save data to a file (CSV, JSON, XML or Parquet).
 **Interface Parameters:**
-- File type/delimiter/name controls: Select file format, delimiter, and name.
+- File type/delimiter/name controls: Select file format, delimiter (CSV only: comma, semicolon or tab), and name.
+- If file exists: Replace or Append.
 - Status indicator: Shows node readiness.
 **How to Use:**
 1. Add the node to your workflow.
@@ -175,6 +194,22 @@ This node is a special output that must be paired with ServiceChainInput. Both a
 3. Connect input data.
 4. Wait for status update.
 5. Download or view results as provided.
+
+#### ElasticOutput (Elasticsearch Output)
+**Purpose:** Index data into an Elasticsearch index.
+**Interface Parameters:**
+- Dataset selection: Dropdown to choose an Elasticsearch dataset.
+- Index: existing indices are suggested; a new name creates the index.
+- If index already exists: `Fail` (default), `Replace` (the index is deleted and created again) or `Append`.
+- Id field (optional): column used as document `_id`. Documents with an existing id are replaced, so running the workflow again updates them instead of duplicating them. Empty: ids are generated.
+- Status indicator: Shows node readiness.
+**How to Use:**
+1. Add the node to your workflow and connect input data (nested, or flat e.g. after a Flatten node).
+2. Select an Elasticsearch dataset and type or pick the index.
+3. Choose the behaviour when the index exists and, optionally, the id field.
+4. Run the workflow: the status message gives the number of indexed documents.
+
+Like the other outputs, running the node on the sample writes the sample. See [Elasticsearch](ELASTICSEARCH.md) for the index mappings, the `_id` column, the required privileges and the dataset dashboard.
 
 #### MongoOutput (MongoDB Output)
 **Purpose:** Save data to a MongoDB collection.
@@ -228,7 +263,9 @@ This node work in pair with routes /output/{custom_path} or /output/workflow/{wo
 2. Select service chain dataset.
 3. Connect input data.
 4. Wait for status update.
+
 This node is a special output that must be paired with ServiceChainInput. Both are required for a workflow to interact with a service chain and properly exchange data with the PDC.
+
 ---
 
 ### Common Controls (All Nodes)

@@ -25,7 +25,7 @@ import { TextDisplayWidgetComponent } from './components/widgets/text-display-wi
 import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor';
 import { CdkAccordionModule } from '@angular/cdk/accordion';
 import { DashboardsModule } from './components/dashboards/dashboards.module';
-import { UserProfileComponent } from './components/user-profile/user-profile.component';
+import { AppToolbarComponent } from './components/app-toolbar/app-toolbar.component';
 import { DataFilterComponent } from './components/data-filter/data-filter.component';
 import { DataFilterModule } from './components/data-filter/data-filter.module';
 
@@ -41,7 +41,7 @@ import { DataFilterModule } from './components/data-filter/data-filter.module';
     HasDatasetsPipe,
     DataFilterWidgetComponent,
     JsonInputsWidgetComponent,
-    UserProfileComponent,
+    AppToolbarComponent,
   ],
   exports: [
     TextDisplayWidgetComponent,
@@ -54,7 +54,7 @@ import { DataFilterModule } from './components/data-filter/data-filter.module';
     HasDatasetsPipe,
     DataFilterWidgetComponent,
     JsonInputsWidgetComponent,
-    UserProfileComponent,
+    AppToolbarComponent,
   ],
   imports: [
     FormsModule,

@@ -220,6 +220,7 @@ async def test_update_user_success_own_profile(user_service_instance, mock_user,
         
         assert result.full_name == sample_user_update.full_name
         assert result.email == sample_user_update.email
+        assert result.token_version == 0  # Tokens kept when the password is not changed
         mock_save.assert_called_once()
 
 
@@ -297,6 +298,7 @@ async def test_update_user_with_password(user_service_instance, mock_user):
         )
         
         assert result.hashed_password == "new_hashed_password"
+        assert result.token_version == 1  # Previous tokens revoked
         mock_hash.assert_called_once_with("NewPassword123!")
         mock_save.assert_called_once()
 
@@ -435,6 +437,7 @@ async def test_change_password_success(user_service_instance, mock_user):
         
         assert result is True
         assert mock_user.hashed_password == "new_hashed"
+        assert mock_user.token_version == 1  # Previous tokens revoked
         mock_verify.assert_called_once_with(current_password, original_hashed_password)
         mock_hash.assert_called_once_with(new_password)
         mock_save.assert_called_once()
@@ -473,6 +476,40 @@ async def test_change_password_user_not_found(user_service_instance):
         
         assert exc_info.value.status_code == 404
         assert "User not found" in str(exc_info.value.detail)
+
+
+@pytest.mark.asyncio
+async def test_change_password_clears_password_change_requirement(user_service_instance, mock_user):
+    """Test that changing password clears the pending password change flag"""
+    mock_user.must_change_password = True
+    
+    with patch.object(user_service_instance, 'get_user_by_id', new_callable=AsyncMock) as mock_get, \
+         patch.object(mock_user, 'save', new_callable=AsyncMock), \
+         patch('app.services.user_service.verify_password', return_value=True), \
+         patch('app.services.user_service.get_password_hash', return_value="new_hashed"):
+        mock_get.return_value = mock_user
+        
+        await user_service_instance.change_password(str(mock_user.id), "Admin123!", "NewPassword456!")
+        
+        assert mock_user.must_change_password is False
+
+
+@pytest.mark.asyncio
+async def test_change_password_same_password_rejected(user_service_instance, mock_user):
+    """Test that the new password must differ from the current one"""
+    mock_user.must_change_password = True
+    
+    with patch.object(user_service_instance, 'get_user_by_id', new_callable=AsyncMock) as mock_get, \
+         patch.object(mock_user, 'save', new_callable=AsyncMock) as mock_save, \
+         patch('app.services.user_service.verify_password', return_value=True):
+        mock_get.return_value = mock_user
+        
+        with pytest.raises(HTTPException) as exc_info:
+            await user_service_instance.change_password(str(mock_user.id), "Admin123!", "Admin123!")
+        
+        assert exc_info.value.status_code == 400
+        assert mock_user.must_change_password is True
+        mock_save.assert_not_called()
 
 
 # ============================================
@@ -923,11 +960,13 @@ async def test_ensure_admin_exists_creates_default(user_service_instance):
     with patch.object(User, 'count', new_callable=AsyncMock) as mock_count, \
          patch.object(user_service_instance, 'create_user', new_callable=AsyncMock) as mock_create:
         mock_count.return_value = 0
-        mock_create.return_value = Mock(spec=User, username="admin", role=UserRole.ADMIN)
+        mock_create.return_value = Mock(spec=User, username="admin", role=UserRole.ADMIN, save=AsyncMock())
         
         result = await user_service_instance.ensure_admin_exists()
         
         assert result.role == UserRole.ADMIN
+        assert result.must_change_password is True
+        result.save.assert_called_once()
         mock_create.assert_called_once()
 
 

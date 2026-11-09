@@ -80,8 +80,8 @@
       --inner-padding-end: 0;
       --background: transparent;
 
-      ion-label {
-        margin-left: 0.5rem;
+      ion-checkbox::part(label) {
+        margin-inline-start: 0.5rem;
         font-size: 0.9rem;
       }
     }

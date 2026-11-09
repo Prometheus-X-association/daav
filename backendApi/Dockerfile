@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # Create necessary directories
-RUN mkdir -p /app/uploads /app/logs
+RUN mkdir -p /app/uploads /app/logs /app/secrets
 
 # Copy application code
 COPY . .

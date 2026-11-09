@@ -23,6 +23,8 @@ class User(Document):
     hashed_password: str = Field(..., description="Argon2 hashed password")
     role: UserRole = Field(default=UserRole.USER, description="User role (admin or user)")
     is_active: bool = Field(default=True, description="Account active status")
+    must_change_password: bool = Field(default=False, description="User must change password before accessing the application")
+    token_version: int = Field(default=0, description="Incremented on each password change: tokens issued with a previous version are refused")
     last_login: Optional[datetime] = Field(default=None, description="Last login timestamp")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -146,6 +148,7 @@ class UserResponse(BaseModel):
     full_name: str
     role: UserRole
     is_active: bool
+    must_change_password: bool = False
     last_login: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

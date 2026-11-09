@@ -54,15 +54,26 @@
   }
 
   &__dataset {
+    &-title {
+      margin: 0;
+      font-size: inherit;
+      font-weight: 500;
+    }
+
     &-header {
       top: 0;
       z-index: 1;
       display: flex;
       align-items: center;
       gap: 8px;
+      width: 100%;
       padding: 12px 24px;
+      border: 0;
       background-color: rgba(0, 0, 0, 0.03);
       border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      color: inherit;
+      font: inherit;
+      text-align: left;
       cursor: pointer;
       transition: background-color 200ms ease;
 
@@ -78,11 +89,6 @@
       &.collapsed .mat-icon {
         transform: rotate(-90deg);
       }
-
-      h3 {
-        margin: 0;
-        font-weight: 500;
-      }
     }
   }
 
@@ -92,13 +98,15 @@
     flex-direction: column;
     gap: 8px;
     overflow: auto;
-    transition: max-height 300ms ease, opacity 200ms ease;
+    transition: max-height 300ms ease, opacity 200ms ease, visibility 200ms;
     max-height: 1000px;
     opacity: 1;
 
     &.collapsed {
       max-height: 0;
       opacity: 0;
+      // also removes the collapsed columns from the accessibility tree
+      visibility: hidden;
       padding-top: 0;
       padding-bottom: 0;
     }

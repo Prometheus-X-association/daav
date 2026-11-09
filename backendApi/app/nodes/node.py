@@ -109,9 +109,9 @@ class Node(BaseModel):
                 return await self.process(sample)
             else:
                 # Si c'est une méthode synchrone, l'exécuter dans un thread
-                # pour éviter de bloquer la boucle d'événements
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(None, self.process, sample)
+                # pour éviter de bloquer la boucle d'événements.
+                # to_thread copie les ContextVar (utilisateur, données de chaîne PDC) dans le thread
+                return await asyncio.to_thread(self.process, sample)
         except Exception as e:
             print(f"Error executing process for node {self.id}: {e}")
             self.status = StatusNode.Error

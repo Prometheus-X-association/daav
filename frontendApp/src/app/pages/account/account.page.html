@@ -1,0 +1,62 @@
+<ion-content [fullscreen]="true">
+  <ion-split-pane when="xs" contentId="account-main">
+    <ion-menu contentId="account-main">
+
+      <ion-header>
+        <app-toolbar>
+          <ion-button aria-label="Back to workspace" i18n-aria-label title="Back to workspace" i18n-title routerLink="/tabs/main" routerDirection="back">
+            <ion-icon name="grid-outline" slot="icon-only" aria-hidden="true"></ion-icon>
+          </ion-button>
+        </app-toolbar>
+      </ion-header>
+
+      <ion-content>
+        <ion-item class="side-title" lines="none">
+          <ion-label i18n>Account</ion-label>
+        </ion-item>
+
+        @if (user) {
+          <div class="user-summary">
+            <ion-icon name="person-circle" class="user-avatar" aria-hidden="true"></ion-icon>
+            <div class="user-names">
+              <span class="full-name">{{ user.full_name }}</span>
+              <span class="username">{{ '@' + user.username }}</span>
+            </div>
+          </div>
+        }
+
+        <nav class="account-nav" aria-label="Account sections" i18n-aria-label>
+          <ul>
+            @for (section of visibleSections; track section.path) {
+              <li>
+                <a [routerLink]="section.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+                  <ion-icon [name]="section.icon" aria-hidden="true"></ion-icon>
+                  <span>{{ section.label }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </nav>
+      </ion-content>
+
+      <ion-button class="logout-btn" expand="full" (click)="onLogout()">
+        <ion-icon name="log-out-outline" slot="start" aria-hidden="true"></ion-icon>
+        <ng-container i18n>Logout</ng-container>
+      </ion-button>
+    </ion-menu>
+
+    <div class="ion-page" id="account-main">
+      <ion-content>
+        <div class="account-topbar">
+          <h1>{{ currentSection?.label }}</h1>
+        </div>
+        <div class="account-panel">
+          @if (currentSection) {
+            <p class="section-description">{{ currentSection.description }}</p>
+          }
+          <router-outlet></router-outlet>
+        </div>
+      </ion-content>
+    </div>
+  </ion-split-pane>
+</ion-content>

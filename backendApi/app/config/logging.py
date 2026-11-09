@@ -58,6 +58,10 @@ def setup_logging(settings : Settings):
 
     # Set specific loggers levels
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    # With --reload, uvicorn (>= 0.48) imports the app in the reloader process, so
+    # watchfiles logs to logs/app.log, which is in the watched directory: each
+    # "change detected" line would trigger the next one in an endless loop.
+    logging.getLogger("watchfiles").setLevel(logging.WARNING)
     #logging.getLogger("beanie").setLevel(logging.DEBUG)
     #logging.getLogger("motor").setLevel(logging.DEBUG)
     #logging.getLogger("pymongo").setLevel(logging.DEBUG)

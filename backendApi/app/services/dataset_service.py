@@ -576,6 +576,28 @@ class DatasetService(metaclass=SingletonMeta):
                 client.close()
                 logger.debug("MongoDB connection closed")
 
+    def getDfElasticContent(self, dataset: ElasticDataset, datasetParams: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
+        """Retrieve Elasticsearch index content as a DataFrame (a sample when pagination is given)"""
+        from app.services.elastic_service import ElasticService
+
+        index = dataset.index or datasetParams.index or datasetParams.table
+        if not index:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="An Elasticsearch index must be specified")
+        service = ElasticService()
+        if pagination and pagination.perPage:
+            df = service.sample_dataframe(dataset, index, size=pagination.perPage)
+        else:
+            df = service.read_dataframe(dataset, index)
+        logger.info(f"Retrieved {len(df)} documents from Elasticsearch index {index}")
+
+        node_data = NodeDataPandasDf(nodeSchema=generate_pandas_schema(df), name=index)
+        if pagination:
+            node_data.dataExample = df
+        else:
+            node_data.data = df
+        return node_data
+
     def getDfMysqlContent(self, dataset: MysqlDataset, datasetParams: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve MySQL dataset content"""
         engine = None

@@ -1,0 +1,46 @@
+@use '../account-section';
+
+.info-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px 32px;
+    margin: 0;
+}
+
+.info-item {
+    min-width: 0;
+
+    dt {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 0.85rem;
+        color: var(--grayText);
+
+        ion-icon {
+            font-size: 1.1rem;
+            color: var(--darkPtx);
+        }
+    }
+
+    dd {
+        margin: 0 0 0 26px;
+        font-weight: 600;
+        color: var(--black);
+        overflow-wrap: anywhere;
+    }
+}
+
+.danger-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    p {
+        margin: 0;
+        color: var(--grayText);
+    }
+}

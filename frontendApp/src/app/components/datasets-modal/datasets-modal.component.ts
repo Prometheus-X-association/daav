@@ -11,6 +11,7 @@ import {
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { IonModal, IonRadio } from '@ionic/angular';
 import { Dataset } from 'src/app/models/dataset';
+import { DatasetType } from 'src/app/enums/dataset-type';
 import { DatasetService } from 'src/app/services/dataset.service';
 
 @Component({
@@ -96,6 +97,8 @@ export class DatasetsModalComponent implements OnChanges {
     table: FormControl<string | null>;
     url: FormControl<string | null>;
     index: FormControl<string | null>;
+    authMode: FormControl<string>;
+    verifyCerts: FormControl<boolean>;
     key: FormControl<string | null>;
     bearerToken: FormControl<string | null>;
     apiAuth: FormControl<string | null>;
@@ -128,6 +131,9 @@ export class DatasetsModalComponent implements OnChanges {
       table: new FormControl<string | null>('', Validators.required),
       url: new FormControl<string | null>('', Validators.required),
       index: new FormControl<string | null>('', Validators.required),
+      // nonNullable: reset() (done when the modal opens) restores these defaults instead of null
+      authMode: new FormControl<string>('basic', { nonNullable: true }),
+      verifyCerts: new FormControl<boolean>(true, { nonNullable: true }),
       key: new FormControl<string | null>('', Validators.required),
       bearerToken: new FormControl<string | null>('', Validators.required),
       apiAuth: new FormControl<string | null>('', Validators.required),
@@ -148,7 +154,23 @@ export class DatasetsModalComponent implements OnChanges {
           control.setValue(this.dataset[key]);
         }
       });
+      if (this.dataset.type === DatasetType.ElasticSearch && !this.dataset['authMode']) {
+        // Datasets created before authMode existed: secrets are not sent back, only the user name
+        this.formDatabase.controls.authMode.setValue(this.dataset['user'] ? 'basic' : 'none');
+      }
     }
+  }
+
+  /**
+   * Clear the credentials of the other authentication modes, so that stale stored
+   * secrets are overwritten instead of being restored by the backend.
+   */
+  onElasticAuthModeChange() {
+    const fieldsByMode = { basic: ['user', 'password'], apiKey: ['key'], bearer: ['bearerToken'] };
+    const mode = this.formDatabase.controls.authMode.value;
+    Object.entries(fieldsByMode)
+      .filter(([m]) => m !== mode)
+      .forEach(([, fields]) => fields.forEach((f) => this.formDatabase.get(f)?.setValue('')));
   }
 
   editDataset(dataset: Dataset) {

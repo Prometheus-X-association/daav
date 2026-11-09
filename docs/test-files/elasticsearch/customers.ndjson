@@ -1,0 +1,40 @@
+{"index": {"_index": "customers", "_id": "1"}}
+{"customer_id": 1, "first_name": "David", "last_name": "Moreau", "email": "client1@example.com", "city": "Montréal", "country": "CA", "age": 21, "total_spent": 620.5, "signup_date": "2025-03-06"}
+{"index": {"_index": "customers", "_id": "2"}}
+{"customer_id": 2, "first_name": "Gaëlle", "last_name": "Laurent", "email": "client2@example.com", "city": "Genève", "country": "CH", "age": 78, "total_spent": 2086.57, "signup_date": "2026-05-27"}
+{"index": {"_index": "customers", "_id": "3"}}
+{"customer_id": 3, "first_name": "David", "last_name": "Moreau", "email": "client3@example.com", "city": "Montréal", "country": "CA", "age": 18, "total_spent": 2828.22, "signup_date": "2024-11-01"}
+{"index": {"_index": "customers", "_id": "4"}}
+{"customer_id": 4, "first_name": "Gaëlle", "last_name": "Moreau", "email": "client4@example.com", "city": "Genève", "country": "CH", "age": 52, "total_spent": 2242.55, "signup_date": "2025-07-13"}
+{"index": {"_index": "customers", "_id": "5"}}
+{"customer_id": 5, "first_name": "Bruno", "last_name": "Moreau", "email": "client5@example.com", "city": "Montréal", "country": "CA", "age": 32, "total_spent": 818.81, "signup_date": "2025-05-12"}
+{"index": {"_index": "customers", "_id": "6"}}
+{"customer_id": 6, "first_name": "David", "last_name": "Dubois", "email": "client6@example.com", "city": "Paris", "country": "FR", "age": 60, "total_spent": 2037.43, "signup_date": "2025-02-18"}
+{"index": {"_index": "customers", "_id": "7"}}
+{"customer_id": 7, "first_name": "Gaëlle", "last_name": "Moreau", "email": "client7@example.com", "city": "Lyon", "country": "FR", "age": 76, "total_spent": 382.88, "signup_date": "2025-09-29"}
+{"index": {"_index": "customers", "_id": "8"}}
+{"customer_id": 8, "first_name": "Alice", "last_name": "Moreau", "email": "client8@example.com", "city": "Montréal", "country": "CA", "age": 55, "total_spent": 1693.18, "signup_date": "2024-01-28"}
+{"index": {"_index": "customers", "_id": "9"}}
+{"customer_id": 9, "first_name": "Farid", "last_name": "Moreau", "email": "client9@example.com", "city": "Paris", "country": "FR", "age": 26, "total_spent": 2600.55, "signup_date": "2024-07-05"}
+{"index": {"_index": "customers", "_id": "10"}}
+{"customer_id": 10, "first_name": "Chloé", "last_name": "Moreau", "email": "client10@example.com", "city": "Paris", "country": "FR", "age": 38, "total_spent": 634.98, "signup_date": "2024-11-30"}
+{"index": {"_index": "customers", "_id": "11"}}
+{"customer_id": 11, "first_name": "Gaëlle", "last_name": "Moreau", "email": "client11@example.com", "city": "Bruxelles", "country": "BE", "age": 35, "total_spent": 2256.03, "signup_date": "2026-05-01"}
+{"index": {"_index": "customers", "_id": "12"}}
+{"customer_id": 12, "first_name": "Chloé", "last_name": "Martin", "email": "client12@example.com", "city": "Genève", "country": "CH", "age": 48, "total_spent": 58.15, "signup_date": "2025-07-06"}
+{"index": {"_index": "customers", "_id": "13"}}
+{"customer_id": 13, "first_name": "Chloé", "last_name": "Bernard", "email": "client13@example.com", "city": "Paris", "country": "FR", "age": 59, "total_spent": 205.86, "signup_date": "2025-10-29"}
+{"index": {"_index": "customers", "_id": "14"}}
+{"customer_id": 14, "first_name": "Gaëlle", "last_name": "Martin", "email": "client14@example.com", "city": "Paris", "country": "FR", "age": 78, "total_spent": 741.85, "signup_date": "2026-05-09"}
+{"index": {"_index": "customers", "_id": "15"}}
+{"customer_id": 15, "first_name": "Emma", "last_name": "Bernard", "email": "client15@example.com", "city": "Paris", "country": "FR", "age": 33, "total_spent": 378.66, "signup_date": "2025-11-16"}
+{"index": {"_index": "customers", "_id": "16"}}
+{"customer_id": 16, "first_name": "Emma", "last_name": "Bernard", "email": "client16@example.com", "city": "Paris", "country": "FR", "age": 47, "total_spent": 2098.39, "signup_date": "2026-02-24"}
+{"index": {"_index": "customers", "_id": "17"}}
+{"customer_id": 17, "first_name": "Bruno", "last_name": "Laurent", "email": "client17@example.com", "city": "Bruxelles", "country": "BE", "age": 56, "total_spent": 2891.2, "signup_date": "2026-01-05"}
+{"index": {"_index": "customers", "_id": "18"}}
+{"customer_id": 18, "first_name": "Gaëlle", "last_name": "Bernard", "email": "client18@example.com", "city": "Paris", "country": "FR", "age": 79, "total_spent": 933.12, "signup_date": "2025-08-15"}
+{"index": {"_index": "customers", "_id": "19"}}
+{"customer_id": 19, "first_name": "Chloé", "last_name": "Laurent", "email": "client19@example.com", "city": "Paris", "country": "FR", "age": 61, "total_spent": 2724.08, "signup_date": "2025-01-19"}
+{"index": {"_index": "customers", "_id": "20"}}
+{"customer_id": 20, "first_name": "Farid", "last_name": "Bernard", "email": "client20@example.com", "city": "Genève", "country": "CH", "age": 22, "total_spent": 1776.29, "signup_date": "2026-04-30"}

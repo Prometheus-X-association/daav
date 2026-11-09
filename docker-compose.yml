@@ -33,6 +33,28 @@ services:
     profiles:
       - admin
 
+  # Elasticsearch test node (optional): docker-compose --profile elastic up -d
+  # Set ELASTIC_PASSWORD (e.g. in a .env file next to this file) and add
+  # ALLOWED_PRIVATE_HOSTS=elasticsearch to backendApi/.env so that DAAV can reach it.
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
+    restart: always
+    ports:
+      - "127.0.0.1:9200:9200"
+    networks:
+      - daav
+    environment:
+      discovery.type: single-node
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-}
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.ml.enabled: "false"
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    profiles:
+      - elastic
+
   # FastAPI Backend with Uvicorn
   backend:
     build: 
@@ -43,6 +65,10 @@ services:
       - "8081:8000"
     networks:
       - daav
+    # Optional local settings (SMTP, ...). Values below in "environment" take precedence.
+    env_file:
+      - path: ./backendApi/.env
+        required: false
     environment:
       # MongoDB Configuration
       MONGODB_URL: mongodb://admin:admin123@mongodb:27017/daav_datasets?authSource=admin
@@ -58,9 +84,12 @@ services:
       # CORS for frontend
       CORS_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"
 
-      # Security — CHANGE THESE IN PRODUCTION
-      JWT_SECRET_KEY: "change-this-to-a-random-secret-min-32-chars-in-production"
-      # FIELD_ENCRYPTION_KEY: ""  # Optional: dedicated Fernet key. If omitted, derived from JWT_SECRET_KEY.
+      # Secrets — no default value. Set them here or in backendApi/.env.
+      # If they are not set, temporary keys are generated on first start in the backend-secrets
+      # volume (/app/secrets/*_TMP) and an error is logged until they are copied here.
+      # JWT_SECRET_KEY: ""        # min. 32 characters
+      # FIELD_ENCRYPTION_KEY: ""  # Fernet key encrypting the dataset credentials
+      SECRETS_DIR: /app/secrets
 
       MAX_FILE_SIZE: 100MB
       UPLOAD_DIR: /app/uploads
@@ -72,10 +101,12 @@ services:
     volumes:
       - backend-uploads:/app/uploads
       - backend-logs:/app/logs
+      - backend-secrets:/app/secrets
     depends_on:
       - mongodb
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      # curl is not installed in the python slim image
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -106,3 +137,5 @@ volumes:
   mongodb-config:
   backend-uploads:
   backend-logs:
+  backend-secrets:
+  elasticsearch-data:

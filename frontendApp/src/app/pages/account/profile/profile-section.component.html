@@ -1,0 +1,56 @@
+@if (user) {
+  <section class="panel" aria-labelledby="profile-info-title">
+    <h2 id="profile-info-title">Personal information</h2>
+    <dl class="info-list">
+      <div class="info-item">
+        <dt><ion-icon name="person-outline" aria-hidden="true"></ion-icon>Full name</dt>
+        <dd>{{ user.full_name }}</dd>
+      </div>
+      <div class="info-item">
+        <dt><ion-icon name="at-outline" aria-hidden="true"></ion-icon>Username</dt>
+        <dd>{{ user.username }}</dd>
+      </div>
+      <div class="info-item">
+        <dt><ion-icon name="mail-outline" aria-hidden="true"></ion-icon>Email</dt>
+        <dd>{{ user.email }}</dd>
+      </div>
+      <div class="info-item">
+        <dt><ion-icon name="shield-outline" aria-hidden="true"></ion-icon>Role</dt>
+        <dd>
+          <ion-badge [color]="user.role === 'admin' ? 'danger' : 'primary'">{{ user.role | uppercase }}</ion-badge>
+        </dd>
+      </div>
+      <div class="info-item">
+        <dt><ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>Account status</dt>
+        <dd>
+          <ion-badge [color]="user.is_active ? 'success' : 'danger'">{{ user.is_active ? 'ACTIVE' : 'INACTIVE' }}</ion-badge>
+        </dd>
+      </div>
+      <div class="info-item">
+        <dt><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>Member since</dt>
+        <dd>{{ getFormattedDate(user.created_at) }}</dd>
+      </div>
+      <div class="info-item">
+        <dt><ion-icon name="time-outline" aria-hidden="true"></ion-icon>Last login</dt>
+        <dd>{{ getFormattedDate(user.last_login) }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="panel danger" aria-labelledby="profile-danger-title">
+    <h2 id="profile-danger-title">Danger zone</h2>
+    <div class="danger-row">
+      <p>Deactivating your account logs you out and prevents you from signing in again.</p>
+      <ion-button color="danger" fill="outline" (click)="onDeactivateAccount()">
+        <ion-icon name="trash-outline" slot="start" aria-hidden="true"></ion-icon>
+        Deactivate account
+      </ion-button>
+    </div>
+  </section>
+}
+@else {
+  <div class="empty-state" role="status">
+    <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+    <p>Loading user profile...</p>
+  </div>
+}

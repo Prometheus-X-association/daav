@@ -19,6 +19,7 @@ from app.services.user_service import UserService
 from app.models.interface.user_interface import User, UserCreate, PasswordResetToken
 from app.models.interface.auth_interface import Token, TokenData
 from app.enums.user_role import UserRole
+from app.utils.auth_utils import create_access_token, decode_token
 
 
 @pytest.fixture
@@ -168,6 +169,34 @@ async def test_login_updates_last_login(auth_service_instance, test_user):
         # last_login should be updated (different from original or None)
 
 
+@pytest.mark.asyncio
+async def test_login_with_default_password_requires_change(auth_service_instance, test_admin):
+    """Test that logging in with the default admin password requires a password change"""
+    assert test_admin.must_change_password is False
+    
+    with patch('app.services.auth_service.verify_password', return_value=True), \
+         patch('app.services.auth_service.create_access_token', return_value="access_token"), \
+         patch('app.services.auth_service.create_refresh_token', return_value="refresh_token"):
+        
+        await auth_service_instance.login("adminuser", "Admin123!")
+        
+        updated_admin = await User.get(test_admin.id)
+        assert updated_admin.must_change_password is True
+
+
+@pytest.mark.asyncio
+async def test_login_with_custom_password_does_not_require_change(auth_service_instance, test_user):
+    """Test that logging in with a non-default password does not require a password change"""
+    with patch('app.services.auth_service.verify_password', return_value=True), \
+         patch('app.services.auth_service.create_access_token', return_value="access_token"), \
+         patch('app.services.auth_service.create_refresh_token', return_value="refresh_token"):
+        
+        await auth_service_instance.login("testuser", "Test123!")
+        
+        updated_user = await User.get(test_user.id)
+        assert updated_user.must_change_password is False
+
+
 # ============================================
 # REFRESH TOKEN TESTS
 # ============================================
@@ -175,8 +204,7 @@ async def test_login_updates_last_login(auth_service_instance, test_user):
 @pytest.mark.asyncio
 async def test_refresh_access_token_success(auth_service_instance, test_user):
     """Test successful token refresh"""
-    mock_token_data = Mock(spec=TokenData)
-    mock_token_data.user_id = str(test_user.id)
+    mock_token_data = TokenData(user_id=str(test_user.id))
     
     with patch('app.services.auth_service.verify_token_type'), \
          patch('app.services.auth_service.decode_token', return_value=mock_token_data), \
@@ -194,8 +222,7 @@ async def test_refresh_access_token_success(auth_service_instance, test_user):
 @pytest.mark.asyncio
 async def test_refresh_token_user_not_found(auth_service_instance):
     """Test token refresh with non-existent user"""
-    mock_token_data = Mock(spec=TokenData)
-    mock_token_data.user_id = "nonexistent_user_id"
+    mock_token_data = TokenData(user_id="nonexistent_user_id")
     
     with patch('app.services.auth_service.verify_token_type'), \
          patch('app.services.auth_service.decode_token', return_value=mock_token_data):
@@ -213,8 +240,7 @@ async def test_refresh_token_inactive_user(auth_service_instance, test_user):
     test_user.is_active = False
     await test_user.save()
     
-    mock_token_data = Mock(spec=TokenData)
-    mock_token_data.user_id = str(test_user.id)
+    mock_token_data = TokenData(user_id=str(test_user.id))
     
     with patch('app.services.auth_service.verify_token_type'), \
          patch('app.services.auth_service.decode_token', return_value=mock_token_data):
@@ -244,8 +270,7 @@ async def test_refresh_token_invalid_token(auth_service_instance):
 @pytest.mark.asyncio
 async def test_get_current_user_success(auth_service_instance, test_user):
     """Test getting current user from valid token"""
-    mock_token_data = Mock(spec=TokenData)
-    mock_token_data.user_id = str(test_user.id)
+    mock_token_data = TokenData(user_id=str(test_user.id))
     
     with patch('app.services.auth_service.verify_token_type'), \
          patch('app.services.auth_service.decode_token', return_value=mock_token_data):
@@ -259,8 +284,7 @@ async def test_get_current_user_success(auth_service_instance, test_user):
 @pytest.mark.asyncio
 async def test_get_current_user_not_found(auth_service_instance):
     """Test get current user with non-existent user ID in token"""
-    mock_token_data = Mock(spec=TokenData)
-    mock_token_data.user_id = "nonexistent_user_id"
+    mock_token_data = TokenData(user_id="nonexistent_user_id")
     
     with patch('app.services.auth_service.verify_token_type'), \
          patch('app.services.auth_service.decode_token', return_value=mock_token_data):
@@ -278,8 +302,7 @@ async def test_get_current_user_inactive(auth_service_instance, test_user):
     test_user.is_active = False
     await test_user.save()
     
-    mock_token_data = Mock(spec=TokenData)
-    mock_token_data.user_id = str(test_user.id)
+    mock_token_data = TokenData(user_id=str(test_user.id))
     
     with patch('app.services.auth_service.verify_token_type'), \
          patch('app.services.auth_service.decode_token', return_value=mock_token_data):
@@ -423,6 +446,41 @@ async def test_reset_password_success(auth_service_instance, test_user):
 
 
 @pytest.mark.asyncio
+async def test_reset_password_clears_password_change_requirement(auth_service_instance, test_user):
+    """Test that resetting the password clears the pending password change flag"""
+    test_user.must_change_password = True
+    await test_user.save()
+    
+    with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock, return_value=True), \
+         patch('app.services.auth_service.get_password_hash', return_value="hashed"), \
+         patch('app.services.auth_service.verify_password', return_value=True):
+        
+        await auth_service_instance.forgot_password(test_user.email)
+        await auth_service_instance.reset_password("plain_token", "NewPassword123!")
+
+        updated_user = await User.get(test_user.id)
+        assert updated_user.must_change_password is False
+
+
+@pytest.mark.asyncio
+async def test_reset_password_revokes_tokens(auth_service_instance, test_user):
+    """Test that resetting the password revokes the tokens issued before"""
+    old_tokens = auth_service_instance.create_tokens(test_user)
+
+    with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock, return_value=True), \
+         patch('app.services.auth_service.get_password_hash', return_value="hashed"), \
+         patch('app.services.auth_service.verify_password', return_value=True):
+
+        await auth_service_instance.forgot_password(test_user.email)
+        await auth_service_instance.reset_password("plain_token", "NewPassword123!")
+
+    assert (await User.get(test_user.id)).token_version == 1
+    with pytest.raises(HTTPException) as exc_info:
+        await auth_service_instance.get_current_user(old_tokens.access_token)
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_reset_password_invalid_token(auth_service_instance):
     """Test password reset with invalid token"""
     with patch('app.services.auth_service.verify_password', return_value=False):
@@ -558,8 +616,7 @@ async def test_login_after_password_reset(auth_service_instance, test_user):
 @pytest.mark.asyncio
 async def test_token_refresh_cycle(auth_service_instance, test_user):
     """Test multiple token refresh cycles"""
-    mock_token_data = Mock(spec=TokenData)
-    mock_token_data.user_id = str(test_user.id)
+    mock_token_data = TokenData(user_id=str(test_user.id))
     
     with patch('app.services.auth_service.verify_token_type'), \
          patch('app.services.auth_service.decode_token', return_value=mock_token_data), \
@@ -579,3 +636,49 @@ async def test_token_refresh_cycle(auth_service_instance, test_user):
         assert token1.access_token == "access_token_1"
         assert token2.access_token == "access_token_2"
         assert token1.access_token != token2.access_token
+
+
+# ============================================
+# TOKEN REVOCATION TESTS
+# ============================================
+
+@pytest.mark.asyncio
+async def test_tokens_carry_token_version(auth_service_instance, test_user):
+    """Test that the tokens embed the current token version of the user"""
+    test_user.token_version = 3
+    tokens = auth_service_instance.create_tokens(test_user)
+
+    assert decode_token(tokens.access_token).token_version == 3
+    assert decode_token(tokens.refresh_token).token_version == 3
+
+
+@pytest.mark.asyncio
+async def test_revoked_tokens_refused(auth_service_instance, test_user):
+    """Test that tokens issued before a password change are refused"""
+    tokens = auth_service_instance.create_tokens(test_user)
+    test_user.token_version += 1
+    await test_user.save()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await auth_service_instance.get_current_user(tokens.access_token)
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Token has been revoked"
+
+    with pytest.raises(HTTPException) as exc_info:
+        await auth_service_instance.refresh_access_token(tokens.refresh_token)
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Token has been revoked"
+
+
+@pytest.mark.asyncio
+async def test_tokens_without_version_still_valid(auth_service_instance, test_user):
+    """Test that tokens issued before token versions existed stay valid until a password change"""
+    legacy_token = create_access_token({"sub": test_user.id, "username": test_user.username, "role": "user"})
+
+    user = await auth_service_instance.get_current_user(legacy_token)
+    assert user.id == test_user.id
+
+    test_user.token_version += 1
+    await test_user.save()
+    with pytest.raises(HTTPException):
+        await auth_service_instance.get_current_user(legacy_token)

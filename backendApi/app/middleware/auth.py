@@ -15,6 +15,9 @@ security = HTTPBearer()
 # Initialize auth service
 auth_service = AuthService()
 
+# Error detail returned while a user must change their password, checked by the frontend
+PASSWORD_CHANGE_REQUIRED_DETAIL = "Password change required"
+
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]
@@ -40,18 +43,21 @@ async def get_current_user(
     return await auth_service.get_current_user(token)
 
 
-async def get_current_active_user(
+async def get_current_active_user_pending_password_change(
     current_user: Annotated[User, Depends(get_current_user)]
 ) -> User:
     """
-    Dependency to get current active user
-    
+    Dependency to get current active user, even if a password change is pending
+
+    Only meant for the endpoints a user needs to change their password
+    (reading their profile and changing their password).
+
     Args:
         current_user: Current user from get_current_user
-        
+
     Returns:
         User: Current active user
-        
+
     Raises:
         HTTPException: If user is inactive
     """
@@ -59,6 +65,29 @@ async def get_current_active_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
+        )
+    return current_user
+
+
+async def get_current_active_user(
+    current_user: Annotated[User, Depends(get_current_active_user_pending_password_change)]
+) -> User:
+    """
+    Dependency to get current active user
+
+    Args:
+        current_user: Current active user
+
+    Returns:
+        User: Current active user
+
+    Raises:
+        HTTPException: If user must change their password first
+    """
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=PASSWORD_CHANGE_REQUIRED_DETAIL
         )
     return current_user
 
@@ -93,4 +122,5 @@ async def require_admin(
 
 # Type aliases for cleaner route signatures
 CurrentUser = Annotated[User, Depends(get_current_active_user)]
+CurrentUserPendingPasswordChange = Annotated[User, Depends(get_current_active_user_pending_password_change)]
 AdminUser = Annotated[User, Depends(require_admin)]

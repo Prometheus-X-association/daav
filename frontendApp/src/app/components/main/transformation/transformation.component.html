@@ -8,30 +8,37 @@
           <div class="dataset-info-container"><span class="dataset-info-title">Name: </span><span
               class="dataset-info">{{workflow.name}}</span></div>
           <div class="dataset-info-container">
-            <ion-button  class="iconPaste" size="small" (click)="copyToClipboard(workflow.id,$event)"><ion-icon slot="icon-only" name="copy-outline"
-              ></ion-icon></ion-button>
             <span class="dataset-info-title">Id: </span>
             <span class="dataset-info">{{workflow.id}}</span>
           </div>
         </div>
       </ion-button>
+      <!-- kept outside the workflow button: a button cannot contain another interactive element -->
+      <ion-button class="iconPaste" size="small" [attr.aria-label]="'Copy id of workflow ' + workflow.name" (click)="copyToClipboard(workflow.id,$event)"><ion-icon slot="icon-only" name="copy-outline" aria-hidden="true"
+        ></ion-icon></ion-button>
       <div class="iconsContainer">
         @if (workflowsStatus.get(workflow.id) === "running") {
-        <ion-spinner name="circles"></ion-spinner>
+        <ion-spinner name="circles" role="status" [attr.aria-label]="'Workflow ' + workflow.name + ' is running'"></ion-spinner>
         }@else if (workflowsStatus.get(workflow.id) === "error") {
-        <ion-icon name="alert-circle-outline" (click)="executeWorkflow(workflow)"></ion-icon>
+        <button type="button" class="icon-button" [attr.aria-label]="'Workflow ' + workflow.name + ' failed, run it again'" (click)="executeWorkflow(workflow)">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+        </button>
         }
         @else {
-        <ion-icon name="play-outline" (click)="executeWorkflow(workflow)"></ion-icon>
+        <button type="button" class="icon-button" [attr.aria-label]="'Run workflow ' + workflow.name" (click)="executeWorkflow(workflow)">
+          <ion-icon name="play-outline" aria-hidden="true"></ion-icon>
+        </button>
         }
-
-
       </div>
       <div class="iconsContainer">
-        <ion-icon name="construct-outline" mat-raised-button (click)="updateRules(workflow.id)"></ion-icon>
+        <button type="button" class="icon-button" [attr.aria-label]="'Edit update rules of workflow ' + workflow.name" (click)="updateRules(workflow.id)">
+          <ion-icon name="construct-outline" aria-hidden="true"></ion-icon>
+        </button>
       </div>
       <div class="iconsContainer">
-        <ion-icon name="trash-outline" (click)="deleteWorkflow(workflow.id)"></ion-icon>
+        <button type="button" class="icon-button" [attr.aria-label]="'Delete workflow ' + workflow.name" (click)="deleteWorkflow(workflow.id)">
+          <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+        </button>
       </div>
     </ion-item>
     }

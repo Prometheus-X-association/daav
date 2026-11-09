@@ -80,11 +80,7 @@ async def sample_ptx_dataset():
     return dataset
 
 @pytest.mark.asyncio
-async def test_edit_ptx_dataset_preserves_sensitive_fields(dataset_service, monkeypatch):
-    monkeypatch.setenv(
-        "FIELD_ENCRYPTION_KEY",
-        "2frZC2o4MLN2F1sSxJk7Y0Kj0I7j9N2G5Q7e4Wj7iNw=",
-    )
+async def test_edit_ptx_dataset_preserves_sensitive_fields(dataset_service):
     dataset = PTXDataset(
         id="dataset-ptx-preserve",
         name="test_ptx",
@@ -116,11 +112,7 @@ async def test_edit_ptx_dataset_preserves_sensitive_fields(dataset_service, monk
 
 
 @pytest.mark.asyncio
-async def test_edit_mysql_dataset_preserves_sensitive_password(dataset_service, monkeypatch):
-    monkeypatch.setenv(
-        "FIELD_ENCRYPTION_KEY",
-        "2frZC2o4MLN2F1sSxJk7Y0Kj0I7j9N2G5Q7e4Wj7iNw=",
-    )
+async def test_edit_mysql_dataset_preserves_sensitive_password(dataset_service):
     dataset = MysqlDataset(
         id="dataset-mysql-preserve",
         name="test_mysql",

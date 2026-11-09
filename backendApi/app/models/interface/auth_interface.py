@@ -29,6 +29,7 @@ class TokenData(BaseModel):
     user_id: Optional[str] = None
     username: Optional[str] = None
     role: Optional[str] = None
+    token_version: int = 0  # Tokens issued before this field existed are version 0
 
 
 class LoginRequest(BaseModel):

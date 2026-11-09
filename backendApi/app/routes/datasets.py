@@ -14,6 +14,7 @@ import pandas as pd
 import jsonschema
 from app.models.interface.node_data import NodeDataPandasDf, NodeDataUnion
 from app.services.dataset_service import DatasetService
+from app.services.elastic_service import ElasticService
 from app.utils.utils import folder, generate_pandas_schema
 from app.utils.security import FileAccessController, PathSecurityValidator
 from pathlib import Path
@@ -244,12 +245,12 @@ async def getDfContentDataset(request: Request, data: ConnectionInfo, current_us
     elif isinstance(connection, ApiDataset):
         raise ValueError("Dataset type not handle")     
     elif  isinstance(connection, ElasticDataset):
-       raise ValueError("Dataset type not handle") 
+        return dataset_service.getDfElasticContent(connection, datasetParams, pagination)
     else :
         raise ValueError("Dataset type not handle")
     
 @router.post("/getDfFromJson" ,response_model=NodeDataUnion)
-def getDfFromJson(data: dict)-> NodeDataPandasDf:
+def getDfFromJson(data: dict, current_user: CurrentUser)-> NodeDataPandasDf:
     print("data", data)
     json_data = data['data']
     if not json_data:
@@ -557,45 +558,21 @@ async def elastic_content(
     return getElasticContent(dataset, pagination, datasetParams)
 
 def getElasticContent(dataset: ElasticDataset, pagination: Pagination, datasetParams: DatasetParams) -> ElasticContentResponse:
-    from elasticsearch import Elasticsearch, ApiError
-    try:
-        if dataset.key:
-            client = Elasticsearch(dataset.url, api_key=dataset.key)
-        elif dataset.user and dataset.password:
-            client = Elasticsearch(dataset.url, basic_auth=(dataset.user, dataset.password))
-        elif dataset.bearerToken:
-            client = Elasticsearch(dataset.url, bearer_auth=dataset.bearerToken)
+    service = ElasticService()
+    index = dataset.index or datasetParams.index or datasetParams.table
+    if not index:
+        return ElasticContentResponse(indices=service.index_names(dataset), data=[])
 
-        client.indices.refresh(index=dataset.index)
-        total = client.cat.count(index=dataset.index, params={"format": "json"})   
-        offset = (pagination.page * pagination.perPage) - pagination.perPage     
-        
-        if not dataset.index and not datasetParams.table:
-            indices = client.cat.indices(h='index', s='index').split();      
-            client.transport.close()
-            return ElasticContentResponse(
-                indices=indices,
-                data=[]
-            )
-        
-        if dataset.index or datasetParams.table:
-            resp = client.search(index=dataset.index, from_=offset, size="100", query={"match_all": {}})
-            hits = resp['hits']['hits']
-            data = []
-            for item in hits:
-                data.append(item['_source'])
-            client.transport.close()
-            return ElasticContentResponse(
-                data=data,
-                total_rows=total[0]['count'],
-                limit=pagination.perPage,
-                current_page=(pagination.page * pagination.perPage) - pagination.perPage
-            )
+    page = pagination.page or 1
+    per_page = pagination.perPage or 10
+    data, total = service.search_page(dataset, index, page, per_page)
+    return ElasticContentResponse(
+        data=data,
+        total_rows=total,
+        limit=per_page,
+        current_page=page
+    )
 
-    except ApiError as err:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Database error: {err}")
-    except PermissionError as err:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Permission error: {err}")
 def getPTXContent(dataset: PTXDataset, pagination: Pagination, datasetParams: DatasetParams):
 
     return dataset

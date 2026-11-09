@@ -26,6 +26,8 @@ export interface DatasetsI {
     table: string;
     url: string;
     index: string;
+    authMode?: 'none' | 'basic' | 'apiKey' | 'bearer';
+    verifyCerts?: boolean;
     key: string;
     bearerToken: string;
     apiAuth: string;

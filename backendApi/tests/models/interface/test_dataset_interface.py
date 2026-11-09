@@ -6,11 +6,7 @@ from app.models.interface.dataset_interface import (
 
 
 @pytest.mark.asyncio
-async def test_replace_encrypts_sensitive_fields_and_restores_plaintext(monkeypatch):
-    monkeypatch.setenv(
-        "FIELD_ENCRYPTION_KEY",
-        "2frZC2o4MLN2F1sSxJk7Y0Kj0I7j9N2G5Q7e4Wj7iNw=",
-    )
+async def test_replace_encrypts_sensitive_fields_and_restores_plaintext():
 
     dataset = MysqlDataset(
         id="dataset-replace-encryption",

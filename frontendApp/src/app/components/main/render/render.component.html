@@ -19,7 +19,7 @@
       @for(db of data.dbNames;track db; let x = $index){
       <ion-accordion value="{{ db }}">
         <ion-item class="db-name" slot="header">
-          <ion-icon class="ion-accordion-toggle-icon" name="chevron-down-outline" slot="start">
+          <ion-icon class="ion-accordion-toggle-icon" name="chevron-down-outline" slot="start" aria-hidden="true">
           </ion-icon>
           <ion-label>
             {{ db }}
@@ -46,8 +46,8 @@
   <!-- Multiple index/table/collection -->
   <mat-tab dynamicHeight label="Datasets ({{ data.tableNames.length }})" #tab>
     <div>
-      <label>Filter</label>
-      <input matInput (keyup)="applyFilter($event)" placeholder="Ex. ium" #input>
+      <label for="render-table-filter">Filter</label>
+      <input matInput id="render-table-filter" (keyup)="applyFilter($event)" placeholder="Ex. ium" #input>
     </div>
     <ion-list class="dataset-list dataset-list-single">
       @for(table of data.tableNames;track table; let i = $index){
@@ -65,9 +65,9 @@
   </mat-tab>
   }
   <mat-tab dynamicHeight label="{{
-      data.datasetParams.database
-        ? data.datasetParams.database + ' / '
-        : data.selectedDataset['database'] + ' / '
+      (data.datasetParams.database || data.selectedDataset?.['database'])
+        ? (data.datasetParams.database || data.selectedDataset['database']) + ' / '
+        : ''
     }}{{ data.datasetParams.table ? data.datasetParams.table : '' }}" [disabled]="!data.datasetParams.table" #tab>
     <div id="table-paginator-container">
       <div class="table-infos">

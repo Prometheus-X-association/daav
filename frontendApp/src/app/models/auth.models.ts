@@ -9,6 +9,7 @@ export interface User {
   full_name: string;
   role: UserRole;
   is_active: boolean;
+  must_change_password: boolean;
   last_login: string | null;
   created_at: string;
   updated_at: string;
@@ -60,6 +61,13 @@ export interface ResetPasswordRequest {
 export interface ChangePasswordRequest {
   current_password: string;
   new_password: string;
+}
+
+/**
+ * The password change revokes the previous tokens: new ones are returned for the current session
+ */
+export interface ChangePasswordResponse extends Token {
+  message: string;
 }
 
 export interface UserUpdate {

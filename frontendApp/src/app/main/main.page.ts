@@ -6,8 +6,6 @@ import { DatasetsModalComponent } from '../components/datasets-modal/datasets-mo
 import { TransformationModalComponent } from '../components/transformation-modal/transformation-modal.component';
 import { WorkflowPage } from '../pages/worflow/workflow.page';
 import { Project } from '../models/interfaces/project';
-import { UserProfileComponent } from '../components/user-profile/user-profile.component';
-import { ModalController } from '@ionic/angular';
 
 enum Tabs {
   datasets,
@@ -29,6 +27,7 @@ export class MainPage {
   datasetSelected: any;
   transformationView: string = "list";
   loadProjectId: string;
+  sidePanelCollapsed = false;
 
   get Tabs(){
     return Tabs;
@@ -59,25 +58,8 @@ export class MainPage {
   datasets: any;
   dataSource: any[] = [];
   matTabIndex = 0;
-  themes: {
-    class: string,
-    name: string
-  }[] = [
-    {
-    class: "",
-    name: "Thème par défaut"
-  },
-  {
-    class: "theme-ptx",
-    name: "Thème PTX"
-  }
-]
 
-fonts: string[] = ["poppins", "OpenDyslexic"]
-
-  constructor( private cd: ChangeDetectorRef, public datasetService : DatasetService, public loadingService: LoadingService,private modalController: ModalController) {
-    this.applyTheme(localStorage.getItem("theme"))
-    this.applyFont(localStorage.getItem("font"))
+  constructor( private cd: ChangeDetectorRef, public datasetService : DatasetService, public loadingService: LoadingService) {
   }
 
   loadDataset(){
@@ -93,6 +75,25 @@ fonts: string[] = ["poppins", "OpenDyslexic"]
     this.transformationView = view;
   }
 
+  get isWorkflowOpen(): boolean {
+    return this.matTabIndex === Tabs.transformation && this.transformationView === 'rete';
+  }
+
+  // The side panel can only be collapsed while a workflow is open in the editor
+  get isSidePanelCollapsed(): boolean {
+    return this.sidePanelCollapsed && this.isWorkflowOpen;
+  }
+
+  toggleSidePanel() {
+    this.sidePanelCollapsed = !this.sidePanelCollapsed;
+  }
+
+  closeWorkflow() {
+    this.loadProjectId = undefined;
+    this.sidePanelCollapsed = false;
+    this.transformationView = 'list';
+  }
+
   ionViewWillEnter() {
   }
 
@@ -104,6 +105,10 @@ fonts: string[] = ["poppins", "OpenDyslexic"]
     if (this.workflowEditor) {
       this.workflowEditor.newProject();
     }
+    else{
+      // The editor is created afterwards: make sure it does not reopen the last loaded workflow
+      this.loadProjectId = undefined;
+    }
   }
 
   loadWorkflow(project: Project) {
@@ -113,62 +118,5 @@ fonts: string[] = ["poppins", "OpenDyslexic"]
     else{
       this.loadProjectId = project.id;
     }
-  }
-
-  isMenuOpen = false;
-  menuIcon = "settings-outline";
-  htmlClassList = document.querySelector("html").classList
-  body = document.querySelector("body")
-  html = document.querySelector("html")
-
-  toggleMenu() {
-    this.isMenuOpen = !this.isMenuOpen;
-    this.menuIcon = this.isMenuOpen ? "close-outline" : "settings-outline"
-  }
-
-  removeAllThemeClasses():void {
-    this.themes.forEach((theme) => {
-      if (theme.class !== "") {
-        this.htmlClassList.remove(theme.class)
-      }
-    })
-  }
-
-  removeAllFontClasses():void {
-    this.fonts.forEach((font) => {
-      if (font !== "") {
-        this.htmlClassList.remove(font)
-      }
-    })
-  }
-
-  applyTheme(value):void {
-    this.removeAllThemeClasses()
-
-    if (value && value !== "") {
-      this.htmlClassList.add(value)
-    }
-
-    localStorage.setItem("theme", value)
-  }
-
-  applyFont(value:string):void {
-    this.removeAllFontClasses()
-
-    if (value && value !== "") {
-      this.htmlClassList.add(value)
-    }
-
-    localStorage.setItem("font", value);
-  }
-
-    /**
-   * Open user profile modal
-   */
-  async openUserProfile() {
-    const modal = await this.modalController.create({
-      component: UserProfileComponent
-    });
-    return await modal.present();
   }
 }

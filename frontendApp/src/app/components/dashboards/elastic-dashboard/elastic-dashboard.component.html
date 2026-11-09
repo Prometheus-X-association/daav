@@ -1,0 +1,145 @@
+<div class="elastic-dashboard">
+  <!-- Cluster -->
+  <section class="card cluster">
+    <div class="section-title">
+      <h3 i18n>Cluster</h3>
+      <ion-button fill="clear" size="small" (click)="loadInfo(); loadIndices()" i18n>Refresh</ion-button>
+    </div>
+    @if (infoError) {
+      <p class="error" role="alert">{{ infoError }}</p>
+    } @else if (info) {
+      <div class="cluster-grid">
+        <div class="stat">
+          <span class="label" i18n>Status</span>
+          <span class="health" [class]="'health health-' + (info.status ?? 'unknown')">{{ info.status ?? '?' }}</span>
+        </div>
+        <div class="stat"><span class="label" i18n>Name</span><span>{{ info.clusterName }}</span></div>
+        <div class="stat"><span class="label" i18n>Version</span><span>{{ info.version }}</span></div>
+        <div class="stat"><span class="label" i18n>Nodes</span><span>{{ info.numberOfNodes ?? '-' }}</span></div>
+        <div class="stat"><span class="label" i18n>Indices</span><span>{{ indices.length }}</span></div>
+        <div class="stat"><span class="label" i18n>Documents</span><span>{{ totalDocs | number }}</span></div>
+      </div>
+      <p class="url">{{ dataset.url }}</p>
+    } @else {
+      <ion-skeleton-text [animated]="true" style="width: 60%"></ion-skeleton-text>
+    }
+  </section>
+
+  <!-- Indices -->
+  <section class="card">
+    <div class="section-title">
+      <h3 i18n>Indices</h3>
+      <ion-toggle [(ngModel)]="includeHidden" (ionChange)="loadIndices()" labelPlacement="start" i18n>Hidden indices</ion-toggle>
+    </div>
+    <ion-searchbar [(ngModel)]="indexFilter" placeholder="Filter indices" i18n-placeholder aria-label="Filter indices" i18n-aria-label [debounce]="150"></ion-searchbar>
+    @if (indicesError) {
+      <p class="error" role="alert">{{ indicesError }}</p>
+    }
+    <div class="table-wrapper">
+      <table class="indices">
+        <thead>
+          <tr>
+            <th><span class="sr-only" i18n>Health</span></th>
+            <th i18n>Index</th>
+            <th class="num" i18n>Documents</th>
+            <th class="num" i18n>Size</th>
+            <th i18n>Aliases</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (index of filteredIndices; track index.index) {
+            <!-- the row stays clickable with the mouse; the button inside makes it reachable with the keyboard -->
+            <tr (click)="selectIndex(index)" [class.selected]="selectedIndex?.index === index.index">
+              <td><span class="dot" [class]="'dot health-' + (index.health ?? 'unknown')" [title]="index.health ?? index.status" aria-hidden="true"></span><span class="sr-only">{{ index.health ?? index.status }}</span></td>
+              <td><button type="button" class="index-name" [attr.aria-current]="selectedIndex?.index === index.index ? 'true' : null">{{ index.index }}</button> @if (index.status === 'close') { <em i18n>(closed)</em> }</td>
+              <td class="num">{{ index.docsCount === null ? '-' : (index.docsCount | number) }}</td>
+              <td class="num">{{ formatSize(index.sizeBytes) }}</td>
+              <td>{{ index.aliases.join(', ') }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="empty">
+              @if (loadingIndices) { <span i18n>Loading…</span> } @else { <span i18n>No index</span> }
+            </td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Selected index -->
+  @if (selectedIndex) {
+    <section class="card">
+      <div class="section-title">
+        <h3>{{ selectedIndex.index }}</h3>
+      </div>
+
+      <h4 i18n>Query</h4>
+      <p class="hint" i18n>Lucene syntax (e.g. <code>category:books AND price:&gt;20</code>) or a JSON Query DSL clause (e.g. <code>{{ '{' }}"term": {{ '{' }}"in_stock": true{{ '}}' }}</code>). Leave empty to match all documents.</p>
+      <ion-textarea class="query" [(ngModel)]="queryText" [autoGrow]="true" rows="2" fill="outline" aria-label="Query" i18n-aria-label
+        placeholder="*" (keydown.control.enter)="runQuery()"></ion-textarea>
+      <div class="actions">
+        <ion-button size="small" (click)="runQuery()" [disabled]="queryRunning" i18n>Run (Ctrl+Enter)</ion-button>
+        @if (queryResult) {
+          <span class="total" i18n>{{ queryResult.total | number }} matching documents</span>
+          <ion-button size="small" fill="clear" [disabled]="queryPage <= 1 || queryRunning" (click)="runQuery(queryPage - 1)" aria-label="Previous page" i18n-aria-label><ion-icon slot="icon-only" name="chevron-back-outline"></ion-icon></ion-button>
+          <span>{{ queryPage }} / {{ queryPageCount }}</span>
+          <ion-button size="small" fill="clear" [disabled]="queryPage >= queryPageCount || queryRunning" (click)="runQuery(queryPage + 1)" aria-label="Next page" i18n-aria-label><ion-icon slot="icon-only" name="chevron-forward-outline"></ion-icon></ion-button>
+        }
+      </div>
+      @if (queryError) {
+        <p class="error" role="alert">{{ queryError }}</p>
+      }
+      @if (queryResult?.data?.length) {
+        <div class="table-wrapper">
+          <table class="results">
+            <thead>
+              <tr>
+                @for (column of queryColumns; track column) { <th>{{ column }}</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of queryResult.data; track $index) {
+                <tr>
+                  @for (column of queryColumns; track column) { <td [title]="displayValue(row[column])">{{ displayValue(row[column]) }}</td> }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <h4 i18n>Mapping</h4>
+      @if (mappingError) {
+        <p class="error" role="alert">{{ mappingError }}</p>
+      } @else if (mapping) {
+        <div class="mapping"><ngx-json-viewer [json]="mapping" [expanded]="false"></ngx-json-viewer></div>
+      }
+
+      <h4 i18n>Delete the index</h4>
+      <p class="hint" i18n>Index deletion is not available from DAAV. To delete this index, run:</p>
+      <div class="command">
+        <code>{{ deleteCommand }}</code>
+        <ion-button size="small" fill="clear" (click)="copy(deleteCommand)" i18n>Copy</ion-button>
+      </div>
+    </section>
+  }
+
+  <!-- Create an index -->
+  <section class="card">
+    <div class="section-title">
+      <h3 i18n>Create an index</h3>
+    </div>
+    <ion-input [(ngModel)]="newIndexName" label="Index name" i18n-label labelPlacement="stacked" fill="outline"
+      placeholder="my-index" helperText="Lowercase letters, digits, '-', '_' and '.'" i18n-helperText></ion-input>
+    <ion-textarea [(ngModel)]="newIndexMappings" label="Mappings (optional JSON)" i18n-label labelPlacement="stacked"
+      fill="outline" [autoGrow]="true" rows="3"
+      placeholder='{"properties": {"title": {"type": "text"}, "price": {"type": "double"}}}'></ion-textarea>
+    <div class="actions">
+      <ion-button size="small" (click)="createIndex()" [disabled]="!newIndexName.trim() || creating" i18n>Create</ion-button>
+      @if (createMessage) { <span class="success" role="status">{{ createMessage }}</span> }
+    </div>
+    @if (createError) {
+      <p class="error" role="alert">{{ createError }}</p>
+    }
+  </section>
+</div>

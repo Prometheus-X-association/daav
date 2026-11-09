@@ -1,5 +1,11 @@
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel
+from beanie import Document
+from pydantic import BaseModel, Field
+from pymongo import ASCENDING, IndexModel
+
+# Service chain data not retrieved/deleted by the frontend expires after this delay
+SERVICE_CHAIN_DATA_TTL_SECONDS = 24 * 3600
 
 
 class EndpointDataProvider(BaseModel):
@@ -43,3 +49,21 @@ class PdcChainHeaders(BaseModel):
     x_ptx_service_chain_id: str | None = None
     x_ptx_target_id: str | None = None
 
+
+class ServiceChainData(Document):
+    """Data received from a PDC service chain for one user, shared by all backend workers"""
+    id: Optional[str] = Field(default=None, alias="_id", description="<service chain ID>:<user ID>")
+    service_chain_id: str
+    user_id: str = Field(..., description="User authenticated by the PDC request, the only one allowed to read the data")
+    data: Any = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @staticmethod
+    def document_id(service_chain_id: str, user_id: str) -> str:
+        return f"{service_chain_id}:{user_id}"
+
+    class Settings:
+        name = "service_chain_data"
+        indexes = [
+            IndexModel([("created_at", ASCENDING)], expireAfterSeconds=SERVICE_CHAIN_DATA_TTL_SECONDS)
+        ]
