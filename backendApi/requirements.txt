@@ -34,7 +34,8 @@ python-multipart==0.0.29
 httpx==0.28.1
 gunicorn==26.0.0
 jsonschema==4.26.0
-python-jose[cryptography]==3.5.0
+PyJWT==2.15.1
+cryptography==46.0.5
 passlib[argon2]==1.7.4
 pydantic[email]==2.13.4
 aiosmtplib==5.1.0

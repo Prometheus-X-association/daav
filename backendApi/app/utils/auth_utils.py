@@ -3,7 +3,8 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, TypedDict
 from fastapi.datastructures import Headers
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError as JWTError
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 from app.models.interface.auth_interface import TokenData
