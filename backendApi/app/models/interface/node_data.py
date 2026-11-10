@@ -5,11 +5,30 @@ from pandas import DataFrame
 import pandas as pd
 import pyarrow as pyarrow
 from pyarrow.parquet import ParquetSchema
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, WithJsonSchema, field_serializer
 from app.models.interface.dataset_schema import MysqlSchema, PandasSchema
 
 T = TypeVar('T')
 D = TypeVar('D')
+
+# Pydantic cannot describe these types in the OpenAPI schema: describe what their serializers return
+JsonDataFrame = Annotated[DataFrame, WithJsonSchema({
+    "type": "object",
+    "additionalProperties": {"type": "object"},
+    "description": "Data sample, by column then by row index (DataFrame.to_dict())",
+})]
+JsonParquetSchema = Annotated[ParquetSchema, WithJsonSchema({
+    "type": "object",
+    "properties": {"fields": {"type": "array", "items": {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "physical_type": {"type": "string"},
+            "logical_type": {"type": ["string", "null"]},
+        },
+    }}},
+    "description": "Parquet columns",
+})]
 
 class NodeData(BaseModel, Generic[T, D]):
     model_config = {
@@ -34,7 +53,7 @@ class NodeDataMysql(NodeData[MysqlSchema, dict]):
 class NodeDataJson(NodeData[dict, dict]):
     type: Literal['json'] = 'json' 
 
-class NodeDataPandasDf(NodeData[PandasSchema, DataFrame]):
+class NodeDataPandasDf(NodeData[PandasSchema, JsonDataFrame]):
     type: Literal['pandasdf'] = 'pandasdf'
 
     @field_serializer('dataExample')
@@ -81,7 +100,7 @@ class NodeDataPandasDf(NodeData[PandasSchema, DataFrame]):
             # Return unchanged for other types
             return value
 
-class NodeDataParquet(NodeData[ParquetSchema, str]):
+class NodeDataParquet(NodeData[JsonParquetSchema, str]):
     type: Literal['parquet'] = 'parquet'
 
     @field_serializer('dataExample')
