@@ -26,6 +26,28 @@ if [ ! -f "backendApi/.env" ]; then
     echo "✅ .env file created. You can modify it if needed."
 fi
 
+# Create the initial admin password (Docker secret) if it doesn't exist
+if [ ! -f "secrets/admin_firstlaunch" ]; then
+    echo "🔑 Generating the initial admin password..."
+    mkdir -p secrets
+    python3 -c "import secrets; print(secrets.token_urlsafe(16) + '-Aa1')" > secrets/admin_firstlaunch
+    echo "✅ Password written to secrets/admin_firstlaunch (user: admin). It must be changed at first login."
+fi
+
+# Create the MongoDB root password (Docker secret) if it doesn't exist
+if [ ! -f "secrets/mongo_root_password" ]; then
+    # An existing database keeps the password it was created with (admin123 before the secrets were introduced)
+    if docker volume ls -q | grep -q "mongodb-data$"; then
+        echo "❌ secrets/mongo_root_password is missing but a MongoDB volume already exists."
+        echo "   See \"Changing the MongoDB password\" in DOCKER_DEPLOYMENT.md to set it."
+        exit 1
+    fi
+    echo "🔑 Generating the MongoDB password..."
+    mkdir -p secrets
+    python3 -c "import secrets; print(secrets.token_urlsafe(24))" > secrets/mongo_root_password
+    echo "✅ Password written to secrets/mongo_root_password (also used for the Mongo Express login)."
+fi
+
 # Function to display options
 show_menu() {
     echo ""
@@ -60,7 +82,7 @@ start_with_admin() {
     echo "🌐 Service access:"
     echo "   - Frontend:      http://localhost:8080"
     echo "   - Backend:       http://localhost:8081"
-    echo "   - Mongo Express: http://localhost:8083 (admin/admin123)"
+    echo "   - Mongo Express: http://localhost:8083 (admin / content of secrets/mongo_root_password)"
 }
 
 # Function to stop services

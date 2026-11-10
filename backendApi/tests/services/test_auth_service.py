@@ -170,23 +170,8 @@ async def test_login_updates_last_login(auth_service_instance, test_user):
 
 
 @pytest.mark.asyncio
-async def test_login_with_default_password_requires_change(auth_service_instance, test_admin):
-    """Test that logging in with the default admin password requires a password change"""
-    assert test_admin.must_change_password is False
-    
-    with patch('app.services.auth_service.verify_password', return_value=True), \
-         patch('app.services.auth_service.create_access_token', return_value="access_token"), \
-         patch('app.services.auth_service.create_refresh_token', return_value="refresh_token"):
-        
-        await auth_service_instance.login("adminuser", "Admin123!")
-        
-        updated_admin = await User.get(test_admin.id)
-        assert updated_admin.must_change_password is True
-
-
-@pytest.mark.asyncio
-async def test_login_with_custom_password_does_not_require_change(auth_service_instance, test_user):
-    """Test that logging in with a non-default password does not require a password change"""
+async def test_login_does_not_require_change(auth_service_instance, test_user):
+    """Test that logging in does not set a pending password change by itself"""
     with patch('app.services.auth_service.verify_password', return_value=True), \
          patch('app.services.auth_service.create_access_token', return_value="access_token"), \
          patch('app.services.auth_service.create_refresh_token', return_value="refresh_token"):

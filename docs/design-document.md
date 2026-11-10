@@ -523,8 +523,11 @@ git clone https://github.com/Prometheus-X-association/daav.git
 cd daav
 ```
 
-2. Start the services:
+2. Create the required Docker secrets (initial admin password, MongoDB password) and start the services:
 ```bash
+mkdir -p secrets
+python3 -c "import secrets; print(secrets.token_urlsafe(16) + '-Aa1')" > secrets/admin_firstlaunch
+python3 -c "import secrets; print(secrets.token_urlsafe(24))" > secrets/mongo_root_password
 docker-compose up -d
 ```
 
@@ -534,12 +537,12 @@ docker-compose up -d
    - **Frontend**: http://localhost:8080
    - **Backend API**: http://localhost:8081
    - **API Documentation**: http://localhost:8081/docs
-   - **MongoDB**: not published on the host; reachable from the containers at mongodb://admin:admin123@mongodb:27017 (optional Mongo Express UI on http://localhost:8083 with `docker-compose --profile admin up -d`)
+   - **MongoDB**: not published on the host; reachable from the containers at mongodb://mongodb:27017 with the user `admin` and the password in `secrets/mongo_root_password` (optional Mongo Express UI on http://localhost:8083 with `docker-compose --profile admin up -d`, same login)
 
 ### Default Credentials
 
 - Username: `admin`
-- Password: `Admin123!`
+- Password: the content of `secrets/admin_firstlaunch`
 
 A password change is required at first login before the application can be used.
 
@@ -739,7 +742,7 @@ Small manual tests to prove individual features work correctly.
 **Steps:**
 1. Access the login page
 2. Enter username: `admin`
-3. Enter password: `Admin123!`
+3. Enter password: the content of `secrets/admin_firstlaunch`
 4. Click "Login" button
 
 **Expected Result:** User is logged in and redirected to the main dashboard (on first login with the default password, the user is first redirected to the change password page).

@@ -25,8 +25,15 @@ DAAV enables you to:
 ```bash
 git clone https://github.com/Prometheus-X-association/daav.git
 cd daav
+# Required Docker secrets: password of the "admin" account created on first start, and MongoDB password
+mkdir -p secrets
+python3 -c "import secrets; print(secrets.token_urlsafe(16) + '-Aa1')" > secrets/admin_firstlaunch
+python3 -c "import secrets; print(secrets.token_urlsafe(24))" > secrets/mongo_root_password
 docker-compose up -d
 ```
+
+Log in with the user `admin` and the content of `secrets/admin_firstlaunch`; a password change is required at first login.
+`./docker-start.sh` creates these files automatically when they are missing.
 
 **Access**:
 - **Application**: http://localhost:8080
@@ -42,7 +49,7 @@ docker-compose up -d
 | Mongo Express | 8083 | Database admin (optional, `admin` profile) |
 | Elasticsearch | 9200 | Test node (optional, `elastic` profile, published on 127.0.0.1 only) |
 
-> ⚠️ The default MongoDB credentials in `docker-compose.yml` (`admin/admin123`) are for local use only — change them before any deployment.
+> ⚠️ The MongoDB password is the `secrets/mongo_root_password` Docker secret (user `admin`, also the Mongo Express login). It is only applied when the database volume is created: databases created before this secret still use `admin123` until it is changed (see [Changing the MongoDB password](DOCKER_DEPLOYMENT.md#changing-the-mongodb-password)).
 > `JWT_SECRET_KEY` and `FIELD_ENCRYPTION_KEY` have no default value: on first start, temporary keys are generated and an error is logged until you copy them to your configuration and save them in a secrets vault (see [Application secrets](docs/SECURITY.md#application-secrets)).
 
 #### Useful Docker Commands
@@ -88,8 +95,14 @@ cp .env.example .env  # Configure your variables
 uvicorn app.main:app --reload --port 8000
 ```
 
-On first launch (when no user exists) the backend creates a default admin user:
-Username: `admin`, Password: `Admin123!`.
+On first launch (when no user exists) the backend creates an admin user named `admin`, whose password is read
+from the file set by `ADMIN_PASSWORD_FILE` (default: `/run/secrets/admin_firstlaunch`, the Docker secret).
+Outside Docker, create the file and point to it in `.env`:
+```bash
+mkdir -p secrets && python3 -c "import secrets; print(secrets.token_urlsafe(16) + '-Aa1')" > secrets/admin_firstlaunch
+echo "ADMIN_PASSWORD_FILE=secrets/admin_firstlaunch" >> .env
+```
+If the file is missing or the password does not meet the password policy, no admin is created and an error is logged.
 A password change is required at first login: until it is done, the API only allows
 `GET /auth/me` and `POST /auth/change-password`, and the frontend redirects to the change password page.
 

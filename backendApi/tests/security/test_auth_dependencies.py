@@ -58,14 +58,20 @@ async def test_inactive_user_blocked_on_password_change_endpoints(mock_user):
 # ============================================
 
 @pytest.mark.asyncio
-async def test_default_admin_must_change_password_before_api_access():
+async def test_default_admin_must_change_password_before_api_access(tmp_path, monkeypatch):
     """Test the full flow: default admin login, blocked access, password change, access granted"""
     from fastapi import FastAPI
     from httpx import ASGITransport, AsyncClient
 
+    from app.config.settings import settings
     from app.middleware.auth import CurrentUser
     from app.routes.auth import router as auth_router
-    from app.services.user_service import UserService, DEFAULT_ADMIN_PASSWORD
+    from app.services.user_service import UserService
+
+    DEFAULT_ADMIN_PASSWORD = "First-Launch-42"
+    password_file = tmp_path / "admin_firstlaunch"
+    password_file.write_text(DEFAULT_ADMIN_PASSWORD + "\n")
+    monkeypatch.setattr(settings, "admin_password_file", str(password_file))
 
     await UserService().ensure_admin_exists()
 

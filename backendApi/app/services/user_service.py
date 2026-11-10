@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
@@ -12,11 +13,34 @@ from app.models.interface.workflow_interface import IProject
 from app.utils.auth_utils import get_password_hash, verify_password
 from app.utils.singleton import SingletonMeta
 from app.enums.user_role import UserRole
+from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
-# Password of the admin account created on first startup; it must be changed on first login
-DEFAULT_ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD_GENERATION_HINT = (
+    "Generate it with: python3 -c \"import secrets; print(secrets.token_urlsafe(16) + '-Aa1')\" "
+    "> secrets/admin_firstlaunch"
+)
+
+
+def read_initial_admin_password() -> str:
+    """
+    Read the password of the admin account created on first start from ADMIN_PASSWORD_FILE
+    (the Docker secret /run/secrets/admin_firstlaunch by default).
+
+    Raises:
+        RuntimeError: If the file is missing, unreadable or empty
+    """
+    path = Path(settings.admin_password_file)
+    try:
+        password = path.read_text(encoding="utf-8").strip()
+    except OSError as e:
+        raise RuntimeError(
+            f"Cannot read the initial admin password from {path} ({e.strerror}). {ADMIN_PASSWORD_GENERATION_HINT}"
+        ) from e
+    if not password:
+        raise RuntimeError(f"The initial admin password file {path} is empty. {ADMIN_PASSWORD_GENERATION_HINT}")
+    return password
 
 
 class UserService(metaclass=SingletonMeta):
@@ -363,22 +387,30 @@ class UserService(metaclass=SingletonMeta):
             
             if user_count == 0:
                 logger.info("No users found, creating default admin user")
-                
-                # Create default admin
-                admin_data = UserCreate(
-                    username="admin",
-                    email="admin@example.com",
-                    full_name="System Administrator",
-                    password=DEFAULT_ADMIN_PASSWORD,
-                    role=UserRole.ADMIN
-                )
+
+                password = read_initial_admin_password()
+                try:
+                    admin_data = UserCreate(
+                        username="admin",
+                        email="admin@example.com",
+                        full_name="System Administrator",
+                        password=password,
+                        role=UserRole.ADMIN
+                    )
+                except ValueError as e:
+                    # Do not include the validation error: it would print the password in the logs
+                    raise RuntimeError(
+                        f"The initial admin password in {settings.admin_password_file} does not meet the "
+                        "password policy (at least 8 characters, one uppercase letter, one lowercase letter "
+                        f"and one special character). {ADMIN_PASSWORD_GENERATION_HINT}"
+                    ) from None
 
                 admin = await self.create_user(admin_data)
                 admin.must_change_password = True
                 await admin.save()
                 logger.warning(
-                    f"⚠️ DEFAULT ADMIN CREATED - Username: admin, Password: {DEFAULT_ADMIN_PASSWORD} "
-                    "- A password change will be required on first login"
+                    f"⚠️ DEFAULT ADMIN CREATED - Username: admin, Password: the content of "
+                    f"{settings.admin_password_file} - A password change will be required on first login"
                 )
                 return admin
             

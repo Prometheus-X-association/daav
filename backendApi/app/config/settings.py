@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     # Database
     mongodb_url: str = "mongodb://localhost:27017"
     database_name: str = "daav_datasets"
+    mongodb_username: Optional[str] = Field(
+        default=None,
+        description="MongoDB user, used instead of the credentials of MONGODB_URL when MONGODB_PASSWORD_FILE is set"
+    )
+    mongodb_password_file: Optional[str] = Field(
+        default=None,
+        description="File holding the MongoDB password (e.g. the Docker secret /run/secrets/mongo_root_password)"
+    )
     
     # Logging
     log_level: str = "INFO"
@@ -99,6 +107,15 @@ class Settings(BaseSettings):
         default="secrets",
         validate_default=True,
         description="Directory where temporary secrets (<NAME>_TMP) are generated when they are not configured"
+    )
+
+    admin_password_file: str = Field(
+        default="/run/secrets/admin_firstlaunch",
+        description=(
+            "File holding the password of the admin account created on first start (when no user exists). "
+            "It must be changed at first login. "
+            "Generate with: python3 -c \"import secrets; print(secrets.token_urlsafe(16) + '-Aa1')\""
+        )
     )
 
     # Secrets using a generated temporary value: {name: file path}

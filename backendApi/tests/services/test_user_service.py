@@ -954,20 +954,75 @@ async def test_remove_workflow_ownership_success(user_service_instance):
 # ADMIN MANAGEMENT TESTS
 # ============================================
 
+@pytest.fixture
+def admin_password_file(tmp_path, monkeypatch):
+    """Point ADMIN_PASSWORD_FILE to a temporary file and return its path"""
+    from app.config.settings import settings
+
+    path = tmp_path / "admin_firstlaunch"
+    monkeypatch.setattr(settings, "admin_password_file", str(path))
+    return path
+
+
 @pytest.mark.asyncio
-async def test_ensure_admin_exists_creates_default(user_service_instance):
-    """Test creating default admin when no users exist"""
+async def test_ensure_admin_exists_creates_default(user_service_instance, admin_password_file):
+    """Test creating the initial admin with the password of ADMIN_PASSWORD_FILE when no users exist"""
+    admin_password_file.write_text("First-Launch-42\n")
     with patch.object(User, 'count', new_callable=AsyncMock) as mock_count, \
          patch.object(user_service_instance, 'create_user', new_callable=AsyncMock) as mock_create:
         mock_count.return_value = 0
         mock_create.return_value = Mock(spec=User, username="admin", role=UserRole.ADMIN, save=AsyncMock())
-        
+
         result = await user_service_instance.ensure_admin_exists()
-        
+
         assert result.role == UserRole.ADMIN
         assert result.must_change_password is True
         result.save.assert_called_once()
         mock_create.assert_called_once()
+        # The trailing newline written by print() is removed
+        assert mock_create.call_args.args[0].password == "First-Launch-42"
+
+
+@pytest.mark.asyncio
+async def test_ensure_admin_exists_requires_password_file(user_service_instance, admin_password_file):
+    """Test that no admin is created when ADMIN_PASSWORD_FILE is missing"""
+    with patch.object(User, 'count', new_callable=AsyncMock) as mock_count, \
+         patch.object(user_service_instance, 'create_user', new_callable=AsyncMock) as mock_create:
+        mock_count.return_value = 0
+
+        with pytest.raises(RuntimeError, match="Cannot read the initial admin password"):
+            await user_service_instance.ensure_admin_exists()
+
+        mock_create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_ensure_admin_exists_rejects_empty_password_file(user_service_instance, admin_password_file):
+    """Test that no admin is created when ADMIN_PASSWORD_FILE is empty"""
+    admin_password_file.write_text("\n")
+    with patch.object(User, 'count', new_callable=AsyncMock) as mock_count, \
+         patch.object(user_service_instance, 'create_user', new_callable=AsyncMock) as mock_create:
+        mock_count.return_value = 0
+
+        with pytest.raises(RuntimeError, match="is empty"):
+            await user_service_instance.ensure_admin_exists()
+
+        mock_create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_ensure_admin_exists_rejects_weak_password(user_service_instance, admin_password_file):
+    """Test that a password not meeting the policy is refused without being logged in the error"""
+    admin_password_file.write_text("weakpassword")
+    with patch.object(User, 'count', new_callable=AsyncMock) as mock_count, \
+         patch.object(user_service_instance, 'create_user', new_callable=AsyncMock) as mock_create:
+        mock_count.return_value = 0
+
+        with pytest.raises(RuntimeError, match="does not meet the password policy") as exc_info:
+            await user_service_instance.ensure_admin_exists()
+
+        assert "weakpassword" not in str(exc_info.value)
+        mock_create.assert_not_called()
 
 
 @pytest.mark.asyncio
