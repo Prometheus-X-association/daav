@@ -95,10 +95,6 @@
   "overrides": {
     "tar": "7.5.22",
     "serialize-javascript": "7.0.4",
-    "picomatch": "4.0.4",
-    "ngx-query-builder": {
-      "@angular/core": "$@angular/core",
-      "@angular/common": "$@angular/common"
-    }
+    "picomatch": "4.0.4"
   }
 }
