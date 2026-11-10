@@ -571,7 +571,7 @@ async def test_can_access_dataset_owner(user_service_instance, mock_user):
     dataset_id = "dataset_123"
     mock_user.owned_datasets = [dataset_id]
     
-    result = await user_service_instance.can_access_dataset(mock_user, dataset_id)
+    result = user_service_instance.can_access_dataset(mock_user, dataset_id)
     
     assert result is True
 
@@ -583,7 +583,7 @@ async def test_can_access_dataset_shared(user_service_instance, mock_user):
     mock_user.owned_datasets = []
     mock_user.shared_datasets = [dataset_id]
     
-    result = await user_service_instance.can_access_dataset(mock_user, dataset_id)
+    result = user_service_instance.can_access_dataset(mock_user, dataset_id)
     
     assert result is True
 
@@ -595,7 +595,7 @@ async def test_can_access_dataset_admin(user_service_instance, mock_admin_user):
     mock_admin_user.owned_datasets = []
     mock_admin_user.shared_datasets = []
     
-    result = await user_service_instance.can_access_dataset(mock_admin_user, dataset_id)
+    result = user_service_instance.can_access_dataset(mock_admin_user, dataset_id)
     
     assert result is True
 
@@ -608,7 +608,7 @@ async def test_can_access_dataset_denied(user_service_instance, mock_user):
     mock_user.shared_datasets = []
     mock_user.role = UserRole.USER
     
-    result = await user_service_instance.can_access_dataset(mock_user, dataset_id)
+    result = user_service_instance.can_access_dataset(mock_user, dataset_id)
     
     assert result is False
 
@@ -619,7 +619,7 @@ async def test_can_modify_dataset_owner(user_service_instance, mock_user):
     dataset_id = "dataset_123"
     mock_user.owned_datasets = [dataset_id]
     
-    result = await user_service_instance.can_modify_dataset(mock_user, dataset_id)
+    result = user_service_instance.can_modify_dataset(mock_user, dataset_id)
     
     assert result is True
 
@@ -632,7 +632,7 @@ async def test_can_modify_dataset_shared_denied(user_service_instance, mock_user
     mock_user.shared_datasets = [dataset_id]
     mock_user.role = UserRole.USER
     
-    result = await user_service_instance.can_modify_dataset(mock_user, dataset_id)
+    result = user_service_instance.can_modify_dataset(mock_user, dataset_id)
     
     assert result is False
 
@@ -643,7 +643,7 @@ async def test_can_access_workflow_owner(user_service_instance, mock_user):
     workflow_id = "workflow_123"
     mock_user.owned_workflows = [workflow_id]
     
-    result = await user_service_instance.can_access_workflow(mock_user, workflow_id)
+    result = user_service_instance.can_access_workflow(mock_user, workflow_id)
     
     assert result is True
 
@@ -654,7 +654,7 @@ async def test_can_modify_workflow_admin(user_service_instance, mock_admin_user)
     workflow_id = "workflow_123"
     mock_admin_user.owned_workflows = []
     
-    result = await user_service_instance.can_modify_workflow(mock_admin_user, workflow_id)
+    result = user_service_instance.can_modify_workflow(mock_admin_user, workflow_id)
     
     assert result is True
 

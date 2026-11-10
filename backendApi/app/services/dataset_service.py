@@ -134,7 +134,7 @@ class DatasetService(metaclass=SingletonMeta):
 
             # Only check permissions if user is provided
             if user:
-                can_access = await self.user_service.can_access_dataset(user, id)
+                can_access = self.user_service.can_access_dataset(user, id)
                 if not can_access:
                     logger.warning(f"User {user.username} denied access to dataset {id}")
                     raise HTTPException(status_code=403, detail="Access denied")
@@ -156,7 +156,7 @@ class DatasetService(metaclass=SingletonMeta):
             logger.info(f"User {user.username} attempting to delete dataset with ID: {id}")
             
             # Check permission using user_service
-            can_modify = await self.user_service.can_modify_dataset(user, id)
+            can_modify = self.user_service.can_modify_dataset(user, id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to delete dataset {id}")
                 raise HTTPException(status_code=403, detail="Access denied")
@@ -445,7 +445,7 @@ class DatasetService(metaclass=SingletonMeta):
             logger.info(f"User {user.username} editing dataset: {dataset.id}")
             
             # Check permission using user_service
-            can_modify = await self.user_service.can_modify_dataset(user, dataset.id)
+            can_modify = self.user_service.can_modify_dataset(user, dataset.id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to edit dataset {dataset.id}")
                 raise HTTPException(status_code=403, detail="Access denied")

@@ -88,14 +88,14 @@ def test_elastic_error_status_is_returned(client, dataset, es):
 
 
 def test_create_index_owner_only(client, dataset, es):
-    with patch.object(elastic.user_service, "can_modify_dataset", AsyncMock(return_value=False)):
+    with patch.object(elastic.user_service, "can_modify_dataset", Mock(return_value=False)):
         response = client.post("/datasets/ds1/elastic/indices", json={"index": "new"})
     assert response.status_code == 403
     es.create_index.assert_not_called()
 
 
 def test_create_index(client, dataset, es):
-    with patch.object(elastic.user_service, "can_modify_dataset", AsyncMock(return_value=True)):
+    with patch.object(elastic.user_service, "can_modify_dataset", Mock(return_value=True)):
         response = client.post("/datasets/ds1/elastic/indices",
                                json={"index": "new", "mappings": {"properties": {}}})
     assert response.status_code == 201

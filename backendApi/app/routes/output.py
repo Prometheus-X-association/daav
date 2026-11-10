@@ -80,7 +80,7 @@ async def get_output_from_custom_path(custom_path: str, request: Request,):
                 detail="Unable to verify workflow ownership"
             )
         if user:
-            authenticated_users: List[AuthenticatedUser] = await authenticate_m2m_credentials(request.headers, [user])
+            authenticated_users: List[AuthenticatedUser] = authenticate_m2m_credentials(request.headers, [user])
             if not authenticated_users:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -159,7 +159,7 @@ async def get_workflow_output(workflow_id: str, request: Request):
     """
     try:
         all_users = await user_service.get_all_users()
-        authenticated_users: List[AuthenticatedUser] = await authenticate_m2m_credentials(request.headers, all_users)
+        authenticated_users: List[AuthenticatedUser] = authenticate_m2m_credentials(request.headers, all_users)
         if not authenticated_users:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -196,7 +196,7 @@ async def get_workflow_output(workflow_id: str, request: Request):
                 detail="Unable to verify workflow ownership"
             )
         if user:
-            authenticated_users: List[AuthenticatedUser] = await authenticate_m2m_credentials(request.headers, [user])
+            authenticated_users: List[AuthenticatedUser] = authenticate_m2m_credentials(request.headers, [user])
             if not authenticated_users:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

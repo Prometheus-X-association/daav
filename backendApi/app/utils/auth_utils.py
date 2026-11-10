@@ -232,7 +232,7 @@ def ensure_utc_aware(dt: datetime) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
-async def authenticate_m2m_credentials(request_headers: Headers, users: List[User]) -> List[AuthenticatedUser]:
+def authenticate_m2m_credentials(request_headers: Headers, users: List[User]) -> List[AuthenticatedUser]:
     """
     Authenticate M2M requests by matching request headers against user credentials.
     

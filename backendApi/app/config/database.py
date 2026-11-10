@@ -67,7 +67,7 @@ class DatabaseConfig:
     async def disconnect(self):
         """Disconnect from MongoDB"""
         if self.client:
-            self.client.close()
+            await self.client.close()
             logger.info("Database connection closed")
 
 # Global instance

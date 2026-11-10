@@ -250,29 +250,6 @@ class AuthService(metaclass=SingletonMeta):
                 headers={"WWW-Authenticate": "Bearer"},
             )
     
-    async def verify_admin(self, user: User) -> bool:
-        """
-        Verify if user is admin
-        
-        Args:
-            user: User to verify
-            
-        Returns:
-            bool: True if user is admin
-            
-        Raises:
-            HTTPException: If user is not admin
-        """
-        from app.enums.user_role import UserRole
-        
-        if user.role != UserRole.ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required"
-            )
-        
-        return True
-    
     async def forgot_password(self, email: str) -> bool:
         """
         Initiate password reset process

@@ -93,7 +93,7 @@ async def get_mapping(dataset_id: str, index: str, current_user: CurrentUser) ->
 async def create_index(dataset_id: str, request: CreateIndexRequest, current_user: CurrentUser) -> Dict[str, Any]:
     """Create an index (owner only)"""
     dataset = await _get_elastic_dataset(dataset_id, current_user)
-    if not await user_service.can_modify_dataset(current_user, dataset_id):
+    if not user_service.can_modify_dataset(current_user, dataset_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     await asyncio.to_thread(elastic_service.create_index, dataset, request.index,
                             request.mappings, request.settings)

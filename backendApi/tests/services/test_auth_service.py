@@ -310,28 +310,8 @@ async def test_get_current_user_invalid_token(auth_service_instance):
         assert exc_info.value.status_code == 401
 
 
-# ============================================
-# ADMIN VERIFICATION TESTS
-# ============================================
-
 @pytest.mark.asyncio
-async def test_verify_admin_success(auth_service_instance, test_admin):
-    """Test admin verification with admin user"""
-    result = await auth_service_instance.verify_admin(test_admin)
-    
-    assert result is True
-
-
 @pytest.mark.asyncio
-async def test_verify_admin_non_admin_user(auth_service_instance, test_user):
-    """Test admin verification with regular user"""
-    with pytest.raises(HTTPException) as exc_info:
-        await auth_service_instance.verify_admin(test_user)
-    
-    assert exc_info.value.status_code == 403
-    assert "Admin access required" in str(exc_info.value.detail)
-
-
 # ============================================
 # PASSWORD RESET TESTS
 # ============================================

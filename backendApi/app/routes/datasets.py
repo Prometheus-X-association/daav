@@ -1,6 +1,7 @@
 import logging
 import traceback
-from fastapi import APIRouter, Body, HTTPException, Request, status, UploadFile, Depends
+from fastapi import APIRouter, HTTPException, Request, status, UploadFile, Depends
+from fastapi.concurrency import run_in_threadpool
 import httpx
 from app.config.security import SecurityConfig
 from app.middleware.auth import CurrentUser
@@ -195,23 +196,26 @@ async def getContentDataset(request: Request, data: ConnectionInfo, current_user
 
     pagination = data.pagination
     datasetParams = data.datasetParams
+    # The file, MongoDB, MySQL and Elasticsearch readers are synchronous: they run in the thread pool
+    # so that they do not block the event loop (and the other requests) while they wait for I/O
     if isinstance(connection, FileDataset):
         client_ip = request.client.host
         file_path = connection.folder if connection.folder else connection.filePath
         log_file_access(client_ip, file_path, "read")
         try:
-            result  = getFileContent(connection, pagination)            
-        except PermissionError as e:
-            log_file_access(client_ip, file_path, "read_failed")
-        return result
-    elif isinstance(connection, MongoDataset):    
-        return getMongoContent(connection, pagination, datasetParams)
+            return await run_in_threadpool(getFileContent, connection, pagination)
+        except HTTPException as e:
+            if e.status_code == status.HTTP_403_FORBIDDEN:
+                log_file_access(client_ip, file_path, "read_failed")
+            raise
+    elif isinstance(connection, MongoDataset):
+        return await run_in_threadpool(getMongoContent, connection, pagination, datasetParams)
     elif isinstance(connection, MysqlDataset):
-        return getMysqlContent(connection, pagination, datasetParams)
+        return await run_in_threadpool(getMysqlContent, connection, pagination, datasetParams)
     elif isinstance(connection, ApiDataset):
         return await getApiContent(connection, pagination)
     elif  isinstance(connection, ElasticDataset):
-        return getElasticContent(connection, pagination, datasetParams)
+        return await run_in_threadpool(getElasticContent, connection, pagination, datasetParams)
     elif  isinstance(connection, PTXDataset):
         return getPTXContent(connection, pagination, datasetParams)
     else :
@@ -229,23 +233,25 @@ async def getDfContentDataset(request: Request, data: ConnectionInfo, current_us
 
     pagination = data.pagination
     datasetParams = data.datasetParams
+    # Synchronous readers: run in the thread pool so that they do not block the event loop
     if isinstance(connection, FileDataset):
         client_ip = request.client.host
         file_path = connection.folder if connection.folder else connection.filePath
         log_file_access(client_ip, file_path, "read")
         try:
-            result  = dataset_service.getDfFileContentData(connection, pagination )            
-        except PermissionError as e:
-            log_file_access(client_ip, file_path, "read_failed")
-        return result
-    elif isinstance(connection, MongoDataset):    
-        return dataset_service.getDfMongoContent(connection,datasetParams, pagination )
+            return await run_in_threadpool(dataset_service.getDfFileContentData, connection, pagination)
+        except HTTPException as e:
+            if e.status_code == status.HTTP_403_FORBIDDEN:
+                log_file_access(client_ip, file_path, "read_failed")
+            raise
+    elif isinstance(connection, MongoDataset):
+        return await run_in_threadpool(dataset_service.getDfMongoContent, connection, datasetParams, pagination)
     elif isinstance(connection, MysqlDataset):
-        return dataset_service.getDfMysqlContent(connection,datasetParams, pagination)
+        return await run_in_threadpool(dataset_service.getDfMysqlContent, connection, datasetParams, pagination)
     elif isinstance(connection, ApiDataset):
         raise ValueError("Dataset type not handle")     
     elif  isinstance(connection, ElasticDataset):
-        return dataset_service.getDfElasticContent(connection, datasetParams, pagination)
+        return await run_in_threadpool(dataset_service.getDfElasticContent, connection, datasetParams, pagination)
     else :
         raise ValueError("Dataset type not handle")
     
@@ -270,38 +276,6 @@ def getDfFromJson(data: dict, current_user: CurrentUser)-> NodeDataPandasDf:
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error processing data: {err}")
 
-
-async def mysql_content(
-    dataset: MysqlDataset ,
-    pagination: Pagination = Body(..., examples={
-        "page": 1,
-        "perPage": 10
-    }),
-    datasetParams: DatasetParams = Body(..., examples={
-        "default": {
-            "summary": "Dataset parameters example",
-            "value": {
-                "database": "test_db",
-                "table": "test_table"
-            }
-        }
-    })
-) -> MySQLContentResponse:
-    """
-    Retrieve MySQL content based on the provided connection details, pagination, and dataset parameters.
-
-    Returns:
-        MySQLContentResponse: A dictionary containing the following keys:
-            - databases: List of database names (if no database is specified).
-            - tables: List of table names (if no table is specified).
-            - table_description: List of dictionaries describing the table columns.
-            - data: List of dictionaries containing the table data.
-            - total_rows: Total number of rows in the table.
-            - limit: The maximum number of rows displayed.
-            - current_page: Current page number.
-
-    """
-    return getMysqlContent(dataset, pagination, datasetParams)
 
 import mysql.connector 
 from mysql.connector import cursor
@@ -392,36 +366,6 @@ def getMysqlContent(dataset: MysqlDataset, pagination: Pagination, datasetParams
             cursor.close()
         if 'conn' in locals():
             conn.close()
-
-async def mongo_content(
-    dataset: MongoDataset ,
-    pagination: Pagination = Body(..., examples={
-        "page": 1,
-        "perPage": 10
-    }),
-    datasetParams: DatasetParams = Body(..., examples={
-        "default": {
-            "summary": "Dataset parameters example",
-            "value": {
-                "database": "test_db",
-                "collection": "test_collection"
-            }
-        }
-    })
-) -> MongoContentResponse:
-    """
-    Retrieve MongoDB content based on the provided connection details, pagination, and dataset parameters.
-
-    Returns:
-        MongoContentResponse: A dictionary containing the following keys:
-            - databases: List of database names (if no database is specified).
-            - collections: List of collection names (if no collection is specified).
-            - data: List of dictionaries containing the collection data.
-            - total_rows: Total number of rows in the collection.
-            - limit: The maximum number of rows displayed.
-            - current_page: Current page number.
-    """
-    return getMongoContent(dataset, pagination, datasetParams)
 
 def rem_ObjectId(item):
     import bson 
@@ -528,35 +472,6 @@ def getMongoContent(dataset: MongoDataset, pagination: Pagination, datasetParams
         client.close()
 
 
-async def elastic_content(
-    dataset: ElasticDataset,
-    pagination: Pagination = Body(..., examples={
-        "page": 1,
-        "perPage": 10
-    }),
-    datasetParams: DatasetParams = Body(..., examples={
-        "default": {
-            "summary": "Dataset parameters example",
-            "value": {
-                "database": "test_db",
-                "collection": "test_collection"
-            }
-        }
-    })
-) -> ElasticContentResponse:
-    """
-    Retrieve Elasticsearch content based on the provided connection details, pagination, and dataset parameters.
-
-    Returns:
-        ElasticContentResponse: A dictionary containing the following keys:
-            - indices: List of indices names (if no index is specified).
-            - data: List of dictionaries containing the index data.
-            - total_rows: Total number of rows in the index.
-            - limit: The maximum number of rows displayed.
-            - current_page: Current page number.
-    """
-    return getElasticContent(dataset, pagination, datasetParams)
-
 def getElasticContent(dataset: ElasticDataset, pagination: Pagination, datasetParams: DatasetParams) -> ElasticContentResponse:
     service = ElasticService()
     index = dataset.index or datasetParams.index or datasetParams.table
@@ -576,34 +491,6 @@ def getElasticContent(dataset: ElasticDataset, pagination: Pagination, datasetPa
 def getPTXContent(dataset: PTXDataset, pagination: Pagination, datasetParams: DatasetParams):
 
     return dataset
-
-async def api_content(
-    dataset: ApiDataset ,
-    pagination: Pagination = Body(..., examples={
-        "page": 1,
-        "perPage": 10
-    }),
-    datasetParams: DatasetParams = Body(..., examples={
-        "default": {
-            "summary": "Dataset parameters example",
-            "value": {
-                "database": "test_db",
-                "collection": "test_collection"
-            }
-        }
-    })
-) -> ApiContentResponse:
-    """
-    Retrieve Api content based on the provided connection details, pagination, and dataset parameters.
-
-    Returns:
-        ApiContentResponse: A dictionary containing the following keys:
-            - data: List of dictionaries containing the api data.
-            - total_rows: Total number of rows in the api.
-            - limit: The maximum number of rows displayed.
-            - current_page: Current page number.
-    """
-    return await getApiContent(dataset, pagination, datasetParams)
 
 def apiContent(response: str) -> list:
     if 'json' in response.headers['Content-Type']:

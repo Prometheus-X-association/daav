@@ -18,7 +18,7 @@ def m2m_user(mock_user):
 @pytest.mark.asyncio
 async def test_matching_credentials_authenticate(m2m_user):
     """Test that a header matching a configured credential authenticates the user"""
-    result = await authenticate_m2m_credentials(Headers({"X-Api-Key": "secret-value"}), [m2m_user])
+    result = authenticate_m2m_credentials(Headers({"X-Api-Key": "secret-value"}), [m2m_user])
 
     assert len(result) == 1
     assert result[0]["user"] is m2m_user
@@ -29,7 +29,7 @@ async def test_matching_credentials_authenticate(m2m_user):
 @pytest.mark.parametrize("headers", [{"x-api-key": "wrong"}, {"x-api-key": ""}, {}])
 async def test_wrong_or_missing_credentials_rejected(m2m_user, headers):
     """Test that a wrong, empty or missing header does not authenticate the user"""
-    assert await authenticate_m2m_credentials(Headers(headers), [m2m_user]) == []
+    assert authenticate_m2m_credentials(Headers(headers), [m2m_user]) == []
 
 
 @pytest.mark.asyncio
@@ -37,4 +37,4 @@ async def test_inactive_user_rejected(m2m_user):
     """Test that a deactivated account cannot be used through its M2M credentials"""
     m2m_user.is_active = False
 
-    assert await authenticate_m2m_credentials(Headers({"x-api-key": "secret-value"}), [m2m_user]) == []
+    assert authenticate_m2m_credentials(Headers({"x-api-key": "secret-value"}), [m2m_user]) == []

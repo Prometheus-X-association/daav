@@ -99,7 +99,7 @@ async def test_edit_ptx_dataset_preserves_sensitive_fields(dataset_service):
         url="https://pdc.example.com",
     )
 
-    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=AsyncMock(return_value=True)):
+    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=Mock(return_value=True)):
         result = await dataset_service.edit_dataset(updated_dataset, Mock(username="testuser"))
 
     assert result is True
@@ -135,7 +135,7 @@ async def test_edit_mysql_dataset_preserves_sensitive_password(dataset_service):
         user="test_user",
     )
 
-    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=AsyncMock(return_value=True)):
+    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=Mock(return_value=True)):
         result = await dataset_service.edit_dataset(updated_dataset, Mock(username="testuser"))
 
     assert result is True

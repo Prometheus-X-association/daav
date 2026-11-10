@@ -15,7 +15,7 @@ from app.middleware.auth import (
 @pytest.mark.asyncio
 async def test_active_user_allowed(mock_user):
     """Test that an active user without pending password change is allowed"""
-    result = await get_current_active_user(mock_user)
+    result = get_current_active_user(mock_user)
 
     assert result == mock_user
 
@@ -26,7 +26,7 @@ async def test_pending_password_change_blocked(mock_user):
     mock_user.must_change_password = True
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_active_user(mock_user)
+        get_current_active_user(mock_user)
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == PASSWORD_CHANGE_REQUIRED_DETAIL
@@ -37,7 +37,7 @@ async def test_pending_password_change_allowed_on_password_change_endpoints(mock
     """Test that a user who must change their password can still reach the password change endpoints"""
     mock_user.must_change_password = True
 
-    result = await get_current_active_user_pending_password_change(mock_user)
+    result = get_current_active_user_pending_password_change(mock_user)
 
     assert result == mock_user
 
@@ -48,7 +48,7 @@ async def test_inactive_user_blocked_on_password_change_endpoints(mock_user):
     mock_user.is_active = False
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_active_user_pending_password_change(mock_user)
+        get_current_active_user_pending_password_change(mock_user)
 
     assert exc_info.value.status_code == 403
 

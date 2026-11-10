@@ -43,7 +43,7 @@ async def get_current_user(
     return await auth_service.get_current_user(token)
 
 
-async def get_current_active_user_pending_password_change(
+def get_current_active_user_pending_password_change(
     current_user: Annotated[User, Depends(get_current_user)]
 ) -> User:
     """
@@ -69,7 +69,7 @@ async def get_current_active_user_pending_password_change(
     return current_user
 
 
-async def get_current_active_user(
+def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_active_user_pending_password_change)]
 ) -> User:
     """
@@ -92,7 +92,7 @@ async def get_current_active_user(
     return current_user
 
 
-async def require_admin(
+def require_admin(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ) -> User:
     """

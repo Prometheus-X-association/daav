@@ -88,7 +88,7 @@ class WorkflowService(metaclass=SingletonMeta):
             
             # Only check permissions if user is provided
             if user:
-                can_access = await self.user_service.can_access_workflow(user, workflow_id)
+                can_access = self.user_service.can_access_workflow(user, workflow_id)
                 if not can_access:
                     logger.warning(f"User {user.username} denied access to workflow {workflow_id}")
                     raise HTTPException(status_code=403, detail="Access denied")
@@ -155,7 +155,7 @@ class WorkflowService(metaclass=SingletonMeta):
             logger.info(f"User {user.username} updating workflow with ID: {workflow_id}")
             
             # Check permission using user_service
-            can_modify = await self.user_service.can_modify_workflow(user, workflow_id)
+            can_modify = self.user_service.can_modify_workflow(user, workflow_id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to update workflow {workflow_id}")
                 raise HTTPException(status_code=403, detail="Access denied")
@@ -196,7 +196,7 @@ class WorkflowService(metaclass=SingletonMeta):
             logger.info(f"User {user.username} attempting to delete workflow with ID: {workflow_id}")
             
             # Check permission using user_service
-            can_modify = await self.user_service.can_modify_workflow(user, workflow_id)
+            can_modify = self.user_service.can_modify_workflow(user, workflow_id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to delete workflow {workflow_id}")
                 raise HTTPException(status_code=403, detail="Access denied")

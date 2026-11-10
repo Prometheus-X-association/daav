@@ -195,7 +195,7 @@ async def executeChainService(
 ):  
 
     all_users = await user_service.get_all_users()
-    authenticated_users: List[AuthenticatedUser] = await authenticate_m2m_credentials(request.headers, all_users)
+    authenticated_users: List[AuthenticatedUser] = authenticate_m2m_credentials(request.headers, all_users)
     if not authenticated_users:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -274,7 +274,7 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
     
     # M2M Authentication: Get all users and check credentials against user config
     all_users = await user_service.get_all_users()
-    authenticated_users: List[AuthenticatedUser] = await authenticate_m2m_credentials(request.headers, all_users)
+    authenticated_users: List[AuthenticatedUser] = authenticate_m2m_credentials(request.headers, all_users)
     if not authenticated_users:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

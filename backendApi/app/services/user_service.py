@@ -397,7 +397,7 @@ class UserService(metaclass=SingletonMeta):
                         password=password,
                         role=UserRole.ADMIN
                     )
-                except ValueError as e:
+                except ValueError:
                     # Do not include the validation error: it would print the password in the logs
                     raise RuntimeError(
                         f"The initial admin password in {settings.admin_password_file} does not meet the "
@@ -432,7 +432,7 @@ class UserService(metaclass=SingletonMeta):
             logger.error(f"Error ensuring admin exists: {e}", exc_info=True)
             raise
     
-    async def can_access_dataset(self, user: User, dataset_id: str) -> bool:
+    def can_access_dataset(self, user: User, dataset_id: str) -> bool:
         """
         Check if user can access a dataset
         
@@ -457,7 +457,7 @@ class UserService(metaclass=SingletonMeta):
         
         return False
     
-    async def can_modify_dataset(self, user: User, dataset_id: str) -> bool:
+    def can_modify_dataset(self, user: User, dataset_id: str) -> bool:
         """
         Check if user can modify/delete a dataset
         Only owner can modify
@@ -476,7 +476,7 @@ class UserService(metaclass=SingletonMeta):
         # Only owner can modify
         return dataset_id in user.owned_datasets
     
-    async def can_access_workflow(self, user: User, workflow_id: str) -> bool:
+    def can_access_workflow(self, user: User, workflow_id: str) -> bool:
         """
         Check if user can access a workflow
         
@@ -501,7 +501,7 @@ class UserService(metaclass=SingletonMeta):
         
         return False
     
-    async def can_modify_workflow(self, user: User, workflow_id: str) -> bool:
+    def can_modify_workflow(self, user: User, workflow_id: str) -> bool:
         """
         Check if user can modify/delete a workflow
         Only owner can modify
