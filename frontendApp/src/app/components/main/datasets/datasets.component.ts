@@ -4,14 +4,16 @@ import { Dataset } from 'src/app/models/dataset';
 import { DatasetService } from 'src/app/services/dataset.service';
 import { DatasetsModalComponent } from '../../datasets-modal/datasets-modal.component';
 import { LoadingService } from 'src/app/services/loading.service';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonIcon, IonItem, IonList } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { createOutline, trashOutline } from 'ionicons/icons';
 import { NgClass } from '@angular/common';
 
 @Component({
     selector: 'app-datasets',
     templateUrl: './datasets.component.html',
     styleUrls: ['./datasets.component.scss'],
-    imports: [IonicModule, NgClass, DatasetsModalComponent]
+    imports: [IonButton, IonIcon, IonItem, IonList, NgClass, DatasetsModalComponent]
 })
 
 export class DatasetsComponent {
@@ -24,6 +26,10 @@ export class DatasetsComponent {
   @Input() width = "";
   @Output() selectedDataset = new EventEmitter<Dataset>();
   dataset: Dataset;
+
+  constructor() {
+    addIcons({ createOutline, trashOutline });
+  }
 
   openModal(dataset: Dataset){
     this.editDataset = dataset;

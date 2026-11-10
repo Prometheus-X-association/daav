@@ -1,7 +1,9 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { AlertController, IonicModule } from '@ionic/angular';
+import { AlertController, IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonMenu, IonSplitPane, IonRouterLink, IonRouterLinkWithHref } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { gridOutline, keyOutline, lockClosedOutline, logOutOutline, peopleOutline, personCircle, personOutline } from 'ionicons/icons';
 import { filter } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/auth.models';
@@ -23,7 +25,7 @@ export interface AccountSection {
     selector: 'app-account',
     templateUrl: './account.page.html',
     styleUrls: ['./account.page.scss'],
-    imports: [IonicModule, AppToolbarComponent, RouterLink, RouterLinkActive, RouterOutlet]
+    imports: [IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonMenu, IonSplitPane, IonRouterLink, IonRouterLinkWithHref, AppToolbarComponent, RouterLink, RouterLinkActive, RouterOutlet]
 })
 export class AccountPage implements OnInit {
   private readonly authService = inject(AuthService);
@@ -61,6 +63,10 @@ export class AccountPage implements OnInit {
       adminOnly: true
     }
   ];
+
+  constructor() {
+    addIcons({ gridOutline, keyOutline, lockClosedOutline, logOutOutline, peopleOutline, personCircle, personOutline });
+  }
 
   ngOnInit() {
     this.authService.currentUser$

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { CheckboxWidgetComponent, CheckboxControl } from './checkbox-widget.component';
 
@@ -9,7 +9,8 @@ describe('CheckboxWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), MatCheckboxModule, CheckboxWidgetComponent]
+    imports: [MatCheckboxModule, CheckboxWidgetComponent],
+    providers: [provideIonicAngular()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(CheckboxWidgetComponent);

@@ -1,14 +1,16 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ToastController, LoadingController, AlertController, IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController, AlertController, IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { alertCircle, alertCircleOutline, arrowBackOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, mailOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-reset-password',
     templateUrl: './reset-password.page.html',
     styleUrls: ['./reset-password.page.scss'],
-    imports: [IonicModule, FormsModule, ReactiveFormsModule]
+    imports: [IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar, FormsModule, ReactiveFormsModule]
 })
 export class ResetPasswordPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -23,6 +25,10 @@ export class ResetPasswordPage implements OnInit {
   loading = false;
   token: string = '';
   tokenValid = true;
+
+  constructor() {
+    addIcons({ alertCircle, alertCircleOutline, arrowBackOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, mailOutline });
+  }
 
   ngOnInit() {
     // Get token from query parameters

@@ -1,14 +1,16 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ToastController, LoadingController, IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController, IonButton, IonCheckbox, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, lockClosed, lockClosedOutline, personOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-login',
     templateUrl: './login.page.html',
     styleUrls: ['./login.page.scss'],
-    imports: [IonicModule, FormsModule, ReactiveFormsModule]
+    imports: [IonButton, IonCheckbox, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar, FormsModule, ReactiveFormsModule]
 })
 export class LoginPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -21,6 +23,10 @@ export class LoginPage implements OnInit {
   loginForm!: FormGroup;
   loading = false;
   returnUrl: string = '/';
+
+  constructor() {
+    addIcons({ alertCircleOutline, lockClosed, lockClosedOutline, personOutline });
+  }
 
   ngOnInit() {
     // Initialize form

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { MatDialogRef } from '@angular/material/dialog';
 
 import { WorkflowUpdateRulesModalComponent } from './workflow-update-rules-modal.component';
@@ -10,8 +10,9 @@ describe('WorkflowUpdateRulesModalComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot(), WorkflowUpdateRulesModalComponent],
+      imports: [WorkflowUpdateRulesModalComponent],
       providers: [
+        provideIonicAngular(),
         { provide: MatDialogRef, useValue: jasmine.createSpyObj('MatDialogRef', ['close']) }
       ]
     }).compileComponents();

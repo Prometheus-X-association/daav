@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
 import { OverlayEventDetail } from '@ionic/core';
 import { ClassicPreset } from 'rete';
 import { ColumnMapping, DatasetMapper } from 'src/app/models/data-mapper-types';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonContent, IonHeader, IonModal, IonTitle } from '@ionic/angular/standalone';
 import { DataMapperComponent } from '../../data-mapper/data-mapper.component';
 import { HasDatasetsPipe } from '../../../models/data-mapper-types';
 
@@ -22,7 +22,7 @@ export class DataMapperControl extends ClassicPreset.Control {
     selector: 'app-data-mapper-widget',
     templateUrl: './data-mapper-widget.component.html',
     styleUrls: ['./data-mapper-widget.component.scss'],
-    imports: [IonicModule, DataMapperComponent, HasDatasetsPipe]
+    imports: [IonButton, IonContent, IonHeader, IonModal, IonTitle, DataMapperComponent, HasDatasetsPipe]
 })
 export class DataMapperWidgetComponent{
 

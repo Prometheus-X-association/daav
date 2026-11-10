@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { JsonInputsWidgetComponent, JsonInputsControl } from './json-inputs-widget.component';
 
 describe('JsonInputsWidgetComponent', () => {
@@ -8,7 +8,8 @@ describe('JsonInputsWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), JsonInputsWidgetComponent]
+    imports: [JsonInputsWidgetComponent],
+    providers: [provideIonicAngular()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(JsonInputsWidgetComponent);

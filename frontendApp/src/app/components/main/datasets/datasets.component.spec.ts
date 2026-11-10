@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA, Component, Input } from '@angular/core';
 import { DatasetsComponent } from './datasets.component';
@@ -24,8 +24,9 @@ describe('DatasetsComponent', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
     schemas: [NO_ERRORS_SCHEMA],
-    imports: [IonicModule.forRoot(), DatasetsComponent, DatasetsModalStubComponent],
+    imports: [DatasetsComponent, DatasetsModalStubComponent],
     providers: [
+        provideIonicAngular(),
         { provide: LoadingService, useValue: jasmine.createSpyObj('LoadingService', ['show', 'hide']) },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()

@@ -8,7 +8,9 @@ import {
   inject,
 } from '@angular/core';
 import { FormControl, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { IonModal, IonicModule } from '@ionic/angular';
+import { IonModal, IonButton, IonCard, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonNote, IonRadio, IonRadioGroup, IonSelect, IonSelectOption, IonTitle, IonToggle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { logoIonic } from 'ionicons/icons';
 import { Dataset } from 'src/app/models/dataset';
 import { DatasetType } from 'src/app/enums/dataset-type';
 import { DatasetService } from 'src/app/services/dataset.service';
@@ -17,7 +19,7 @@ import { DatasetService } from 'src/app/services/dataset.service';
     selector: 'app-datasets-modal',
     templateUrl: './datasets-modal.component.html',
     styleUrls: ['./datasets-modal.component.scss'],
-    imports: [IonicModule, FormsModule, ReactiveFormsModule]
+    imports: [IonButton, IonCard, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonRadio, IonRadioGroup, IonSelect, IonSelectOption, IonTitle, IonToggle, IonToolbar, FormsModule, ReactiveFormsModule]
 })
 export class DatasetsModalComponent implements OnChanges {
   datasetService = inject(DatasetService);
@@ -114,6 +116,7 @@ export class DatasetsModalComponent implements OnChanges {
   public isCsvFile: boolean = false;
 
   constructor() {
+    addIcons({ logoIonic });
     this.formDatabase = new FormGroup({
       name: new FormControl<string | null>('', Validators.required),
       type: new FormControl<string | null>('', Validators.required),

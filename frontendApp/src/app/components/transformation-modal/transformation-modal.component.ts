@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { IonHeader, IonModal, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 
 @Component({
     selector: 'app-transformation-modal',
     templateUrl: './transformation-modal.component.html',
     styleUrls: ['./transformation-modal.component.scss'],
-    imports: [IonicModule]
+    imports: [IonHeader, IonModal, IonTitle, IonToolbar]
 })
 export class TransformationModalComponent {
 

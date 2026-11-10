@@ -1,6 +1,6 @@
 import '@angular/localize/init';
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { HttpEventType } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
@@ -21,8 +21,8 @@ describe('DatasetsModalComponent', () => {
     datasetServiceSpy.uploadFile.and.returnValue(of());
 
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), HttpClientTestingModule, DatasetsModalComponent],
-    providers: [{ provide: DatasetService, useValue: datasetServiceSpy }]
+    imports: [HttpClientTestingModule, DatasetsModalComponent],
+    providers: [provideIonicAngular(), { provide: DatasetService, useValue: datasetServiceSpy }]
 }).compileComponents();
 
     fixture = TestBed.createComponent(DatasetsModalComponent);

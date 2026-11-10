@@ -21,7 +21,7 @@ import {
   CheckboxControlI,
 } from 'src/app/components/widgets/checkbox-widget/checkbox-widget.component';
 import { HttpClient } from '@angular/common/http';
-import { AlertController } from '@ionic/angular';
+import { AlertController } from '@ionic/angular/standalone';
 
 export class InputDataBlock<
   G = DatasetSchema,

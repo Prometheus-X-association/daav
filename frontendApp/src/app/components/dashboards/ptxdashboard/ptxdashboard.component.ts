@@ -1,7 +1,9 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { DashboardComponent } from '../dashboard/dashboard.component';
 import { CommonModule } from '@angular/common';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonSkeletonText } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chevronDownOutline, chevronUpOutline, repeatOutline, swapHorizontalOutline, timeOutline } from 'ionicons/icons';
 import {
   MatSnackBar,
 } from '@angular/material/snack-bar';
@@ -49,7 +51,7 @@ interface DataExchangeResponse{
     selector: 'app-ptxdashboard',
     templateUrl: './ptxdashboard.component.html',
     styleUrls: ['./ptxdashboard.component.scss'],
-    imports: [CommonModule, IonicModule]
+    imports: [CommonModule, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonSkeletonText]
 })
 export class PTXDashboardComponent  extends DashboardComponent implements OnInit{
 
@@ -69,6 +71,7 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
 
   constructor() {
     super();
+    addIcons({ chevronDownOutline, chevronUpOutline, repeatOutline, swapHorizontalOutline, timeOutline });
   }
 
   ngOnInit(): void {

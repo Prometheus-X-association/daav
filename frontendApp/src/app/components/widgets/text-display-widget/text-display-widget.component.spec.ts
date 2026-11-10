@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { TextDisplayWidgetComponent, TextDisplayControl } from './text-display-widget.component';
 
 describe('TextDisplayWidgetComponent', () => {
@@ -8,7 +8,8 @@ describe('TextDisplayWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), TextDisplayWidgetComponent]
+    imports: [TextDisplayWidgetComponent],
+    providers: [provideIonicAngular()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(TextDisplayWidgetComponent);

@@ -8,14 +8,14 @@ import { ActivatedRoute } from '@angular/router';
 import { $localize } from '@angular/localize/init';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDeletionModalComponent } from '../../components/confirm-deletion-modal/confirm-deletion-modal.component';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonInput } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 
 @Component({
     selector: 'app-workflow',
     templateUrl: 'workflow.page.html',
     styleUrls: ['workflow.page.scss'],
-    imports: [IonicModule, FormsModule]
+    imports: [IonButton, IonInput, FormsModule]
 })
 export class WorkflowPage implements AfterViewInit {
   private readonly injector = inject(Injector);

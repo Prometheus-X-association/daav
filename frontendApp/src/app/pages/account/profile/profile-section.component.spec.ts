@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { AlertController, IonicModule, LoadingController, ToastController } from '@ionic/angular';
+import { AlertController, LoadingController, ToastController, provideIonicAngular } from '@ionic/angular/standalone';
 import { of } from 'rxjs';
 import { ProfileSectionComponent } from './profile-section.component';
 import { AuthService } from '../../../services/auth.service';
@@ -28,8 +28,9 @@ describe('ProfileSectionComponent', () => {
     alertControllerSpy.create.and.returnValue(Promise.resolve(alert));
 
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), ProfileSectionComponent],
+    imports: [ProfileSectionComponent],
     providers: [
+        provideIonicAngular(),
         { provide: AuthService, useValue: authServiceSpy },
         { provide: AlertController, useValue: alertControllerSpy },
         { provide: ToastController, useValue: jasmine.createSpyObj('ToastController', ['create']) },

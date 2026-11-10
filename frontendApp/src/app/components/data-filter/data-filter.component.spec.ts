@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { DataFilterComponent } from './data-filter.component';
 import { QueryBuilderModule } from 'ngx-query-builder';
@@ -10,7 +10,8 @@ describe('DataFilterComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), DataFilterComponent],
+    imports: [DataFilterComponent],
+    providers: [provideIonicAngular()],
     schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
     // Shallow test: render <query-builder> as an unknown element

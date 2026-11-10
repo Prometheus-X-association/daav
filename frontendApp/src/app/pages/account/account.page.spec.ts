@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { AlertController, IonicModule } from '@ionic/angular';
+import { AlertController, provideIonicAngular } from '@ionic/angular/standalone';
 import { provideRouter, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { AccountPage } from './account.page';
@@ -23,9 +23,10 @@ describe('AccountPage', () => {
     alertControllerSpy.create.and.returnValue(Promise.resolve(alert));
 
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), AccountPage],
+    imports: [AccountPage],
     schemas: [CUSTOM_ELEMENTS_SCHEMA],
     providers: [
+        provideIonicAngular(),
         provideRouter([{ path: 'account/:section', children: [] }]),
         { provide: AuthService, useValue: authServiceSpy },
         { provide: AlertController, useValue: alertControllerSpy }

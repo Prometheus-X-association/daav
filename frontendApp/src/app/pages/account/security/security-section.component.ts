@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { LoadingController, ToastController, IonicModule } from '@ionic/angular';
+import { LoadingController, ToastController, IonButton, IonInput, IonInputPasswordToggle, IonSpinner } from '@ionic/angular/standalone';
 import { AuthService } from '../../../services/auth.service';
 
 /**
@@ -10,7 +10,7 @@ import { AuthService } from '../../../services/auth.service';
     selector: 'app-security-section',
     templateUrl: './security-section.component.html',
     styleUrls: ['./security-section.component.scss'],
-    imports: [FormsModule, ReactiveFormsModule, IonicModule]
+    imports: [FormsModule, ReactiveFormsModule, IonButton, IonInput, IonInputPasswordToggle, IonSpinner]
 })
 export class SecuritySectionComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { MatSelectModule } from '@angular/material/select';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { SelectWidgetComponent, SelectControl } from './select-widget.component';
@@ -10,7 +10,8 @@ describe('SelectWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), MatSelectModule, BrowserAnimationsModule, SelectWidgetComponent]
+    imports: [MatSelectModule, BrowserAnimationsModule, SelectWidgetComponent],
+    providers: [provideIonicAngular()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(SelectWidgetComponent);

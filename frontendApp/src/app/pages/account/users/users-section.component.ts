@@ -1,6 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AlertController, ToastController, IonicModule } from '@ionic/angular';
+import { AlertController, ToastController, IonBadge, IonButton, IonIcon, IonNote, IonSpinner } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { eyeOffOutline, eyeOutline, keyOutline, peopleOutline, personAddOutline, refreshOutline, trashOutline } from 'ionicons/icons';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 import { formatAccountDate } from '../account-utils';
@@ -13,7 +15,7 @@ import { UpperCasePipe } from '@angular/common';
     selector: 'app-users-section',
     templateUrl: './users-section.component.html',
     styleUrls: ['./users-section.component.scss'],
-    imports: [IonicModule, UpperCasePipe]
+    imports: [IonBadge, IonButton, IonIcon, IonNote, IonSpinner, UpperCasePipe]
 })
 export class UsersSectionComponent implements OnInit {
   private readonly authService = inject(AuthService);
@@ -23,6 +25,10 @@ export class UsersSectionComponent implements OnInit {
 
   allUsers: User[] = [];
   loadingUsers = false;
+
+  constructor() {
+    addIcons({ eyeOffOutline, eyeOutline, keyOutline, peopleOutline, personAddOutline, refreshOutline, trashOutline });
+  }
 
   ngOnInit() {
     this.loadAllUsers();

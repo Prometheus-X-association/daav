@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 
 import { CustomConnectionComponent } from './connections.component';
 
@@ -9,7 +9,8 @@ describe('CustomConnectionComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [CustomConnectionComponent, IonicModule.forRoot()]
+    imports: [CustomConnectionComponent],
+    providers: [provideIonicAngular()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(CustomConnectionComponent);

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { MatTabsModule } from '@angular/material/tabs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
@@ -21,8 +21,9 @@ describe('RenderComponent', () => {
 
     TestBed.configureTestingModule({
     schemas: [NO_ERRORS_SCHEMA],
-    imports: [IonicModule.forRoot(), MatTabsModule, BrowserAnimationsModule, RenderComponent],
+    imports: [MatTabsModule, BrowserAnimationsModule, RenderComponent],
     providers: [
+        provideIonicAngular(),
         { provide: LoadingService, useValue: loadingServiceSpy },
         { provide: DatasetService, useValue: datasetServiceSpy },
         provideHttpClientTesting()

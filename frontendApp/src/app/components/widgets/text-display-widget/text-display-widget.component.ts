@@ -1,6 +1,8 @@
 import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from "@angular/core";
 import { ClassicPreset } from "rete";
-import { IonicModule } from "@ionic/angular";
+import { IonButton, IonIcon } from "@ionic/angular/standalone";
+import { addIcons } from "ionicons";
+import { copyOutline } from "ionicons/icons";
 
 export interface textDisplayControlI{
     value: string,
@@ -41,12 +43,16 @@ export class TextDisplayControl extends ClassicPreset.Control implements textDis
     selector: "app-text-display-widget",
     templateUrl: "./text-display-widget.component.html",
     styleUrls: ['./text-display-widget.component.scss'],
-    imports: [IonicModule]
+    imports: [IonButton, IonIcon]
 })
 export class TextDisplayWidgetComponent implements OnChanges {
     @Input() data: TextDisplayControl;
     cdr = inject(ChangeDetectorRef);
   
+    constructor() {
+        addIcons({ copyOutline });
+    }
+
     ngOnChanges(changes: SimpleChanges): void {
       this.cdr.detectChanges();
     }

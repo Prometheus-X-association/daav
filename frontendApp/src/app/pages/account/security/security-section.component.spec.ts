@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule, LoadingController, ToastController } from '@ionic/angular';
+import { LoadingController, ToastController, provideIonicAngular } from '@ionic/angular/standalone';
 import { ReactiveFormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 import { SecuritySectionComponent } from './security-section.component';
@@ -25,8 +25,9 @@ describe('SecuritySectionComponent', () => {
     loadingControllerSpy.create.and.returnValue(Promise.resolve(loading));
 
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), ReactiveFormsModule, SecuritySectionComponent],
+    imports: [ReactiveFormsModule, SecuritySectionComponent],
     providers: [
+        provideIonicAngular(),
         { provide: AuthService, useValue: authServiceSpy },
         { provide: ToastController, useValue: toastControllerSpy },
         { provide: LoadingController, useValue: loadingControllerSpy }

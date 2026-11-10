@@ -7,7 +7,9 @@ import { Dataset } from 'src/app/models/dataset'
 import { DatasetType } from 'src/app/enums/dataset-type';
 import { isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
 import { MatTabGroup, MatTab } from '@angular/material/tabs';
-import { IonicModule } from '@ionic/angular';
+import { IonAccordion, IonAccordionGroup, IonButton, IonIcon, IonItem, IonLabel, IonList } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chevronDownOutline } from 'ionicons/icons';
 import { MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow } from '@angular/material/table';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
@@ -15,7 +17,7 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
     selector: 'app-render',
     templateUrl: './render.component.html',
     styleUrls: ['./render.component.scss'],
-    imports: [MatTabGroup, MatTab, IonicModule, MatPaginator, MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, NgxJsonViewerModule, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow]
+    imports: [MatTabGroup, MatTab, IonAccordion, IonAccordionGroup, IonButton, IonIcon, IonItem, IonLabel, IonList, MatPaginator, MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, NgxJsonViewerModule, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow]
 })
 
 export class RenderComponent implements OnInit, OnChanges {
@@ -61,6 +63,7 @@ export class RenderComponent implements OnInit, OnChanges {
   filterTables = "";
 
   constructor() {
+    addIcons({ chevronDownOutline });
     this.data = this.dataDefault;
   }
 

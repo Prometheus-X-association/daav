@@ -1,7 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ToastController, LoadingController, IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController, IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, lockOpenOutline, logOutOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 
 /**
@@ -13,7 +15,7 @@ import { AuthService } from '../../services/auth.service';
     selector: 'app-change-password',
     templateUrl: './change-password.page.html',
     styleUrls: ['./change-password.page.scss'],
-    imports: [IonicModule, FormsModule, ReactiveFormsModule]
+    imports: [IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar, FormsModule, ReactiveFormsModule]
 })
 export class ChangePasswordPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -26,6 +28,10 @@ export class ChangePasswordPage implements OnInit {
   changePasswordForm!: FormGroup;
   loading = false;
   returnUrl: string = '/';
+
+  constructor() {
+    addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, lockOpenOutline, logOutOutline });
+  }
 
   ngOnInit() {
     this.changePasswordForm = this.formBuilder.group({

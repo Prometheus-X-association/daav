@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { DataFilterWidgetComponent, DataFilterControl } from './data-filter-widget.component';
 import { HasDatasetsPipe } from 'src/app/models/data-mapper-types';
 
@@ -9,7 +9,8 @@ describe('DataFilterWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), DataFilterWidgetComponent, HasDatasetsPipe]
+    imports: [DataFilterWidgetComponent, HasDatasetsPipe],
+    providers: [provideIonicAngular()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(DataFilterWidgetComponent);

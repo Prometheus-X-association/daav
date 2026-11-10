@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, flush, waitForAsync } from '@angular/core/testing';
-import { AlertController, IonicModule, ToastController } from '@ionic/angular';
+import { AlertController, ToastController, provideIonicAngular } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { UsersSectionComponent } from './users-section.component';
@@ -34,8 +34,9 @@ describe('UsersSectionComponent', () => {
     router = { navigate: jasmine.createSpy('navigate') };
 
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), UsersSectionComponent],
+    imports: [UsersSectionComponent],
     providers: [
+        provideIonicAngular(),
         { provide: AuthService, useValue: authServiceSpy },
         { provide: ToastController, useValue: toastControllerSpy },
         { provide: AlertController, useValue: alertControllerSpy },

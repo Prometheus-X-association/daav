@@ -1,6 +1,8 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AlertController, LoadingController, ToastController, IonicModule } from '@ionic/angular';
+import { AlertController, LoadingController, ToastController, IonBadge, IonButton, IonIcon, IonSpinner } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { atOutline, calendarOutline, informationCircleOutline, mailOutline, personOutline, shieldOutline, timeOutline, trashOutline } from 'ionicons/icons';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 import { formatAccountDate } from '../account-utils';
@@ -13,7 +15,7 @@ import { UpperCasePipe } from '@angular/common';
     selector: 'app-profile-section',
     templateUrl: './profile-section.component.html',
     styleUrls: ['./profile-section.component.scss'],
-    imports: [IonicModule, UpperCasePipe]
+    imports: [IonBadge, IonButton, IonIcon, IonSpinner, UpperCasePipe]
 })
 export class ProfileSectionComponent implements OnInit {
   private readonly authService = inject(AuthService);
@@ -23,6 +25,10 @@ export class ProfileSectionComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   user: User | null = null;
+
+  constructor() {
+    addIcons({ atOutline, calendarOutline, informationCircleOutline, mailOutline, personOutline, shieldOutline, timeOutline, trashOutline });
+  }
 
   ngOnInit() {
     this.authService.currentUser$

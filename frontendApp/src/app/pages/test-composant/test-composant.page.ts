@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { DataMapperComponent } from '../../components/data-mapper/data-mapper.component';
 
 @Component({
     selector: 'app-test-composant',
     templateUrl: './test-composant.page.html',
     styleUrls: ['./test-composant.page.scss'],
-    imports: [IonicModule, DataMapperComponent]
+    imports: [IonContent, IonHeader, IonTitle, IonToolbar, DataMapperComponent]
 })
 export class TestComposantPage {
 

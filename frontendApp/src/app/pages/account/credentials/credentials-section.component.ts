@@ -1,7 +1,9 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { AlertController, LoadingController, ToastController, IonicModule } from '@ionic/angular';
+import { AlertController, LoadingController, ToastController, IonButton, IonIcon, IonInput, IonInputPasswordToggle } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { addOutline, checkmarkOutline, closeOutline, createOutline, keyOutline, trashOutline } from 'ionicons/icons';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 
@@ -13,7 +15,7 @@ import { User } from '../../../models/auth.models';
     selector: 'app-credentials-section',
     templateUrl: './credentials-section.component.html',
     styleUrls: ['./credentials-section.component.scss'],
-    imports: [FormsModule, ReactiveFormsModule, IonicModule]
+    imports: [FormsModule, ReactiveFormsModule, IonButton, IonIcon, IonInput, IonInputPasswordToggle]
 })
 export class CredentialsSectionComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -28,6 +30,10 @@ export class CredentialsSectionComponent implements OnInit {
   editCredentialForm!: FormGroup;
   editingCredential: string | null = null;
   loading = false;
+
+  constructor() {
+    addIcons({ addOutline, checkmarkOutline, closeOutline, createOutline, keyOutline, trashOutline });
+  }
 
   ngOnInit() {
     this.authService.currentUser$

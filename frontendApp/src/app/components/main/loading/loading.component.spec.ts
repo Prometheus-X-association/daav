@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { LoadingComponent } from './loading.component';
 import { LoadingService } from 'src/app/services/loading.service';
 
@@ -12,8 +12,9 @@ describe('LoadingComponent', () => {
     mockLoadingService.loading.and.returnValue(false);
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot(), LoadingComponent],
+      imports: [LoadingComponent],
       providers: [
+        provideIonicAngular(),
         { provide: LoadingService, useValue: mockLoadingService }
       ]
     }).compileComponents();

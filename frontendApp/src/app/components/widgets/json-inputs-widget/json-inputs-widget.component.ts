@@ -3,7 +3,9 @@ import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
 import { ClassicPreset } from 'rete';
 import { IonModalCustomEvent, OverlayEventDetail } from '@ionic/core';
 import { JsonEditorOptions, JsonEditor } from 'ang-jsoneditor';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonLabel, IonModal, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { add, chevronDownOutline, chevronUpOutline, trashOutline } from 'ionicons/icons';
 import { CdkAccordion, CdkAccordionItem } from '@angular/cdk/accordion';
 import { FormsModule } from '@angular/forms';
 
@@ -24,7 +26,7 @@ mappings: any;
     selector: 'app-json-inputs-widget',
     templateUrl: './json-inputs-widget.component.html',
     styleUrls: ['./json-inputs-widget.component.scss'],
-    imports: [IonicModule, CdkAccordion, CdkAccordionItem, JsonEditor, FormsModule]
+    imports: [IonButton, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonLabel, IonModal, IonTitle, IonToolbar, CdkAccordion, CdkAccordionItem, JsonEditor, FormsModule]
 })
 export class JsonInputsWidgetComponent   {
   @Input() data: JsonInputsControl;
@@ -36,6 +38,10 @@ export class JsonInputsWidgetComponent   {
     let editorOptions = new JsonEditorOptions();
     editorOptions.modes = ['code', 'text', 'tree', 'view'];
     return editorOptions;
+  }
+
+  constructor() {
+    addIcons({ add, chevronDownOutline, chevronUpOutline, trashOutline });
   }
 
   onWillDismiss(event: IonModalCustomEvent<OverlayEventDetail<any>>) {

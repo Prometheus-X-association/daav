@@ -1,6 +1,6 @@
 import '@angular/localize/init';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute } from '@angular/router';
@@ -34,8 +34,9 @@ describe('WorkflowPage', () => {
     dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
     await TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), FormsModule, WorkflowPage],
+    imports: [FormsModule, WorkflowPage],
     providers: [
+        provideIonicAngular(),
         { provide: ActivatedRoute, useValue: activatedRouteSpy },
         { provide: WorkflowService, useValue: workflowServiceSpy },
         { provide: MatDialog, useValue: dialogSpy },

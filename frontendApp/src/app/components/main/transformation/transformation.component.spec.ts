@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TransformationComponent } from './transformation.component';
 import { LoadingService } from 'src/app/services/loading.service';
@@ -38,8 +38,9 @@ describe('TransformationComponent', () => {
     const loadingSpy = jasmine.createSpyObj('LoadingService', ['present', 'dismiss']);
 
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), TransformationComponent],
+    imports: [TransformationComponent],
     providers: [
+        provideIonicAngular(),
         { provide: LoadingService, useValue: loadingSpy },
         { provide: WorkflowService, useValue: workflowSpy },
         { provide: DatasetService, useValue: datasetSpy },

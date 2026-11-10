@@ -1,14 +1,16 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ToastController, LoadingController, IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController, IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, arrowBackOutline, checkmarkCircle, informationCircleOutline, mailOutline, mailUnread, refreshOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-forgot-password',
     templateUrl: './forgot-password.page.html',
     styleUrls: ['./forgot-password.page.scss'],
-    imports: [IonicModule, FormsModule, ReactiveFormsModule]
+    imports: [IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonSpinner, IonTitle, IonToolbar, FormsModule, ReactiveFormsModule]
 })
 export class ForgotPasswordPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -20,6 +22,10 @@ export class ForgotPasswordPage implements OnInit {
   forgotPasswordForm!: FormGroup;
   loading = false;
   emailSent = false;
+
+  constructor() {
+    addIcons({ alertCircleOutline, arrowBackOutline, checkmarkCircle, informationCircleOutline, mailOutline, mailUnread, refreshOutline });
+  }
 
   ngOnInit() {
     this.forgotPasswordForm = this.formBuilder.group({

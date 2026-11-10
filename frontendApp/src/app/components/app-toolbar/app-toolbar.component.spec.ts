@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { AppToolbarComponent } from './app-toolbar.component';
 import { ThemeService } from '../../services/theme.service';
 
@@ -10,19 +10,14 @@ describe('AppToolbarComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot(), AppToolbarComponent]
+      imports: [AppToolbarComponent],
+      providers: [provideIonicAngular()]
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppToolbarComponent);
     component = fixture.componentInstance;
     themeService = TestBed.inject(ThemeService);
     fixture.detectChanges();
-
-    // Wait for the lazy-loaded Ionic buttons: changing a watched aria-* attribute of an
-    // ion-button before its instance exists throws in Stencil ("reading 'onAriaChanged'")
-    await customElements.whenDefined('ion-button');
-    const buttons = Array.from(fixture.nativeElement.querySelectorAll('ion-button')) as any[];
-    await Promise.all(buttons.map((button) => button.componentOnReady()));
   });
 
   afterEach(() => {

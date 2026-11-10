@@ -4,7 +4,7 @@ import { ClassicPreset } from 'rete';
 import { StatusNode } from 'src/app/enums/status-node';
 import { MatTooltip } from '@angular/material/tooltip';
 import { NgClass } from '@angular/common';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonContent, IonHeader, IonItem, IonLabel, IonList, IonModal, IonTitle } from '@ionic/angular/standalone';
 
 export class StatusControl extends ClassicPreset.Control {
   constructor(
@@ -20,7 +20,7 @@ export class StatusControl extends ClassicPreset.Control {
     selector: 'app-status-component',
     templateUrl: './status-component.component.html',
     styleUrls: ['./status-component.component.scss'],
-    imports: [MatTooltip, NgClass, IonicModule]
+    imports: [MatTooltip, NgClass, IonButton, IonContent, IonHeader, IonItem, IonLabel, IonList, IonModal, IonTitle]
 })
 export class StatusComponentComponent {
   @Input() data: StatusControl;

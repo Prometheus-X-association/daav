@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { MatSelectChange } from '@angular/material/select';
 import { ClassicPreset } from 'rete';
-import { IonicModule } from '@ionic/angular';
+import { IonSpinner } from '@ionic/angular/standalone';
 
 export class NodeLoaderControl extends ClassicPreset.Control {
   loading = false;
@@ -15,7 +15,7 @@ export class NodeLoaderControl extends ClassicPreset.Control {
     selector: 'app-node-loader-widget',
     templateUrl: './node-loader-widget.component.html',
     styleUrls: ['./node-loader-widget.component.scss'],
-    imports: [IonicModule]
+    imports: [IonSpinner]
 })
 export class NodeLoaderWidgetComponent implements OnChanges {
   @Input() data: NodeLoaderControl;

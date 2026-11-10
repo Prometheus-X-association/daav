@@ -6,7 +6,9 @@ import { DatasetsModalComponent } from '../components/datasets-modal/datasets-mo
 import { TransformationModalComponent } from '../components/transformation-modal/transformation-modal.component';
 import { WorkflowPage } from '../pages/worflow/workflow.page';
 import { Project } from '../models/interfaces/project';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonMenu, IonSplitPane, IonRouterLink } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chevronBackOutline, chevronForwardOutline, personCircle } from 'ionicons/icons';
 import { AppToolbarComponent } from '../components/app-toolbar/app-toolbar.component';
 import { RouterLink } from '@angular/router';
 import { DatasetsComponent } from '../components/main/datasets/datasets.component';
@@ -24,7 +26,7 @@ enum Tabs {
     templateUrl: 'main.page.html',
     styleUrls: ['main.page.scss'],
     encapsulation: ViewEncapsulation.None,
-    imports: [IonicModule, AppToolbarComponent, RouterLink, DatasetsModalComponent, TransformationModalComponent, DatasetsComponent, TransformationComponent, MatTabGroup, MatTab, RenderComponent, MatTabContent, WorkflowPage]
+    imports: [IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonMenu, IonSplitPane, IonRouterLink, AppToolbarComponent, RouterLink, DatasetsModalComponent, TransformationModalComponent, DatasetsComponent, TransformationComponent, MatTabGroup, MatTab, RenderComponent, MatTabContent, WorkflowPage]
 })
 
 export class MainPage {
@@ -39,6 +41,10 @@ export class MainPage {
   transformationView: string = "list";
   loadProjectId: string;
   sidePanelCollapsed = false;
+
+  constructor() {
+    addIcons({ chevronBackOutline, chevronForwardOutline, personCircle });
+  }
 
   get Tabs(){
     return Tabs;

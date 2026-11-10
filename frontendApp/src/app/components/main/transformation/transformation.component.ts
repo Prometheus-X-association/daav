@@ -7,14 +7,16 @@ import { ConfirmDeletionModalComponent } from 'src/app/components/confirm-deleti
 import { WorkflowUpdateRulesModalComponent } from 'src/app/components/workflow-update-rules-modal/workflow-update-rules-modal.component';
 import { StatusNode } from 'src/app/enums/status-node';
 import { DatasetService } from 'src/app/services/dataset.service';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonIcon, IonItem, IonList, IonSpinner } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, constructOutline, copyOutline, playOutline, trashOutline } from 'ionicons/icons';
 
 @Component({
     selector: 'app-transformation',
     templateUrl: './transformation.component.html',
     styleUrls: ['../datasets/datasets.component.scss', './transformation.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [IonicModule]
+    imports: [IonButton, IonIcon, IonItem, IonList, IonSpinner]
 })
 export class TransformationComponent  implements OnInit {
   workflowService = inject(WorkflowService);
@@ -27,6 +29,10 @@ export class TransformationComponent  implements OnInit {
   @Output() loadWorkflow = new EventEmitter<Project>();
   readonly dialog = inject(MatDialog);
   workflowsStatus = new Map<string, string>();
+
+  constructor() {
+    addIcons({ alertCircleOutline, constructOutline, copyOutline, playOutline, trashOutline });
+  }
 
   ngOnInit() {
     this.workflowService.getWorkflows().subscribe();

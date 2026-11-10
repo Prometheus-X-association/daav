@@ -2,14 +2,14 @@ import { Component, Input, OnInit } from '@angular/core';
 import { FieldMap, QueryBuilderConfig, QueryBuilderModule } from 'ngx-query-builder';
 import { DatasetMapper, DataType } from 'src/app/models/data-mapper-types';
 import { DataFilterControl } from '../widgets/data-filter-widget/data-filter-widget.component';
-import { IonicModule } from '@ionic/angular';
+import { IonContent } from '@ionic/angular/standalone';
 
 
 @Component({
     selector: 'app-data-filter',
     templateUrl: './data-filter.component.html',
     styleUrls: ['./data-filter.component.scss'],
-    imports: [IonicModule, QueryBuilderModule]
+    imports: [IonContent, QueryBuilderModule]
 })
 export class DataFilterComponent implements OnInit{
 

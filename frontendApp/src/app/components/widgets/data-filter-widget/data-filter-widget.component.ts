@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, Input, inject } from "@angular/core";
 import { OverlayEventDetail } from "@ionic/core";
 import { ClassicPreset } from "rete";
 import { DatasetMapper } from "src/app/models/data-mapper-types";
-import { IonicModule } from "@ionic/angular";
+import { IonButton, IonContent, IonHeader, IonModal, IonTitle } from "@ionic/angular/standalone";
 import { DataFilterComponent } from "../../data-filter/data-filter.component";
 import { HasDatasetsPipe } from "../../../models/data-mapper-types";
 
@@ -32,7 +32,7 @@ export class DataFilterControl extends ClassicPreset.Control{
     selector: 'app-data-filter-widget',
     templateUrl: './data-filter-widget.component.html',
     styleUrls: ['./data-filter-widget.component.scss'],
-    imports: [IonicModule, DataFilterComponent, HasDatasetsPipe]
+    imports: [IonButton, IonContent, IonHeader, IonModal, IonTitle, DataFilterComponent, HasDatasetsPipe]
 })
 export class DataFilterWidgetComponent{
   @Input() data: DataFilterControl;

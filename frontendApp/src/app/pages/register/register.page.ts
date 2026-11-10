@@ -1,14 +1,16 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ToastController, LoadingController, IonicModule } from '@ionic/angular';
+import { ToastController, LoadingController, IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, atOutline, checkmarkCircle, closeCircle, lockClosedOutline, mailOutline, personAdd, personOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-register',
     templateUrl: './register.page.html',
     styleUrls: ['./register.page.scss'],
-    imports: [IonicModule, FormsModule, ReactiveFormsModule]
+    imports: [IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar, FormsModule, ReactiveFormsModule]
 })
 export class RegisterPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
@@ -21,6 +23,7 @@ export class RegisterPage implements OnInit {
   loading = false;
 
   constructor() {
+    addIcons({ alertCircleOutline, atOutline, checkmarkCircle, closeCircle, lockClosedOutline, mailOutline, personAdd, personOutline });
     // Initialize form synchronously to avoid template errors
     this.registerForm = this.formBuilder.group({
       username: ['', [

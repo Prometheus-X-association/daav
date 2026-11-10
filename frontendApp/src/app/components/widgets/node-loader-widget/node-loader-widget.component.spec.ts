@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 
 import { NodeLoaderWidgetComponent } from './node-loader-widget.component';
 
@@ -9,7 +9,8 @@ describe('NodeLoaderWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), NodeLoaderWidgetComponent]
+    imports: [NodeLoaderWidgetComponent],
+    providers: [provideIonicAngular()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(NodeLoaderWidgetComponent);
