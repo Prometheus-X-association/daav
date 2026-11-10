@@ -42,6 +42,25 @@ describe('DatasetsComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('should display the edit and delete icons at their full size', async () => {
+    (component.datasetService as any).datasetsSignal.set([{ id: '1', name: 'Dataset 1', type: 'file' } as Dataset]);
+    // The list is displayed in the narrow side menu: each action column is 10% of the row
+    fixture.nativeElement.style.display = 'block';
+    fixture.nativeElement.style.width = '300px';
+    fixture.detectChanges();
+
+    // The action buttons are revealed on hover and on keyboard focus (:focus-within): show them as the hover does
+    const containers: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.iconsContainer'));
+    containers.forEach((container) => container.style.display = 'flex');
+    await fixture.whenStable();
+
+    const icons: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.icon-button ion-icon'));
+    expect(icons.length).toBe(2);
+    for (const icon of icons) {
+      expect(icon.getBoundingClientRect().width).toBeGreaterThanOrEqual(22);
+    }
+  });
+
   it('should open modal and set editDataset', () => {
     component.datasetModal = { modal: { isOpen: false } } as any;
     const dataset = { id: '1', name: 'Dataset 1' } as Dataset;

@@ -163,7 +163,9 @@ ion-list {
 
 ion-icon {
     font-size: 22px;
-    margin: 0px 15px;
+    // ion-icon has "contain: strict": in the flex .icon-button it would shrink, down to nothing
+    // with a horizontal margin. The button already centers it in the whole action column.
+    flex-shrink: 0;
     color: var(--darkPtx);
     transition: var(--custom-transition);
 }
