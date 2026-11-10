@@ -123,14 +123,9 @@ app = FastAPI(
     debug=settings.debug
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
+# Middlewares run in reverse order of registration: the last one added is the outermost.
+# CORSMiddleware is added last so that every response gets the CORS headers, including the
+# errors returned by the other middlewares (429/400/413 of the security middleware).
 
 # Security middleware - Add this to monitor and limit suspicious requests
 if settings.security_enabled:
@@ -152,8 +147,17 @@ async def log_requests(request: Request, call_next):
     
     process_time = time.time() - start_time
     logger.info(f"Response: {response.status_code} - {process_time:.3f}s")
-    
+
     return response
+
+# CORS middleware - must stay the last middleware added (see above)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)
@@ -339,6 +343,6 @@ if __name__ == "__main__":
         host=settings.host,
         port=settings.port,
         reload=settings.debug,   # Reload for debug
-        limit_max_request_size=10*settings.max_file_size,  # Convert to bytes
+        # The request size is limited by SecurityMiddleware (10 x MAX_FILE_SIZE)
         log_level=settings.log_level.lower()
     )

@@ -1,4 +1,5 @@
 import base64
+import hmac
 import json
 import logging
 import os
@@ -569,10 +570,15 @@ def filter_data_with_duckdb(filepath: str, select: Optional[str] = None, where: 
         raise HTTPException(status_code=500, detail=f"Error filtering data: {str(e)}")
 
 
+def _secret_equals(value: str, expected: str) -> bool:
+    """Compare a received credential with the expected one in constant time"""
+    return hmac.compare_digest(str(value).encode(), str(expected).encode())
+
+
 def verify_route_access(
     request: Request,
     api_keys: Optional[List[Union[str, Dict[str, str]]]] = None
-) -> bool:
+) -> None:
     """
     Verify route access using domain whitelist or API keys.
     
@@ -586,9 +592,8 @@ def verify_route_access(
             - str: Bearer token (e.g., "token123")
             - dict: Custom header (e.g., {"X-API-Key": "value"})
         
-    Returns:
-        True if access granted
-        
+    Returns when access is granted.
+
     Raises:
         HTTPException: 403 if access denied
         
@@ -610,7 +615,7 @@ def verify_route_access(
             for whitelisted_domain in settings.domain_whitelist:
                 if domain == whitelisted_domain or domain.endswith(f".{whitelisted_domain}"):
                     logger.info(f"Route access granted via domain whitelist: {domain}")
-                    return True
+                    return
     
     # Deny if no api_keys provided
     if not api_keys:
@@ -622,23 +627,23 @@ def verify_route_access(
     
     # Get authorization header from request
     authorization = request.headers.get("authorization")
-    request_headers = dict(request.headers)
-    
+
     for api_key in api_keys:
         # String = Bearer token
         if isinstance(api_key, str):
             if authorization and authorization.startswith("Bearer "):
                 token = authorization.replace("Bearer ", "").strip()
-                if token == api_key:
-                    logger.info(f"Route access granted via Bearer token")
-                    return True
-        
-        # Dict = Custom header
+                if _secret_equals(token, api_key):
+                    logger.info("Route access granted via Bearer token")
+                    return
+
+        # Dict = Custom header (request.headers is case-insensitive)
         elif isinstance(api_key, dict):
             for header_name, expected_value in api_key.items():
-                if header_name in request_headers and request_headers[header_name] == expected_value:
+                value = request.headers.get(header_name)
+                if value is not None and _secret_equals(value, expected_value):
                     logger.info(f"Route access granted via custom header: {header_name}")
-                    return True
+                    return
     
     # Access denied
     logger.warning(f"Route access denied for request from {request.client.host if request.client else 'unknown'}")

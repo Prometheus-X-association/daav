@@ -472,8 +472,7 @@ class TestRouteAccessControl:
         
         self.mock_request.headers = {"origin": "https://example.com"}
         
-        result = verify_route_access(self.mock_request)
-        assert result is True
+        verify_route_access(self.mock_request)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_domain_whitelist_with_referer_header(self, mock_settings):
@@ -482,8 +481,7 @@ class TestRouteAccessControl:
         
         self.mock_request.headers = {"referer": "https://example.com/page"}
         
-        result = verify_route_access(self.mock_request)
-        assert result is True
+        verify_route_access(self.mock_request)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_domain_whitelist_subdomain(self, mock_settings):
@@ -492,8 +490,7 @@ class TestRouteAccessControl:
         
         self.mock_request.headers = {"origin": "https://api.example.com"}
         
-        result = verify_route_access(self.mock_request)
-        assert result is True
+        verify_route_access(self.mock_request)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_domain_not_in_whitelist_no_api_keys(self, mock_settings):
@@ -516,8 +513,7 @@ class TestRouteAccessControl:
         api_keys = ["secret-token-123", "another-token"]
         self.mock_request.headers = {"authorization": "Bearer secret-token-123"}
         
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_bearer_token_invalid_list(self, mock_settings):
@@ -552,10 +548,20 @@ class TestRouteAccessControl:
         
         api_keys = [{"X-API-Key": "my-secret-key"}, {"X-Auth": "token123"}]
         self.mock_request.headers = {"X-API-Key": "my-secret-key"}
-        
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
-    
+
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
+
+    @patch('app.utils.utils.settings')
+    def test_custom_header_name_is_case_insensitive(self, mock_settings):
+        """Test that a custom header matches a real request, whose header names are lowercase"""
+        mock_settings.domain_whitelist = []
+        request = Request({"type": "http", "headers": [(b"x-api-key", b"my-secret-key")]})
+
+        verify_route_access(request, api_keys=[{"X-API-Key": "my-secret-key"}])  # Does not raise: access granted
+
+        with pytest.raises(HTTPException):
+            verify_route_access(request, api_keys=[{"X-API-Key": "other-key"}])
+
     @patch('app.utils.utils.settings')
     def test_custom_header_invalid_value(self, mock_settings):
         """Test access denied with invalid custom header value"""
@@ -598,8 +604,7 @@ class TestRouteAccessControl:
             "X-Custom-Auth": "secret2"  # This one is valid
         }
         
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_mixed_api_keys_bearer_and_custom(self, mock_settings):
@@ -616,8 +621,7 @@ class TestRouteAccessControl:
         
         # Test with Bearer token
         self.mock_request.headers = {"authorization": "Bearer bearer-token-123"}
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_mixed_api_keys_custom_header_success(self, mock_settings):
@@ -630,8 +634,7 @@ class TestRouteAccessControl:
         ]
         
         self.mock_request.headers = {"X-API-Key": "custom-key-456"}
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_priority_domain_over_token(self, mock_settings):
@@ -641,8 +644,7 @@ class TestRouteAccessControl:
         self.mock_request.headers = {"origin": "https://example.com"}
         # Don't provide api_keys - should still pass via domain
         
-        result = verify_route_access(self.mock_request)
-        assert result is True
+        verify_route_access(self.mock_request)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_no_whitelist_and_no_api_keys(self, mock_settings):
@@ -662,8 +664,7 @@ class TestRouteAccessControl:
         self.mock_request.headers = {"origin": "https://example.com", "authorization": "Bearer valid-token"}
         api_keys = ["valid-token"]
         
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_empty_authorization_header_with_list(self, mock_settings):
@@ -686,8 +687,7 @@ class TestRouteAccessControl:
         api_keys = ["secret-token"]
         self.mock_request.headers = {"authorization": "Bearer   secret-token   "}  # Extra spaces
         
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_request_without_client(self, mock_settings):
