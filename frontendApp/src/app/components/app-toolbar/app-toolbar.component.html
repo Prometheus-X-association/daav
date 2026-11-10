@@ -1,12 +1,16 @@
 <ion-toolbar>
-  <ion-title class="app-title">DAAV</ion-title>
-  <ion-buttons slot="end">
+  <ion-title slot="start" class="app-title">DAAV</ion-title>
+  <ion-buttons slot="start">
     <!-- Page specific buttons -->
     <ng-content></ng-content>
     <ion-button [attr.aria-controls]="menuId" [attr.aria-expanded]="isMenuOpen" [attr.aria-label]="isMenuOpen ? 'Close display settings' : 'Open display settings'" (click)="toggleMenu()">
       <ion-icon [name]="isMenuOpen ? 'close-outline' : 'settings-outline'" slot="icon-only" aria-hidden="true"></ion-icon>
     </ion-button>
   </ion-buttons>
+  <!-- Page specific content, displayed on the right (e.g. the page tabs) -->
+  <div class="toolbar-end">
+    <ng-content select="[toolbarEnd]"></ng-content>
+  </div>
 </ion-toolbar>
 <div [id]="menuId" class="theme-menu" [class.is-open]="isMenuOpen">
   <span [id]="menuId + '-themes'" i18n>Themes</span>

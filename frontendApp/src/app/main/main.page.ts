@@ -13,7 +13,7 @@ import { AppToolbarComponent } from '../components/app-toolbar/app-toolbar.compo
 import { RouterLink } from '@angular/router';
 import { DatasetsComponent } from '../components/main/datasets/datasets.component';
 import { TransformationComponent } from '../components/main/transformation/transformation.component';
-import { MatTabGroup, MatTab, MatTabContent } from '@angular/material/tabs';
+import { MatTabNav, MatTabLink, MatTabNavPanel } from '@angular/material/tabs';
 import { RenderComponent } from '../components/main/render/render.component';
 
 enum Tabs {
@@ -26,7 +26,7 @@ enum Tabs {
     templateUrl: 'main.page.html',
     styleUrls: ['main.page.scss'],
     encapsulation: ViewEncapsulation.None,
-    imports: [IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonMenu, IonSplitPane, IonRouterLink, AppToolbarComponent, RouterLink, DatasetsModalComponent, TransformationModalComponent, DatasetsComponent, TransformationComponent, MatTabGroup, MatTab, RenderComponent, MatTabContent, WorkflowPage]
+    imports: [IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonMenu, IonSplitPane, IonRouterLink, AppToolbarComponent, RouterLink, DatasetsModalComponent, TransformationModalComponent, DatasetsComponent, TransformationComponent, MatTabNav, MatTabLink, MatTabNavPanel, RenderComponent, WorkflowPage]
 })
 
 export class MainPage {
@@ -91,6 +91,11 @@ export class MainPage {
 
   get isWorkflowOpen(): boolean {
     return this.matTabIndex === Tabs.transformation && this.transformationView === 'rete';
+  }
+
+  // No side menu on the workflow list: it would only repeat the list shown in the main view
+  get isSideMenuHidden(): boolean {
+    return this.matTabIndex === Tabs.transformation && this.transformationView === 'list';
   }
 
   // The side panel can only be collapsed while a workflow is open in the editor

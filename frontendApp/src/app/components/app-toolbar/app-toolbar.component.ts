@@ -7,8 +7,9 @@ import { closeOutline, settingsOutline } from 'ionicons/icons';
 let nextId = 0;
 
 /**
- * Application toolbar shown on top of the side column of the pages
- * Buttons given as content are displayed before the display settings button
+ * Application toolbar shown in the header of the pages
+ * Buttons given as content are displayed next to the title, before the display settings button
+ * Content marked with the toolbarEnd attribute is displayed on the right (e.g. the page tabs)
  */
 @Component({
     selector: 'app-toolbar',

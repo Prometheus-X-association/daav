@@ -1,8 +1,14 @@
 :host {
     display: block;
+    position: relative;
 }
 
+// Title and buttons are grouped on the left, the page content takes the rest of the toolbar
 ion-title {
+    flex: none;
+    position: static;
+    width: auto;
+    padding-right: 8px;
     color: var(--darkPtx) !important;
     font-weight: 900 !important;
     font-size: 1.8em;
@@ -13,15 +19,21 @@ ion-title {
     font-family: 'poppins' !important;
 }
 
+.toolbar-end {
+    display: flex;
+    justify-content: flex-end;
+}
+
 .theme-menu {
     display: none;
     position: absolute;
-    top: 63px;
+    top: 100%;
     left: 0;
     background-color: var(--grayLight);
     box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 4px 0px;
     border: 1px solid black;
     width: 100%;
+    max-width: 350px;
     padding: 1em;
     z-index: 99;
 
