@@ -6,13 +6,13 @@ import { WorkflowPageRoutingModule } from './wokflow-routing.module';
 import { WorkflowPage } from './workflow.page';
 
 @NgModule({
-  imports: [
-    IonicModule,
-    CommonModule,
-    FormsModule,
-    WorkflowPageRoutingModule
-  ],
-  declarations: [WorkflowPage],
-  exports:[WorkflowPage]
+    imports: [
+        IonicModule,
+        CommonModule,
+        FormsModule,
+        WorkflowPageRoutingModule,
+        WorkflowPage
+    ],
+    exports: [WorkflowPage]
 })
 export class WorkflowPageModule {}

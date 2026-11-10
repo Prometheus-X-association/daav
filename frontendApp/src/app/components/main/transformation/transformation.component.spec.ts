@@ -38,17 +38,16 @@ describe('TransformationComponent', () => {
     const loadingSpy = jasmine.createSpyObj('LoadingService', ['present', 'dismiss']);
 
     TestBed.configureTestingModule({
-      declarations: [TransformationComponent],
-      imports: [IonicModule.forRoot()],
-      providers: [
+    imports: [IonicModule.forRoot(), TransformationComponent],
+    providers: [
         { provide: LoadingService, useValue: loadingSpy },
         { provide: WorkflowService, useValue: workflowSpy },
         { provide: DatasetService, useValue: datasetSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(TransformationComponent);
     component = fixture.componentInstance;

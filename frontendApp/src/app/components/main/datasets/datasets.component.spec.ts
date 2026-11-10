@@ -10,9 +10,7 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 // Stub du composant datasets-modal pour éviter le problème de propriété read-only
 @Component({
     selector: 'app-datasets-modal',
-    template: '',
-    // eslint-disable-next-line @angular-eslint/prefer-standalone
-    standalone: false
+    template: ''
 })
 class DatasetsModalStubComponent {
   @Input() dataset: Dataset | null = null;
@@ -25,9 +23,8 @@ describe('DatasetsComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    declarations: [DatasetsComponent, DatasetsModalStubComponent],
     schemas: [NO_ERRORS_SCHEMA],
-    imports: [IonicModule.forRoot()],
+    imports: [IonicModule.forRoot(), DatasetsComponent, DatasetsModalStubComponent],
     providers: [
         { provide: LoadingService, useValue: jasmine.createSpyObj('LoadingService', ['show', 'hide']) },
         provideHttpClient(withInterceptorsFromDi()),

@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { AlertController, LoadingController, ToastController } from '@ionic/angular';
+import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { AlertController, LoadingController, ToastController, IonicModule } from '@ionic/angular';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 
@@ -13,7 +13,7 @@ import { User } from '../../../models/auth.models';
     selector: 'app-credentials-section',
     templateUrl: './credentials-section.component.html',
     styleUrls: ['./credentials-section.component.scss'],
-    standalone: false
+    imports: [FormsModule, ReactiveFormsModule, IonicModule]
 })
 export class CredentialsSectionComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);

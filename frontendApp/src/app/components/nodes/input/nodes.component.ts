@@ -7,7 +7,8 @@ import {
   OnChanges
 } from "@angular/core";
 import { ClassicPreset } from "rete";
-import { KeyValue } from "@angular/common";
+import { KeyValue, KeyValuePipe } from "@angular/common";
+import { RefDirective } from "rete-angular-plugin/21";
 
 @Component({
     selector: 'app-input-node',
@@ -17,7 +18,7 @@ import { KeyValue } from "@angular/common";
         "data-testid": "node",
         "class": "node input-node"
     },
-    standalone: false
+    imports: [RefDirective, KeyValuePipe]
 })
 export class InputNodeComponent implements OnChanges {
   @Input() data!: ClassicPreset.Node;

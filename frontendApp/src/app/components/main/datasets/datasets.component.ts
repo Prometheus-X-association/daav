@@ -4,12 +4,14 @@ import { Dataset } from 'src/app/models/dataset';
 import { DatasetService } from 'src/app/services/dataset.service';
 import { DatasetsModalComponent } from '../../datasets-modal/datasets-modal.component';
 import { LoadingService } from 'src/app/services/loading.service';
+import { IonicModule } from '@ionic/angular';
+import { NgClass } from '@angular/common';
 
 @Component({
     selector: 'app-datasets',
     templateUrl: './datasets.component.html',
     styleUrls: ['./datasets.component.scss'],
-    standalone: false
+    imports: [IonicModule, NgClass, DatasetsModalComponent]
 })
 
 export class DatasetsComponent {

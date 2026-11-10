@@ -9,9 +9,8 @@ describe('NodeLoaderWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ NodeLoaderWidgetComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), NodeLoaderWidgetComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(NodeLoaderWidgetComponent);
     component = fixture.componentInstance;

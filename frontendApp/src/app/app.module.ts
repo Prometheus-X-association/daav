@@ -26,40 +26,38 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { ErrorInterceptor } from './interceptors/error.interceptor';
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    TransformNodeComponent,
-    OutputNodeComponent,
-    InputNodeComponent,
-    StatusComponentComponent,
-  ],
-  bootstrap: [AppComponent],
-  imports: [
-    BrowserModule,
-    IonicModule.forRoot(),
-    ReteModule,
-    BrowserAnimationsModule,
-    AppRoutingModule,
-    ComponentsModule,
-    IonicStorageModule.forRoot(),
-    MatTooltipModule,
-    QueryBuilderModule,
-  ],
-  exports: [QueryBuilderModule],
-  providers: [
-    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
-    // Register HTTP Interceptors
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: AuthInterceptor,
-      multi: true,
-    },
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: ErrorInterceptor,
-      multi: true,
-    },
-    provideHttpClient(withInterceptorsFromDi(), withJsonpSupport()),
-  ],
+    declarations: [AppComponent],
+    bootstrap: [AppComponent],
+    imports: [
+        BrowserModule,
+        IonicModule.forRoot(),
+        ReteModule,
+        BrowserAnimationsModule,
+        AppRoutingModule,
+        ComponentsModule,
+        IonicStorageModule.forRoot(),
+        MatTooltipModule,
+        QueryBuilderModule,
+        TransformNodeComponent,
+        OutputNodeComponent,
+        InputNodeComponent,
+        StatusComponentComponent,
+    ],
+    exports: [QueryBuilderModule],
+    providers: [
+        { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+        // Register HTTP Interceptors
+        {
+            provide: HTTP_INTERCEPTORS,
+            useClass: AuthInterceptor,
+            multi: true,
+        },
+        {
+            provide: HTTP_INTERCEPTORS,
+            useClass: ErrorInterceptor,
+            multi: true,
+        },
+        provideHttpClient(withInterceptorsFromDi(), withJsonpSupport()),
+    ],
 })
 export class AppModule {}

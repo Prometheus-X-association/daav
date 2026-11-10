@@ -4,7 +4,6 @@ import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges} from '@ang
     selector: 'app-deep-socket-component',
     template: '',
     styleUrls: ['./deep-socket.component.scss'],
-    standalone: false
 })
 export class DeepSocketComponent  implements OnChanges {
 

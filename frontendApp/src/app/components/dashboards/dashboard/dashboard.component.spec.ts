@@ -10,8 +10,7 @@ describe('DashboardComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    declarations: [DashboardComponent],
-    imports: [IonicModule.forRoot()],
+    imports: [DashboardComponent, IonicModule.forRoot()],
     providers: [provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
 }).compileComponents();
 

@@ -4,7 +4,6 @@ import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges} from '@ang
     selector: 'app-global-socket-component',
     template: '',
     styleUrls: ['./global-socket.component.scss'],
-    standalone: false
 })
 export class GlobalSocketComponent  implements OnChanges {
 

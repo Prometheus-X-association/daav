@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { ThemeService } from '../../services/theme.service';
+import { IonicModule } from '@ionic/angular';
 
 let nextId = 0;
 
@@ -11,7 +12,7 @@ let nextId = 0;
     selector: 'app-toolbar',
     templateUrl: './app-toolbar.component.html',
     styleUrls: ['./app-toolbar.component.scss'],
-    standalone: false
+    imports: [IonicModule]
 })
 export class AppToolbarComponent {
   // Several pages stay in the DOM with Ionic navigation, ids must be unique

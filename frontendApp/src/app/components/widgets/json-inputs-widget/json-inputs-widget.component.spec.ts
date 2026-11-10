@@ -8,9 +8,8 @@ describe('JsonInputsWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ JsonInputsWidgetComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), JsonInputsWidgetComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(JsonInputsWidgetComponent);
     component = fixture.componentInstance;

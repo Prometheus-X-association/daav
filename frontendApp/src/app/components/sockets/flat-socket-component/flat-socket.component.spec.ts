@@ -9,9 +9,8 @@ describe('FlatSocketComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ FlatSocketComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [FlatSocketComponent, IonicModule.forRoot()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(FlatSocketComponent);
     component = fixture.componentInstance;

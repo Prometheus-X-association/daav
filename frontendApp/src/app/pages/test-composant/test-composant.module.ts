@@ -10,13 +10,13 @@ import { TestComposantPage } from './test-composant.page';
 import { DataMapperModule } from 'src/app/components/data-mapper/data-mapper.module';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    FormsModule,
-    IonicModule,
-    TestComposantPageRoutingModule,
-    DataMapperModule
-  ],
-  declarations: [TestComposantPage]
+    imports: [
+        CommonModule,
+        FormsModule,
+        IonicModule,
+        TestComposantPageRoutingModule,
+        DataMapperModule,
+        TestComposantPage
+    ]
 })
 export class TestComposantPageModule {}

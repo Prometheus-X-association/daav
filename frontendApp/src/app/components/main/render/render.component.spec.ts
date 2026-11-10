@@ -20,15 +20,14 @@ describe('RenderComponent', () => {
     datasetServiceSpy = jasmine.createSpyObj('DatasetService', ['getContentDataset']);
 
     TestBed.configureTestingModule({
-      declarations: [RenderComponent],
-      schemas: [NO_ERRORS_SCHEMA],
-      imports: [IonicModule.forRoot(), MatTabsModule, BrowserAnimationsModule],
-      providers: [
+    schemas: [NO_ERRORS_SCHEMA],
+    imports: [IonicModule.forRoot(), MatTabsModule, BrowserAnimationsModule, RenderComponent],
+    providers: [
         { provide: LoadingService, useValue: loadingServiceSpy },
         { provide: DatasetService, useValue: datasetServiceSpy },
         provideHttpClientTesting()
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(RenderComponent);
     component = fixture.componentInstance;

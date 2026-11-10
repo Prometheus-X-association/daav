@@ -9,9 +9,8 @@ describe('DeepSocketComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DeepSocketComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [DeepSocketComponent, IonicModule.forRoot()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(DeepSocketComponent);
     component = fixture.componentInstance;

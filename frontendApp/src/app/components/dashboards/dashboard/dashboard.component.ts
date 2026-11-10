@@ -7,7 +7,6 @@ import { DatasetService } from 'src/app/services/dataset.service';
     selector: 'app-dashboard',
     templateUrl: './dashboard.component.html',
     styleUrls: ['./dashboard.component.scss'],
-    standalone: false
 })
 
 export class DashboardComponent {

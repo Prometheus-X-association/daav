@@ -11,9 +11,8 @@ describe('StatusComponentComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ StatusComponentComponent ],
-      imports: [IonicModule.forRoot(), MatTooltipModule]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), MatTooltipModule, StatusComponentComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(StatusComponentComponent);
       component = fixture.componentInstance;

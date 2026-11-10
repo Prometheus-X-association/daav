@@ -6,12 +6,16 @@ import { DataRenderTypes } from 'src/app/models/data-render-types';
 import { Dataset } from 'src/app/models/dataset'
 import { DatasetType } from 'src/app/enums/dataset-type';
 import { isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
+import { MatTabGroup, MatTab } from '@angular/material/tabs';
+import { IonicModule } from '@ionic/angular';
+import { MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow } from '@angular/material/table';
+import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
 @Component({
     selector: 'app-render',
     templateUrl: './render.component.html',
     styleUrls: ['./render.component.scss'],
-    standalone: false
+    imports: [MatTabGroup, MatTab, IonicModule, MatPaginator, MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, NgxJsonViewerModule, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow]
 })
 
 export class RenderComponent implements OnInit, OnChanges {

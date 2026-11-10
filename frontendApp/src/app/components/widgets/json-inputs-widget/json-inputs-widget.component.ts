@@ -2,7 +2,10 @@
 import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import { ClassicPreset } from 'rete';
 import { IonModalCustomEvent, OverlayEventDetail } from '@ionic/core';
-import { JsonEditorOptions } from 'ang-jsoneditor';
+import { JsonEditorOptions, JsonEditor } from 'ang-jsoneditor';
+import { IonicModule } from '@ionic/angular';
+import { CdkAccordion, CdkAccordionItem } from '@angular/cdk/accordion';
+import { FormsModule } from '@angular/forms';
 
 export class JsonInputsControl extends ClassicPreset.Control {
   public buttonDisabled = false;
@@ -21,7 +24,7 @@ mappings: any;
     selector: 'app-json-inputs-widget',
     templateUrl: './json-inputs-widget.component.html',
     styleUrls: ['./json-inputs-widget.component.scss'],
-    standalone: false
+    imports: [IonicModule, CdkAccordion, CdkAccordionItem, JsonEditor, FormsModule]
 })
 export class JsonInputsWidgetComponent   {
   @Input() data: JsonInputsControl;

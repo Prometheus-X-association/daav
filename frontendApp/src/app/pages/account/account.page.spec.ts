@@ -23,15 +23,14 @@ describe('AccountPage', () => {
     alertControllerSpy.create.and.returnValue(Promise.resolve(alert));
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot()],
-      declarations: [AccountPage],
-      schemas: [CUSTOM_ELEMENTS_SCHEMA],
-      providers: [
+    imports: [IonicModule.forRoot(), AccountPage],
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    providers: [
         provideRouter([{ path: 'account/:section', children: [] }]),
         { provide: AuthService, useValue: authServiceSpy },
         { provide: AlertController, useValue: alertControllerSpy }
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(AccountPage);
     component = fixture.componentInstance;

@@ -9,9 +9,8 @@ describe('NodesComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ TransformNodeComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), TransformNodeComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(TransformNodeComponent);
     component = fixture.componentInstance;

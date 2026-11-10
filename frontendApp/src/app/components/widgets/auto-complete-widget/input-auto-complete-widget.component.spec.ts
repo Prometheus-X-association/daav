@@ -13,9 +13,8 @@ describe('InputAutoCompleteWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ InputAutoCompleteWidgetComponent ],
-      imports: [IonicModule.forRoot(), FormsModule, MatAutocompleteModule, MatFormFieldModule, MatInputModule, BrowserAnimationsModule]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), FormsModule, MatAutocompleteModule, MatFormFieldModule, MatInputModule, BrowserAnimationsModule, InputAutoCompleteWidgetComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(InputAutoCompleteWidgetComponent);
     component = fixture.componentInstance;

@@ -29,15 +29,14 @@ describe('CredentialsSectionComponent', () => {
     alertControllerSpy.create.and.returnValue(Promise.resolve(alert));
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot(), ReactiveFormsModule],
-      declarations: [CredentialsSectionComponent],
-      providers: [
+    imports: [IonicModule.forRoot(), ReactiveFormsModule, CredentialsSectionComponent],
+    providers: [
         { provide: AuthService, useValue: authServiceSpy },
         { provide: ToastController, useValue: toastControllerSpy },
         { provide: LoadingController, useValue: loadingControllerSpy },
         { provide: AlertController, useValue: alertControllerSpy }
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(CredentialsSectionComponent);
     component = fixture.componentInstance;

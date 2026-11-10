@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { LoadingController, ToastController } from '@ionic/angular';
+import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { LoadingController, ToastController, IonicModule } from '@ionic/angular';
 import { AuthService } from '../../../services/auth.service';
 
 /**
@@ -10,7 +10,7 @@ import { AuthService } from '../../../services/auth.service';
     selector: 'app-security-section',
     templateUrl: './security-section.component.html',
     styleUrls: ['./security-section.component.scss'],
-    standalone: false
+    imports: [FormsModule, ReactiveFormsModule, IonicModule]
 })
 export class SecuritySectionComponent implements OnInit {
   changePasswordForm!: FormGroup;

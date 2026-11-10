@@ -6,6 +6,13 @@ import { DatasetsModalComponent } from '../components/datasets-modal/datasets-mo
 import { TransformationModalComponent } from '../components/transformation-modal/transformation-modal.component';
 import { WorkflowPage } from '../pages/worflow/workflow.page';
 import { Project } from '../models/interfaces/project';
+import { IonicModule } from '@ionic/angular';
+import { AppToolbarComponent } from '../components/app-toolbar/app-toolbar.component';
+import { RouterLink } from '@angular/router';
+import { DatasetsComponent } from '../components/main/datasets/datasets.component';
+import { TransformationComponent } from '../components/main/transformation/transformation.component';
+import { MatTabGroup, MatTab, MatTabContent } from '@angular/material/tabs';
+import { RenderComponent } from '../components/main/render/render.component';
 
 enum Tabs {
   datasets,
@@ -17,7 +24,7 @@ enum Tabs {
     templateUrl: 'main.page.html',
     styleUrls: ['main.page.scss'],
     encapsulation: ViewEncapsulation.None,
-    standalone: false
+    imports: [IonicModule, AppToolbarComponent, RouterLink, DatasetsModalComponent, TransformationModalComponent, DatasetsComponent, TransformationComponent, MatTabGroup, MatTab, RenderComponent, MatTabContent, WorkflowPage]
 })
 
 export class MainPage {

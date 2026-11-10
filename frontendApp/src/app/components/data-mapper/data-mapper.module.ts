@@ -12,21 +12,19 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { DataMapperComponent } from './data-mapper.component';
 
 @NgModule({
-  declarations: [
-    DataMapperComponent
-  ],
-  imports: [
-    CommonModule,
-    FormsModule,
-    DragDropModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatInputModule,
-    MatFormFieldModule
-  ],
-  exports: [
-    DataMapperComponent
-  ]
+    imports: [
+        CommonModule,
+        FormsModule,
+        DragDropModule,
+        MatCardModule,
+        MatButtonModule,
+        MatIconModule,
+        MatInputModule,
+        MatFormFieldModule,
+        DataMapperComponent
+    ],
+    exports: [
+        DataMapperComponent
+    ]
 })
 export class DataMapperModule { }

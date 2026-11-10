@@ -21,10 +21,9 @@ describe('DatasetsModalComponent', () => {
     datasetServiceSpy.uploadFile.and.returnValue(of());
 
     TestBed.configureTestingModule({
-      declarations: [DatasetsModalComponent],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule],
-      providers: [{ provide: DatasetService, useValue: datasetServiceSpy }]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), HttpClientTestingModule, DatasetsModalComponent],
+    providers: [{ provide: DatasetService, useValue: datasetServiceSpy }]
+}).compileComponents();
 
     fixture = TestBed.createComponent(DatasetsModalComponent);
     component = fixture.componentInstance;

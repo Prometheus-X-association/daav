@@ -25,14 +25,13 @@ describe('SecuritySectionComponent', () => {
     loadingControllerSpy.create.and.returnValue(Promise.resolve(loading));
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot(), ReactiveFormsModule],
-      declarations: [SecuritySectionComponent],
-      providers: [
+    imports: [IonicModule.forRoot(), ReactiveFormsModule, SecuritySectionComponent],
+    providers: [
         { provide: AuthService, useValue: authServiceSpy },
         { provide: ToastController, useValue: toastControllerSpy },
         { provide: LoadingController, useValue: loadingControllerSpy }
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(SecuritySectionComponent);
     component = fixture.componentInstance;

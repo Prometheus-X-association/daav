@@ -9,9 +9,8 @@ describe('DataMapperWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DataMapperWidgetComponent, HasDatasetsPipe ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), DataMapperWidgetComponent, HasDatasetsPipe]
+}).compileComponents();
 
     fixture = TestBed.createComponent(DataMapperWidgetComponent);
     component = fixture.componentInstance;

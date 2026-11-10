@@ -8,14 +8,12 @@ import { IonicModule } from '@ionic/angular';
 import { QueryBuilderModule } from 'ngx-query-builder';
 
 @NgModule({
-  declarations: [
-    DataFilterComponent
-  ],
-  imports: [
-    CommonModule, FormsModule, QueryBuilderModule, IonicModule
-  ],
-  exports: [
-    DataFilterComponent, QueryBuilderModule
-  ]
+    imports: [
+        CommonModule, FormsModule, QueryBuilderModule, IonicModule,
+        DataFilterComponent
+    ],
+    exports: [
+        DataFilterComponent, QueryBuilderModule
+    ]
 })
 export class DataFilterModule { }

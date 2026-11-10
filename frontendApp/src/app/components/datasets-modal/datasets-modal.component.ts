@@ -6,8 +6,8 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { IonModal } from '@ionic/angular';
+import { FormControl, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { IonModal, IonicModule } from '@ionic/angular';
 import { Dataset } from 'src/app/models/dataset';
 import { DatasetType } from 'src/app/enums/dataset-type';
 import { DatasetService } from 'src/app/services/dataset.service';
@@ -16,7 +16,7 @@ import { DatasetService } from 'src/app/services/dataset.service';
     selector: 'app-datasets-modal',
     templateUrl: './datasets-modal.component.html',
     styleUrls: ['./datasets-modal.component.scss'],
-    standalone: false
+    imports: [IonicModule, FormsModule, ReactiveFormsModule]
 })
 export class DatasetsModalComponent implements OnChanges {
   @ViewChild('modal') modal: IonModal;

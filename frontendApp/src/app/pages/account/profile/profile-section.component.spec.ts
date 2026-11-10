@@ -28,15 +28,14 @@ describe('ProfileSectionComponent', () => {
     alertControllerSpy.create.and.returnValue(Promise.resolve(alert));
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot()],
-      declarations: [ProfileSectionComponent],
-      providers: [
+    imports: [IonicModule.forRoot(), ProfileSectionComponent],
+    providers: [
         { provide: AuthService, useValue: authServiceSpy },
         { provide: AlertController, useValue: alertControllerSpy },
         { provide: ToastController, useValue: jasmine.createSpyObj('ToastController', ['create']) },
         { provide: LoadingController, useValue: jasmine.createSpyObj('LoadingController', ['create']) }
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(ProfileSectionComponent);
     component = fixture.componentInstance;

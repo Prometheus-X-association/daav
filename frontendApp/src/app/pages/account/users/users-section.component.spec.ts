@@ -34,15 +34,14 @@ describe('UsersSectionComponent', () => {
     router = { navigate: jasmine.createSpy('navigate') };
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot()],
-      declarations: [UsersSectionComponent],
-      providers: [
+    imports: [IonicModule.forRoot(), UsersSectionComponent],
+    providers: [
         { provide: AuthService, useValue: authServiceSpy },
         { provide: ToastController, useValue: toastControllerSpy },
         { provide: AlertController, useValue: alertControllerSpy },
         { provide: Router, useValue: router }
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(UsersSectionComponent);
     component = fixture.componentInstance;

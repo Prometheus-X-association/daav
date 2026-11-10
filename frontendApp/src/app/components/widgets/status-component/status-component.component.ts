@@ -2,6 +2,9 @@ import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import { OverlayEventDetail } from '@ionic/core';
 import { ClassicPreset } from 'rete';
 import { StatusNode } from 'src/app/enums/status-node';
+import { MatTooltip } from '@angular/material/tooltip';
+import { NgClass } from '@angular/common';
+import { IonicModule } from '@ionic/angular';
 
 export class StatusControl extends ClassicPreset.Control {
   constructor(
@@ -17,7 +20,7 @@ export class StatusControl extends ClassicPreset.Control {
     selector: 'app-status-component',
     templateUrl: './status-component.component.html',
     styleUrls: ['./status-component.component.scss'],
-    standalone: false
+    imports: [MatTooltip, NgClass, IonicModule]
 })
 export class StatusComponentComponent {
   @Input() data: StatusControl;

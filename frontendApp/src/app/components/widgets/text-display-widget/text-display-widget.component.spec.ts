@@ -8,9 +8,8 @@ describe('TextDisplayWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [TextDisplayWidgetComponent],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), TextDisplayWidgetComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(TextDisplayWidgetComponent);
     component = fixture.componentInstance;

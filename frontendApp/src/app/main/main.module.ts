@@ -18,19 +18,19 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { WorkflowPageModule } from '../pages/worflow/workflow.module';
 
 @NgModule({
-  imports: [
-    IonicModule,
-    CommonModule,
-    FormsModule,
-    Tab1PageRoutingModule,
-    ComponentsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatTabsModule,
-    ReactiveFormsModule,
-    NgxJsonViewerModule,
-    WorkflowPageModule
-  ],
-  declarations: [MainPage,RenderComponent,DatasetsComponent,TransformationComponent,DatasetsModalComponent, TransformationModalComponent]
+    imports: [
+        IonicModule,
+        CommonModule,
+        FormsModule,
+        Tab1PageRoutingModule,
+        ComponentsModule,
+        MatTableModule,
+        MatPaginatorModule,
+        MatTabsModule,
+        ReactiveFormsModule,
+        NgxJsonViewerModule,
+        WorkflowPageModule,
+        MainPage, RenderComponent, DatasetsComponent, TransformationComponent, DatasetsModalComponent, TransformationModalComponent
+    ]
 })
 export class MainPageModule {}

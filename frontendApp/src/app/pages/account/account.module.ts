@@ -48,20 +48,18 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    IonicModule,
-    ComponentsModule,
-    RouterModule.forChild(routes)
-  ],
-  declarations: [
-    AccountPage,
-    ProfileSectionComponent,
-    SecuritySectionComponent,
-    CredentialsSectionComponent,
-    UsersSectionComponent
-  ]
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        IonicModule,
+        ComponentsModule,
+        RouterModule.forChild(routes),
+        AccountPage,
+        ProfileSectionComponent,
+        SecuritySectionComponent,
+        CredentialsSectionComponent,
+        UsersSectionComponent
+    ]
 })
 export class AccountPageModule {}

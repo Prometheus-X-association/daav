@@ -9,9 +9,8 @@ describe('CustomConnectionComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ CustomConnectionComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [CustomConnectionComponent, IonicModule.forRoot()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(CustomConnectionComponent);
     component = fixture.componentInstance;

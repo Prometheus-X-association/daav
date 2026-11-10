@@ -9,9 +9,8 @@ describe('TransformationModalComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ TransformationModalComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), TransformationModalComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(TransformationModalComponent);
     component = fixture.componentInstance;

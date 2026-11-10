@@ -9,9 +9,8 @@ describe('CheckboxWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ CheckboxWidgetComponent ],
-      imports: [IonicModule.forRoot(), MatCheckboxModule]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), MatCheckboxModule, CheckboxWidgetComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(CheckboxWidgetComponent);
     component = fixture.componentInstance;

@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { AlertController, ToastController } from '@ionic/angular';
+import { AlertController, ToastController, IonicModule } from '@ionic/angular';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 import { formatAccountDate } from '../account-utils';
+import { UpperCasePipe } from '@angular/common';
 
 /**
  * Account page section: user management (Admin only)
@@ -12,7 +13,7 @@ import { formatAccountDate } from '../account-utils';
     selector: 'app-users-section',
     templateUrl: './users-section.component.html',
     styleUrls: ['./users-section.component.scss'],
-    standalone: false
+    imports: [IonicModule, UpperCasePipe]
 })
 export class UsersSectionComponent implements OnInit {
   allUsers: User[] = [];

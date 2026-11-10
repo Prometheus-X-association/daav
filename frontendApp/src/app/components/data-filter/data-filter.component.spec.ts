@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { DataFilterComponent } from './data-filter.component';
+import { QueryBuilderModule } from 'ngx-query-builder';
 
 describe('DataFilterComponent', () => {
   let component: DataFilterComponent;
@@ -9,10 +10,15 @@ describe('DataFilterComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DataFilterComponent ],
-      imports: [IonicModule.forRoot()],
-      schemas: [CUSTOM_ELEMENTS_SCHEMA]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), DataFilterComponent],
+    schemas: [CUSTOM_ELEMENTS_SCHEMA]
+})
+    // Shallow test: render <query-builder> as an unknown element
+    .overrideComponent(DataFilterComponent, {
+      remove: { imports: [QueryBuilderModule] },
+      add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(DataFilterComponent);
     component = fixture.componentInstance;

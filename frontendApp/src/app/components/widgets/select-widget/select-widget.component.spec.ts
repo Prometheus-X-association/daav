@@ -10,9 +10,8 @@ describe('SelectWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ SelectWidgetComponent ],
-      imports: [IonicModule.forRoot(), MatSelectModule, BrowserAnimationsModule]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), MatSelectModule, BrowserAnimationsModule, SelectWidgetComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(SelectWidgetComponent);
     component = fixture.componentInstance;

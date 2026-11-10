@@ -2,6 +2,9 @@ import { ChangeDetectorRef, Component, Input } from "@angular/core";
 import { OverlayEventDetail } from "@ionic/core";
 import { ClassicPreset } from "rete";
 import { DatasetMapper } from "src/app/models/data-mapper-types";
+import { IonicModule } from "@ionic/angular";
+import { DataFilterComponent } from "../../data-filter/data-filter.component";
+import { HasDatasetsPipe } from "../../../models/data-mapper-types";
 
 export class DataFilterControl extends ClassicPreset.Control{
   public buttonDisabled = false;
@@ -29,7 +32,7 @@ export class DataFilterControl extends ClassicPreset.Control{
     selector: 'app-data-filter-widget',
     templateUrl: './data-filter-widget.component.html',
     styleUrls: ['./data-filter-widget.component.scss'],
-    standalone: false
+    imports: [IonicModule, DataFilterComponent, HasDatasetsPipe]
 })
 export class DataFilterWidgetComponent{
   @Input() data: DataFilterControl;

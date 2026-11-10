@@ -1,6 +1,12 @@
 import { ChangeDetectorRef, Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger, MatAutocomplete } from '@angular/material/autocomplete';
 import { ClassicPreset } from 'rete';
+import { MatFormField, MatLabel, MatSuffix } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
+import { FormsModule } from '@angular/forms';
+import { MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
+import { MatOption } from '@angular/material/select';
 
 
 export interface inputAutoCompleteControlI {
@@ -49,7 +55,7 @@ export class InputAutoCompleteControl
     selector: 'app-input-auto-complete-widget',
     templateUrl: './input-auto-complete-widget.component.html',
     styleUrls: ['./input-auto-complete-widget.component.scss'],
-    standalone: false
+    imports: [MatFormField, MatLabel, MatInput, FormsModule, MatAutocompleteTrigger, MatIconButton, MatSuffix, MatIcon, MatAutocomplete, MatOption]
 })
 export class InputAutoCompleteWidgetComponent implements OnInit, OnChanges {
 

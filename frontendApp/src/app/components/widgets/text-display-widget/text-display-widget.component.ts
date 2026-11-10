@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges } from "@angular/core";
 import { ClassicPreset } from "rete";
+import { IonicModule } from "@ionic/angular";
 
 export interface textDisplayControlI{
     value: string,
@@ -40,7 +41,7 @@ export class TextDisplayControl extends ClassicPreset.Control implements textDis
     selector: "app-text-display-widget",
     templateUrl: "./text-display-widget.component.html",
     styleUrls: ['./text-display-widget.component.scss'],
-    standalone: false
+    imports: [IonicModule]
 })
 export class TextDisplayWidgetComponent implements OnChanges {
     @Input() data: TextDisplayControl;

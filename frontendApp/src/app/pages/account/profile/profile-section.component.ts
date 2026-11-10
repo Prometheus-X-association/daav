@@ -1,9 +1,10 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AlertController, LoadingController, ToastController } from '@ionic/angular';
+import { AlertController, LoadingController, ToastController, IonicModule } from '@ionic/angular';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 import { formatAccountDate } from '../account-utils';
+import { UpperCasePipe } from '@angular/common';
 
 /**
  * Account page section: information of the current user
@@ -12,7 +13,7 @@ import { formatAccountDate } from '../account-utils';
     selector: 'app-profile-section',
     templateUrl: './profile-section.component.html',
     styleUrls: ['./profile-section.component.scss'],
-    standalone: false
+    imports: [IonicModule, UpperCasePipe]
 })
 export class ProfileSectionComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);

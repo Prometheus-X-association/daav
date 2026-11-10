@@ -7,13 +7,14 @@ import { ConfirmDeletionModalComponent } from 'src/app/components/confirm-deleti
 import { WorkflowUpdateRulesModalComponent } from 'src/app/components/workflow-update-rules-modal/workflow-update-rules-modal.component';
 import { StatusNode } from 'src/app/enums/status-node';
 import { DatasetService } from 'src/app/services/dataset.service';
+import { IonicModule } from '@ionic/angular';
 
 @Component({
     selector: 'app-transformation',
     templateUrl: './transformation.component.html',
     styleUrls: ['../datasets/datasets.component.scss', './transformation.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    imports: [IonicModule]
 })
 export class TransformationComponent  implements OnInit {
   @Output() transformationView = new EventEmitter<string>();

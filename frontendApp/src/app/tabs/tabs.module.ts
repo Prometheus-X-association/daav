@@ -9,14 +9,14 @@ import { TabsPage } from './tabs.page';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import { LoadingComponent } from '../components/main/loading/loading.component';
 @NgModule({
-  imports: [
-    IonicModule,
-    CommonModule,
-    MatProgressSpinnerModule,
-    FormsModule,
-    TabsPageRoutingModule,
-    LoadingComponent
-  ],
-  declarations: [TabsPage],
+    imports: [
+        IonicModule,
+        CommonModule,
+        MatProgressSpinnerModule,
+        FormsModule,
+        TabsPageRoutingModule,
+        LoadingComponent,
+        TabsPage
+    ],
 })
 export class TabsPageModule {}

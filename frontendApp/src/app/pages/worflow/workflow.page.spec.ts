@@ -34,16 +34,15 @@ describe('WorkflowPage', () => {
     dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
     await TestBed.configureTestingModule({
-      declarations: [WorkflowPage],
-      imports: [IonicModule.forRoot(), FormsModule],
-      providers: [
+    imports: [IonicModule.forRoot(), FormsModule, WorkflowPage],
+    providers: [
         { provide: ActivatedRoute, useValue: activatedRouteSpy },
         { provide: WorkflowService, useValue: workflowServiceSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(WorkflowPage);
     component = fixture.componentInstance;

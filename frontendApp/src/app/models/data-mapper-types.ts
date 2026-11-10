@@ -41,8 +41,7 @@ export interface ColumnMapping {
 
 @Pipe({
     name: 'hasDatasets',
-    pure: true,
-    standalone: false
+    pure: true
 })
 export class HasDatasetsPipe implements PipeTransform {
   transform(datasets: DatasetMapper[]): boolean {

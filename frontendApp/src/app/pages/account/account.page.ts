@@ -1,10 +1,11 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router } from '@angular/router';
-import { AlertController } from '@ionic/angular';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AlertController, IonicModule } from '@ionic/angular';
 import { filter } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/auth.models';
+import { AppToolbarComponent } from '../../components/app-toolbar/app-toolbar.component';
 
 export interface AccountSection {
   path: string;
@@ -22,7 +23,7 @@ export interface AccountSection {
     selector: 'app-account',
     templateUrl: './account.page.html',
     styleUrls: ['./account.page.scss'],
-    standalone: false
+    imports: [IonicModule, AppToolbarComponent, RouterLink, RouterLinkActive, RouterOutlet]
 })
 export class AccountPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);

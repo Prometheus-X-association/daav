@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ToastController, LoadingController } from '@ionic/angular';
+import { ToastController, LoadingController, IonicModule } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 
 /**
@@ -13,7 +13,7 @@ import { AuthService } from '../../services/auth.service';
     selector: 'app-change-password',
     templateUrl: './change-password.page.html',
     styleUrls: ['./change-password.page.scss'],
-    standalone: false
+    imports: [IonicModule, FormsModule, ReactiveFormsModule]
 })
 export class ChangePasswordPage implements OnInit {
   changePasswordForm!: FormGroup;

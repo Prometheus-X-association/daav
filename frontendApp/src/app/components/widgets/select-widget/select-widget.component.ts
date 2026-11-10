@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { MatSelectChange } from '@angular/material/select';
+import { MatSelectChange, MatSelect, MatOption } from '@angular/material/select';
 import { ClassicPreset } from 'rete';
+import { MatFormField, MatLabel } from '@angular/material/form-field';
 
 export interface selectControlI {
   value: string;
@@ -38,7 +39,7 @@ export class SelectControl
     selector: 'app-select-widget',
     templateUrl: './select-widget.component.html',
     styleUrls: ['./select-widget.component.scss'],
-    standalone: false
+    imports: [MatFormField, MatLabel, MatSelect, MatOption]
 })
 export class SelectWidgetComponent implements OnChanges {
   @Input() data: SelectControl;

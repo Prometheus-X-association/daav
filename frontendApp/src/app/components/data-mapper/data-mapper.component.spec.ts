@@ -13,9 +13,8 @@ describe('DataMapperComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DataMapperComponent ],
-      imports: [IonicModule.forRoot(), DragDropModule, MatCardModule, MatIconModule, MatTooltipModule]
-    }).compileComponents();
+    imports: [IonicModule.forRoot(), DragDropModule, MatCardModule, MatIconModule, MatTooltipModule, DataMapperComponent]
+}).compileComponents();
 
     fixture = TestBed.createComponent(DataMapperComponent);
     component = fixture.componentInstance;
