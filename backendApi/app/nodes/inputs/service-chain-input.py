@@ -44,38 +44,38 @@ class ServiceChainInput(InputNode):
             StatusNode: The status of the node after processing.
         """
         try:
-            dataset,parquetSave,inputDataSourceExample = await self._retreiveDatabase()
+            dataset,parquet_save,input_data_source_example = await self._retreiveDatabase()
             
 
             try:
                 if(sample):
-                    datasets = inputDataSourceExample
+                    datasets = input_data_source_example
 
                 else :
                     self.datasetService.pdcChainData
                     datasets = []
                     if ( isinstance(self.datasetService.pdcChainData,PdcChainRequestData)):
                         datasets.append(self.datasetService.pdcChainData.origin)
-                        for additionalData in self.datasetService.pdcChainData.additionalData:
-                            datasets.append(additionalData.data)
+                        for additional_data in self.datasetService.pdcChainData.additionalData:
+                            datasets.append(additional_data.data)
                     else :
                         datasets.append(self.datasetService.pdcChainData)
-                chainHeaders = self.datasetService.pdcChainHeaders
+                chain_headers = self.datasetService.pdcChainHeaders
                 for index, dataset in enumerate(datasets):
 
                     df = pd.DataFrame(dataset)
                     schema = generate_pandas_schema(df)
-                    if parquetSave and not sample:
-                        parquetPath = f"{dataset.id}_{index}.parquet"                    
-                        print(f"Saving data to {parquetPath}")
+                    if parquet_save and not sample:
+                        parquet_path = f"{dataset.id}_{index}.parquet"                    
+                        print(f"Saving data to {parquet_path}")
                         table = pa.Table.from_pandas(df)
-                        parquet_writer = pq.ParquetWriter(parquetPath, table.schema)
+                        parquet_writer = pq.ParquetWriter(parquet_path, table.schema)
                         parquet_writer.write_table(table)
 
                         if parquet_writer:
                             parquet_writer.close()
 
-                        parquet_file = pq.ParquetFile(parquetPath)
+                        parquet_file = pq.ParquetFile(parquet_path)
                         schema = parquet_file.schema 
 
                     output = self.outputs.get(f"pdc-{index}")
@@ -83,9 +83,9 @@ class ServiceChainInput(InputNode):
                     if output.get_node_data():
                         # Update existing node data
                         # should resolve when output.get_node_data() is not the same type as the new node data
-                        if parquetSave and not sample:
+                        if parquet_save and not sample:
                             if isinstance(output.get_node_data, NodeDataParquet):
-                                output.get_node_data().parquetPath = parquetPath
+                                output.get_node_data().parquetPath = parquet_path
                                 output.get_node_data().nodeSchema = schema
                             else:
                                 raise ValueError("Output node data is not of type NodeDataParquet")
@@ -101,20 +101,20 @@ class ServiceChainInput(InputNode):
                                 raise ValueError("Output node data is not of type NodeDataPandasDf")
                     else:
                         # Create new node data
-                        if parquetSave:
+                        if parquet_save:
                             if isinstance(schema, ParquetSchema):
                                 node_data = NodeDataParquet(
                                     type = 'parquet',
-                                    data = parquetPath,
+                                    data = parquet_path,
                                     nodeSchema=schema,
-                                    name=f"{'Example' if sample else chainHeaders.x_ptx_service_chain_id} {index}"
+                                    name=f"{'Example' if sample else chain_headers.x_ptx_service_chain_id} {index}"
                                 )
                             else: 
                                 raise ValueError("Schema is not a ParquetSchema")
                         else:
                             node_data = NodeDataPandasDf(
                                 nodeSchema=schema,
-                                name=f"{'Example' if sample else chainHeaders.x_ptx_service_chain_id} {index}"
+                                name=f"{'Example' if sample else chain_headers.x_ptx_service_chain_id} {index}"
                             )
                             if sample:
                                 node_data.dataExample = df
@@ -142,18 +142,18 @@ class ServiceChainInput(InputNode):
         Raises:
             ValueError: If no data source, database, or table is selected.
         """
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
-        dataset : PTXDataset  = await self.datasetService.get_dataset(datasetId)
+        dataset : PTXDataset  = await self.datasetService.get_dataset(dataset_id)
         if self.data.get('inputsDatasource'):
-             inputDataSourceExample = self.data.get('inputsDatasource')
+             input_data_source_example = self.data.get('inputsDatasource')
         else:
             raise ValueError("No datasource example")
-        parquetSave = self.data['parquetSave']['value'] if self.data.get('parquetSave') else False
-        return dataset, parquetSave , inputDataSourceExample
+        parquet_save = self.data['parquetSave']['value'] if self.data.get('parquetSave') else False
+        return dataset, parquet_save , input_data_source_example
 
 
     model_config = ConfigDict(

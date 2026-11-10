@@ -512,7 +512,7 @@ class DatasetService(metaclass=SingletonMeta):
         await connection.insert()
         return connection
 
-    def getDfMongoContent(self, dataset: MongoDataset, datasetParams: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
+    def getDfMongoContent(self, dataset: MongoDataset, dataset_params: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve MongoDB dataset content"""
         from pymongo.mongo_client import MongoClient
         from pymongo.errors import ConnectionFailure
@@ -525,8 +525,8 @@ class DatasetService(metaclass=SingletonMeta):
             logger.debug(f"MongoDB URI: {dataset.uri[:20]}... (truncated for security)")
             
             client = MongoClient(dataset.uri)
-            db = client[dataset.database] if dataset.database else client[datasetParams.database]
-            col = db[dataset.collection] if dataset.collection else db[datasetParams.table]
+            db = client[dataset.database] if dataset.database else client[dataset_params.database]
+            col = db[dataset.collection] if dataset.collection else db[dataset_params.table]
             
             if db is not None and col is not None:
                 logger.debug(f"Querying collection: {col.name} in database: {db.name}")
@@ -546,7 +546,7 @@ class DatasetService(metaclass=SingletonMeta):
                 schema = generate_pandas_schema(df)
                 node_data = NodeDataPandasDf(
                     nodeSchema=schema,
-                    name=dataset.collection if dataset.collection else datasetParams.table
+                    name=dataset.collection if dataset.collection else dataset_params.table
                 )
                 
                 if pagination:
@@ -576,11 +576,11 @@ class DatasetService(metaclass=SingletonMeta):
                 client.close()
                 logger.debug("MongoDB connection closed")
 
-    def getDfElasticContent(self, dataset: ElasticDataset, datasetParams: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
+    def getDfElasticContent(self, dataset: ElasticDataset, dataset_params: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve Elasticsearch index content as a DataFrame (a sample when pagination is given)"""
         from app.services.elastic_service import ElasticService
 
-        index = dataset.index or datasetParams.index or datasetParams.table
+        index = dataset.index or dataset_params.index or dataset_params.table
         if not index:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="An Elasticsearch index must be specified")
@@ -598,15 +598,15 @@ class DatasetService(metaclass=SingletonMeta):
             node_data.data = df
         return node_data
 
-    def getDfMysqlContent(self, dataset: MysqlDataset, datasetParams: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
+    def getDfMysqlContent(self, dataset: MysqlDataset, dataset_params: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve MySQL dataset content"""
         engine = None
         try:
             logger.info(f"Connecting to MySQL dataset: {dataset.name}")
-            logger.debug(f"MySQL host: {dataset.host}, database: {dataset.database or datasetParams.database}")
+            logger.debug(f"MySQL host: {dataset.host}, database: {dataset.database or dataset_params.database}")
             
-            database = datasetParams.database if datasetParams.database else dataset.database
-            table = datasetParams.table if datasetParams.table else dataset.table
+            database = dataset_params.database if dataset_params.database else dataset.database
+            table = dataset_params.table if dataset_params.table else dataset.table
             
             if database and table:
                 connection_string = f"mysql+mysqlconnector://{dataset.user}:***@{dataset.host}/{database}"
@@ -622,18 +622,18 @@ class DatasetService(metaclass=SingletonMeta):
                     query = f"SELECT * FROM {table}"
                     logger.debug(f"MySQL query: {query}")
                 
-                result_dataFrame = pd.read_sql(query, engine)
-                logger.info(f"Successfully retrieved {len(result_dataFrame)} records from MySQL")
+                result_data_frame = pd.read_sql(query, engine)
+                logger.info(f"Successfully retrieved {len(result_data_frame)} records from MySQL")
                 
-                schema = generate_pandas_schema(result_dataFrame)    
+                schema = generate_pandas_schema(result_data_frame)    
                 node_data = NodeDataPandasDf(
                     nodeSchema=schema,
                     name=dataset.name
                 )
                 if pagination:
-                    node_data.dataExample = result_dataFrame
+                    node_data.dataExample = result_data_frame
                 else:
-                    node_data.data = result_dataFrame
+                    node_data.data = result_data_frame
                 return node_data
             else:
                 logger.error(f"Database and table must be specified for dataset: {dataset.name}")

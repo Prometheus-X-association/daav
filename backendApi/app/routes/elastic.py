@@ -4,9 +4,9 @@ Index deletion is deliberately not exposed.
 """
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
 from app.middleware.auth import CurrentUser
@@ -73,10 +73,14 @@ async def cluster_info(dataset_id: str, current_user: CurrentUser) -> Dict[str, 
 
 
 @router.get("/{dataset_id}/elastic/indices")
-async def list_indices(dataset_id: str, current_user: CurrentUser, includeHidden: bool = False) -> List[Dict[str, Any]]:
+async def list_indices(
+    dataset_id: str,
+    current_user: CurrentUser,
+    include_hidden: Annotated[bool, Query(alias="includeHidden")] = False,
+) -> List[Dict[str, Any]]:
     """Indices visible with the dataset credentials, with document count, size and aliases"""
     dataset = await _get_elastic_dataset(dataset_id, current_user)
-    return await asyncio.to_thread(elastic_service.list_indices, dataset, includeHidden)
+    return await asyncio.to_thread(elastic_service.list_indices, dataset, include_hidden)
 
 
 @router.get("/{dataset_id}/elastic/indices/{index}/mapping")

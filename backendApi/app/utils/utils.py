@@ -471,10 +471,10 @@ def slice_generator(df, chunk_size=1000):
         current_row += chunk_size
 
 
-def decodeDictionary(dictionary):
+def decode_dictionary(dictionary):
     if type(dictionary) == dict:
         for key in dictionary.keys():
-            dictionary[key] = decodeDictionary(dictionary[key])
+            dictionary[key] = decode_dictionary(dictionary[key])
     elif type(dictionary) == bytes:
         dictionary = dictionary.decode('ISO-8859-1') 
     return dictionary

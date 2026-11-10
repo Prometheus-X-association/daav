@@ -43,8 +43,8 @@ class DataMysqlBlock(InputNode):
             StatusNode: The status of the node after processing.
         """
         try:
-            dataset, database, table, parquetSave = await self._retreiveDatabase()
-            parquetPath = f"{dataset.id}_{table}.parquet"
+            dataset, database, table, parquet_save = await self._retreiveDatabase()
+            parquet_path = f"{dataset.id}_{table}.parquet"
 
             try:
                 # Connect to the MySQL database
@@ -52,23 +52,23 @@ class DataMysqlBlock(InputNode):
                 mydb = engine.connect()
                 query = f"SELECT * FROM {table}"
                 print(f"Connected to MySQL database {database} on {table}")
-                if not parquetSave:
+                if not parquet_save:
                     if sample:
                         query += f" LIMIT 20"
-                        result_dataFrame = pd.read_sql_query(query, mydb)
+                        result_data_frame = pd.read_sql_query(query, mydb)
                     else:
-                        result_dataFrame = pd.read_sql_query(query, mydb)
-                    schema = generate_pandas_schema(result_dataFrame)
+                        result_data_frame = pd.read_sql_query(query, mydb)
+                    schema = generate_pandas_schema(result_data_frame)
                 
                 else : 
-                    print(f"Saving data to {parquetPath}")
+                    print(f"Saving data to {parquet_path}")
                     chunksize = 50
                     parquet_writer = None
                     for chunk in pd.read_sql_query(query, engine, chunksize=chunksize):
                         table = pa.Table.from_pandas(chunk)
 
                         if parquet_writer is None:
-                            parquet_writer = pq.ParquetWriter(parquetPath, table.schema)
+                            parquet_writer = pq.ParquetWriter(parquet_path, table.schema)
                             if sample:
                                 parquet_writer.write_table(table)
                                 break
@@ -77,7 +77,7 @@ class DataMysqlBlock(InputNode):
                     if parquet_writer:
                         parquet_writer.close()
 
-                    parquet_file = pq.ParquetFile(parquetPath)
+                    parquet_file = pq.ParquetFile(parquet_path)
                     schema = parquet_file.schema 
                 
                 mydb.close()  # Close the connection
@@ -86,9 +86,9 @@ class DataMysqlBlock(InputNode):
                     if output.get_node_data():
                         # Update existing node data
                         # should resolve when output.get_node_data() is not the same type as the new node data
-                        if parquetSave:
+                        if parquet_save:
                             if isinstance(output.get_node_data(), NodeDataParquet):
-                                output.get_node_data().parquetPath = parquetPath
+                                output.get_node_data().parquetPath = parquet_path
                                 output.get_node_data().nodeSchema = schema
                             else:
                                 raise ValueError("Output node data is not of type NodeDataParquet")
@@ -97,17 +97,17 @@ class DataMysqlBlock(InputNode):
                             if isinstance(output.get_node_data(), NodeDataPandasDf):
                                 output.get_node_data().nodeSchema = schema
                                 if sample:
-                                    output.get_node_data().dataExample = result_dataFrame
+                                    output.get_node_data().dataExample = result_data_frame
                                 else:
-                                    output.get_node_data().data = result_dataFrame
+                                    output.get_node_data().data = result_data_frame
                             else:
                                 raise ValueError("Output node data is not of type NodeDataPandasDf")
                     else:
                         # Create new node data
-                        if parquetSave:
+                        if parquet_save:
                             if isinstance(schema, ParquetSchema):
                                 node_data = NodeDataParquet(
-                                    data = parquetPath,
+                                    data = parquet_path,
                                     nodeSchema=schema,
                                     name=key,
                                 )
@@ -119,9 +119,9 @@ class DataMysqlBlock(InputNode):
                                 name=key
                             )
                             if sample:
-                                node_data.dataExample = result_dataFrame
+                                node_data.dataExample = result_data_frame
                             else :
-                                node_data.data = result_dataFrame    
+                                node_data.data = result_data_frame    
                         output.set_node_data(node_data, self)
                 return StatusNode.Valid
             except Exception as e:
@@ -145,15 +145,15 @@ class DataMysqlBlock(InputNode):
         Raises:
             ValueError: If no data source, database, or table is selected.
         """
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
-        dataset : MysqlDataset  = await self.datasetService.get_dataset(datasetId)
+        dataset : MysqlDataset  = await self.datasetService.get_dataset(dataset_id)
         database = self.data['selectDatabaseDataSource']['value'] if self.data.get('selectDatabaseDataSource') and self.data['selectDatabaseDataSource'].get('value') else dataset.database
         table = self.data['selectTableDataSource']['value'] if self.data.get('selectTableDataSource') and self.data['selectTableDataSource'].get('value') else dataset.table
-        parquetSave = self.data['parquetSave']['value'] if self.data.get('parquetSave') else False
+        parquet_save = self.data['parquetSave']['value'] if self.data.get('parquetSave') else False
         if (table is None or table == ""):
             raise ValueError("No table selected")
         if (database is None or database == ""):
@@ -161,7 +161,7 @@ class DataMysqlBlock(InputNode):
         # Validate identifiers regardless of source (Pydantic model or workflow JSON)
         _validate_sql_identifier(database, 'database')
         _validate_sql_identifier(table, 'table')
-        return dataset, database, table, parquetSave
+        return dataset, database, table, parquet_save
 
 
     model_config = ConfigDict(

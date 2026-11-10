@@ -49,20 +49,20 @@ class FileOutput(OutputNode):
             StatusNode: The status of the node after processing.
         """
         try:
-            dataset, delimiter, encoding, fileType, fileName, fileExist = await self._retrieveFileConfig()
+            dataset, delimiter, encoding, file_type, file_name, file_exist = await self._retrieveFileConfig()
             
 
             if dataset is not None and dataset.filePath:
                 data_file_type = dataset.metadata.fileType
-                if data_file_type != fileType:
-                    self.statusMessage = f"Output type '{fileType}' does not match dataset type '{data_file_type}'"
+                if data_file_type != file_type:
+                    self.statusMessage = f"Output type '{file_type}' does not match dataset type '{data_file_type}'"
                     raise ValueError("File type mismatch between dataset and output node")
                 
             # Determine output file path
             if dataset is not None:
                 output_file = PathSecurityValidator.validate_file_path(dataset.filePath)
-            elif fileName:
-                resolved_filename = resolve_file_name(fileName, fileType)
+            elif file_name:
+                resolved_filename = resolve_file_name(file_name, file_type)
                 
                 # Get user context for file isolation
                 current_user = ExecutionContext.get_user()
@@ -92,17 +92,17 @@ class FileOutput(OutputNode):
 
                         print(f"Exporting data to {output_file}")
                         
-                        if fileType == 'csv':
-                            if fileExist == 'append' and os.path.exists(output_file):
+                        if file_type == 'csv':
+                            if file_exist == 'append' and os.path.exists(output_file):
                                 df.to_csv(output_file, sep=delimiter, encoding=encoding, index=False, mode='a', header=False)
                             else:
                                 df.to_csv(output_file, sep=delimiter, encoding=encoding, index=False)
-                        elif fileType == 'json':
-                            self._write_json_data(df, output_file, fileExist)
-                        elif fileType == 'xml':
-                            self._write_xml_data(df, output_file, encoding, fileExist)
-                        elif fileType == 'parquet':
-                            if fileExist == 'append':
+                        elif file_type == 'json':
+                            self._write_json_data(df, output_file, file_exist)
+                        elif file_type == 'xml':
+                            self._write_xml_data(df, output_file, encoding, file_exist)
+                        elif file_type == 'parquet':
+                            if file_exist == 'append':
                                 # fileType == "append"
                                 old_data = pd.read_parquet(output_file)
                                 df = pd.concat([old_data, df], ignore_index=True)
@@ -110,12 +110,12 @@ class FileOutput(OutputNode):
                             else:
                                 df.to_parquet(output_file)
                         else:
-                            raise ValueError(f"Unsupported file type: {fileType}")
+                            raise ValueError(f"Unsupported file type: {file_type}")
                         
                         print(f"Successfully exported to {output_file}")
                         
                         # Create and save new dataset AFTER the file has been created successfully
-                        if dataset is None and fileName:
+                        if dataset is None and file_name:
                             # Get execution context for user information
                             current_user = ExecutionContext.get_user()
                             workflow = ExecutionContext.get_workflow()
@@ -123,7 +123,7 @@ class FileOutput(OutputNode):
                             if current_user:
                                 logger.info(f"User {current_user.username} creating dataset in workflow {workflow.name if workflow else 'unknown'}")
                             
-                            new_dataset = self._create_file_dataset(output_file, fileType, delimiter, encoding)
+                            new_dataset = self._create_file_dataset(output_file, file_type, delimiter, encoding)
                             
                             # Add connection with user context if available
                             if current_user:
@@ -143,48 +143,48 @@ class FileOutput(OutputNode):
                         
                     elif isinstance(data, NodeDataParquet):
                         # Process in chunks to handle large files
-                        chunkSize = 100
-                        firstChunk = True
-                        parquetFilePath = PathSecurityValidator.validate_file_path(data.data)
-                        parquetFile = pq.ParquetFile(parquetFilePath)
+                        chunk_size = 100
+                        first_chunk = True
+                        parquet_file_path = PathSecurityValidator.validate_file_path(data.data)
+                        parquet_file = pq.ParquetFile(parquet_file_path)
                         
-                        if fileType == 'csv':
-                            mode = 'w' if fileExist == 'replace' or not os.path.exists(output_file) else 'a'
+                        if file_type == 'csv':
+                            mode = 'w' if file_exist == 'replace' or not os.path.exists(output_file) else 'a'
                             with open(output_file, mode, encoding=encoding) as csvfile:
-                                for batch in parquetFile.iter_batches(batch_size=chunkSize):
+                                for batch in parquet_file.iter_batches(batch_size=chunk_size):
                                     chunk_df = batch.to_pandas()
                                     
-                                    if sample and firstChunk:
+                                    if sample and first_chunk:
                                         chunk_df = chunk_df.head(20)
                                         chunk_df.to_csv(csvfile, sep=delimiter, index=False)
                                         break
                                     
-                                    write_header = firstChunk and (fileExist == 'replace' or not os.path.exists(output_file))
+                                    write_header = first_chunk and (file_exist == 'replace' or not os.path.exists(output_file))
                                     chunk_df.to_csv(csvfile, sep=delimiter, index=False, header=write_header)
-                                    firstChunk = False
+                                    first_chunk = False
                         
-                        elif fileType == 'json':
-                            self._write_json_parquet_data(parquetFile, output_file, sample, chunkSize, fileExist)
+                        elif file_type == 'json':
+                            self._write_json_parquet_data(parquet_file, output_file, sample, chunk_size, file_exist)
                         
-                        elif fileType == 'xml':
-                            self._write_xml_parquet_data(parquetFile, output_file, encoding, sample, chunkSize, fileExist)
-                        elif fileType == 'parquet':
-                            if fileExist == 'append':
+                        elif file_type == 'xml':
+                            self._write_xml_parquet_data(parquet_file, output_file, encoding, sample, chunk_size, file_exist)
+                        elif file_type == 'parquet':
+                            if file_exist == 'append':
                                 # fileType == "append"
                                 old_data = pd.read_parquet(output_file)
-                                new_data = parquetFile.read().to_pandas()
+                                new_data = parquet_file.read().to_pandas()
                                 combined_data = pd.concat([old_data, new_data], ignore_index=True)
                                 combined_data.to_parquet(output_file)
                             else:
-                                parquetFile.write(output_file)
+                                parquet_file.write(output_file)
                         print(f"Successfully exported to {output_file}")
                         
                         # Create and save new dataset AFTER the file has been created successfully
-                        if dataset is None and fileName:
+                        if dataset is None and file_name:
                             # Get execution context for user information  
                             current_user = ExecutionContext.get_user()
                             
-                            new_dataset = self._create_file_dataset(output_file, fileType, delimiter, encoding)
+                            new_dataset = self._create_file_dataset(output_file, file_type, delimiter, encoding)
                             if current_user:
                                 await self.datasetService.add_connection(new_dataset, current_user)
                                 logger.info(f"Created new dataset: {new_dataset.name} for user {current_user.username}")
@@ -218,39 +218,39 @@ class FileOutput(OutputNode):
             ValueError: If no data source is selected.
         """
         dataset = None
-        datasetId: str = None
+        dataset_id: str = None
         select_data_source = self.data.get('selectDataSource')
         if select_data_source and select_data_source.get('value'):
-            datasetId = select_data_source['value']
+            dataset_id = select_data_source['value']
         
-        if datasetId:
+        if dataset_id:
             try:  
-                dataset: FileDataset = await self.datasetService.get_dataset(datasetId)
+                dataset: FileDataset = await self.datasetService.get_dataset(dataset_id)
             except Exception as e:
                 dataset= None
         delimiter = self.data.get('delimiter')['value'] if self.data.get('delimiter') and self.data.get('delimiter').get('value') else ','
         encoding = self.data.get('encoding')['value'] if self.data.get('encoding') and self.data.get('encoding').get('value') else 'utf-8'
-        fileType = self.data.get('fileType')['value'] if self.data.get('fileType') and self.data.get('fileType').get('value') else None
-        fileName = self.data.get('fileName')['value'] if self.data.get('fileName') and self.data.get('fileName').get('value') else None
+        file_type = self.data.get('fileType')['value'] if self.data.get('fileType') and self.data.get('fileType').get('value') else None
+        file_name = self.data.get('fileName')['value'] if self.data.get('fileName') and self.data.get('fileName').get('value') else None
         
-        if fileName:
-            secure_file_name = PathSecurityValidator.validate_filename(fileName)
+        if file_name:
+            secure_file_name = PathSecurityValidator.validate_filename(file_name)
         else:
             secure_file_name = None
         
-        fileExist = self.data.get('fileExist')['value'] if self.data.get('fileExist') and self.data.get('fileExist').get('value') else None
+        file_exist = self.data.get('fileExist')['value'] if self.data.get('fileExist') and self.data.get('fileExist').get('value') else None
         
-        if dataset is None and not fileName:
+        if dataset is None and not file_name:
             raise ValueError("Either a data source must be selected or a filename must be provided")
 
-        return dataset, delimiter, encoding , fileType, secure_file_name, fileExist
+        return dataset, delimiter, encoding , file_type, secure_file_name, file_exist
 
-    def _write_json_data(self, df: pd.DataFrame, output_file: str, fileExist: str):
+    def _write_json_data(self, df: pd.DataFrame, output_file: str, file_exist: str):
         """Write DataFrame to JSON file with proper array handling."""
         import json
         import os
         
-        if fileExist == 'append' and os.path.exists(output_file):
+        if file_exist == 'append' and os.path.exists(output_file):
             # Load existing data and append
             records = df.to_dict(orient='records')
             existing_records = []
@@ -271,12 +271,12 @@ class FileOutput(OutputNode):
             # Replace or create new file using pandas to_json
             df.to_json(output_file, orient='records', force_ascii=False, indent=2)
 
-    def _write_xml_data(self, df: pd.DataFrame, output_file: str, encoding: str, fileExist: str):
+    def _write_xml_data(self, df: pd.DataFrame, output_file: str, encoding: str, file_exist: str):
         """Write DataFrame to XML file with proper array handling."""
         import xml.etree.ElementTree as ET
         import os
         
-        if fileExist == 'append' and os.path.exists(output_file):
+        if file_exist == 'append' and os.path.exists(output_file):
             # Parse existing XML and append
             try:
                 tree = ET.parse(output_file)
@@ -297,16 +297,16 @@ class FileOutput(OutputNode):
             # Replace or create new file
             df.to_xml(output_file, index=False, encoding=encoding)
 
-    def _write_json_parquet_data(self, parquetFile, output_file: str, sample: bool, chunkSize: int, fileExist: str):
+    def _write_json_parquet_data(self, parquet_file, output_file: str, sample: bool, chunk_size: int, file_exist: str):
         """Write parquet data to JSON file in chunks with proper array handling."""
         import json
         import os
         
         all_records = []
-        firstChunk = True
+        first_chunk = True
         
         # Read existing data if appending
-        if fileExist == 'append' and os.path.exists(output_file):
+        if file_exist == 'append' and os.path.exists(output_file):
             with open(output_file, 'r', encoding='utf-8') as f:
                 try:
                     existing_data = json.load(f)
@@ -316,30 +316,30 @@ class FileOutput(OutputNode):
                     pass
         
         # Process chunks
-        for batch in parquetFile.iter_batches(batch_size=chunkSize):
+        for batch in parquet_file.iter_batches(batch_size=chunk_size):
             chunk_df = batch.to_pandas()
             
-            if sample and firstChunk:
+            if sample and first_chunk:
                 chunk_df = chunk_df.head(20)
             
             records = chunk_df.to_dict(orient='records')
             all_records.extend(records)
             
-            if sample and firstChunk:
+            if sample and first_chunk:
                 break
-            firstChunk = False
+            first_chunk = False
         
         # Write all data as JSON array
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(all_records, f, ensure_ascii=False, indent=2)
 
-    def _write_xml_parquet_data(self, parquetFile, output_file: str, encoding: str, sample: bool, chunkSize: int, fileExist: str):
+    def _write_xml_parquet_data(self, parquet_file, output_file: str, encoding: str, sample: bool, chunk_size: int, file_exist: str):
         """Write parquet data to XML file in chunks with proper array handling."""
         import xml.etree.ElementTree as ET
         import os
         
         # Initialize or load existing XML structure
-        if fileExist == 'append' and os.path.exists(output_file):
+        if file_exist == 'append' and os.path.exists(output_file):
             try:
                 tree = ET.parse(output_file)
                 root = tree.getroot()
@@ -350,11 +350,11 @@ class FileOutput(OutputNode):
             root = ET.Element("data")
             tree = ET.ElementTree(root)
         
-        firstChunk = True
-        for batch in parquetFile.iter_batches(batch_size=chunkSize):
+        first_chunk = True
+        for batch in parquet_file.iter_batches(batch_size=chunk_size):
             chunk_df = batch.to_pandas()
             
-            if sample and firstChunk:
+            if sample and first_chunk:
                 chunk_df = chunk_df.head(20)
             
             # Add chunk data to XML
@@ -364,13 +364,13 @@ class FileOutput(OutputNode):
                     elem = ET.SubElement(item, str(col))
                     elem.text = str(value)
             
-            if sample and firstChunk:
+            if sample and first_chunk:
                 break
-            firstChunk = False
+            first_chunk = False
         
         tree.write(output_file, encoding=encoding, xml_declaration=True)
 
-    def _create_file_dataset(self, filePath: str, fileType: str, delimiter: str, encoding: str) -> FileDataset:
+    def _create_file_dataset(self, file_path: str, file_type: str, delimiter: str, encoding: str) -> FileDataset:
         """Create a new FileDataset for the output file.
         
         Args:
@@ -383,18 +383,18 @@ class FileOutput(OutputNode):
             FileDataset: A new FileDataset instance
         """
         # Generate a name for the dataset based on the filename
-        dataset_name = os.path.splitext(os.path.basename(filePath))[0]
+        dataset_name = os.path.splitext(os.path.basename(file_path))[0]
         
         # Create the FileDataset with the actual file path
         new_dataset = FileDataset(
             name=dataset_name,
-            filePath=filePath,
+            filePath=file_path,
             type="file",
-            csvDelimiter=delimiter if fileType == 'csv' else None,
+            csvDelimiter=delimiter if file_type == 'csv' else None,
             encoding=encoding,
             inputType = "file",
             metadata= {
-                "fileType": fileType,
+                "fileType": file_type,
             }
         )
         

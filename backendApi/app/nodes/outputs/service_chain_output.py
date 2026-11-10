@@ -69,9 +69,9 @@ class ServiceChainOutput(OutputNode):
 
                     elif isinstance(data, NodeDataParquet):
                         # transform parquet file to JSON using duckdb directly
-                        parquetFilePath = data.dataExample if sample else data.data
+                        parquet_file_path = data.dataExample if sample else data.data
                         conn = duckdb.connect()
-                        query = f"SELECT * FROM read_parquet('{parquetFilePath}')"
+                        query = f"SELECT * FROM read_parquet('{parquet_file_path}')"
                         result = conn.sql(query).fetchall()
                         columns = [desc[0] for desc in conn.description]
                         conn.close()
@@ -107,13 +107,13 @@ class ServiceChainOutput(OutputNode):
         return StatusNode.Valid
     
     async def _retreiveEndpointConfig(self):
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
 
-        dataset: PTXDataset = await self.datasetService.get_dataset(datasetId)
+        dataset: PTXDataset = await self.datasetService.get_dataset(dataset_id)
         if not dataset:
             raise ValueError("Dataset not found")
         return dataset

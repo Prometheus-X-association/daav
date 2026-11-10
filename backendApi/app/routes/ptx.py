@@ -28,7 +28,7 @@ from typing import Annotated, List, Optional
 from collections import defaultdict
 from app.services.user_service import UserService
 from app.services.workflow_service import WorkflowService
-from app.utils.utils import decodeDictionary
+from app.utils.utils import decode_dictionary
 from app.utils.auth_utils import authenticate_m2m_credentials, AuthenticatedUser
 from app.middleware.auth import CurrentUser
 from app.config.settings import settings
@@ -124,18 +124,18 @@ async def update_data_resource(
         config = await get_private_configuration(connection)
         
         body = await request.json()
-        dataResourcesId = body.get("dataResourceId")
-        newUrl = body.get("newUrl")
+        data_resources_id = body.get("dataResourceId")
+        new_url = body.get("newUrl")
 
         headers = {
             'Authorization': f'Bearer {connection.token}',
             'Content-Type': 'application/json'
         }
 
-        dataResource_url = f"{config.get('catalogUri')}dataresources/{dataResourcesId}"
-        dataResources = pdc_service.fetch_dataResource(dataResource_url, headers, timeout=timeout)
-        representation = dataResources.representation
-        representation.url = newUrl
+        data_resource_url = f"{config.get('catalogUri')}dataresources/{data_resources_id}"
+        data_resources = pdc_service.fetch_dataResource(data_resource_url, headers, timeout=timeout)
+        representation = data_resources.representation
+        representation.url = new_url
 
         payload = representation.model_dump_json()
 
@@ -185,13 +185,13 @@ async def get_data_resources(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/executeChainService", status_code=status.HTTP_200_OK)
-async def executeChainService(
+async def execute_chain_service(
     background_tasks: BackgroundTasks,
     payload: PdcChainRequest,
     request: Request,
     x_ptx_service_chain_id: Annotated[str | None, Header(alias="x-ptx-service-chain-id")] = None,
     x_ptx_target_id: Annotated[str | None, Header(alias="x-ptx-target-id")] = None,
-    Authorization: Annotated[str, Header()] = None,
+    authorization: Annotated[str, Header()] = None,
 ):  
 
     all_users = await user_service.get_all_users()
@@ -223,7 +223,7 @@ async def executeChainService(
         user_ids=[str(auth_user_data['user'].id) for auth_user_data in authenticated_users]
     )
     pdc_headers = PdcChainHeaders(
-        Authorization=Authorization if Authorization is not None else "",
+        Authorization=authorization if authorization is not None else "",
         x_ptx_service_chain_id=x_ptx_service_chain_id,
         x_ptx_target_id=x_ptx_target_id,
     )
@@ -280,11 +280,11 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No valid credentials found in headers"
         )
-    fileFormat ="text"
+    file_format ="text"
     if (request.headers.get("Content-Type") == "application/json"):
         try:
             data = await request.json()
-            fileFormat ="json"
+            file_format ="json"
         except : 
             form  = await request.body()
     elif (request.headers.get("Content-Type") == "application/x-www-form-urlencoded"):
@@ -293,14 +293,14 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
             #for now process this  like a raw text
             form  = await request.body()
             data = form.decode()
-            fileFormat ="xml"
+            file_format ="xml"
         except : 
             data = await request.body()
     else:
         #byte with encode or raw text
         form  = await request.body()
         data = form.decode()
-    data = decodeDictionary(data)
+    data = decode_dictionary(data)
     #print(f"Received data: {data}")
     
     # Fetch PDC Contract and extract provider name using the service
@@ -308,8 +308,8 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
     provider_name = pdc_service.get_provider_name_from_contract(pdc_contract)
     print(f"Provider name: {provider_name}")
     
-    serialized_data = serialize_data(data, fileFormat)
-    file_ext = ".json" if fileFormat == "json" else ".xml" if fileFormat == "xml" else ".txt"
+    serialized_data = serialize_data(data, file_format)
+    file_ext = ".json" if file_format == "json" else ".xml" if file_format == "xml" else ".txt"
     
     # Create datasets for each authenticated user only
     user_datasets = []
@@ -451,7 +451,7 @@ async def fetch_participant_id(client: httpx.AsyncClient, content: dict) -> Opti
 async def get_use_case_contract(
     connection_id: str,
     current_user: CurrentUser,
-    hasSigned: Optional[bool] = None,
+    has_signed: Annotated[Optional[bool], Query(alias="hasSigned")] = None,
     timeout_seconds: Annotated[Optional[int], Query(ge=30, description="Visions API timeout in seconds")] = None,
 ):
     #URI pointing to your participant in the catalog, encode it in base64
@@ -472,8 +472,8 @@ async def get_use_case_contract(
             contract_url = f"{contract_uri}contracts/for/{encoded_url}"
             
             params = {}
-            if hasSigned is not None:
-                params["hasSigned"] = "true" if hasSigned else "false"
+            if has_signed is not None:
+                params["hasSigned"] = "true" if has_signed else "false"
 
             # use the async client to fetch contracts
             response = await client.get(contract_url, params=params, timeout=timeout)
@@ -547,7 +547,7 @@ async def get_use_case_contract(
     return all_use_case_contracts
 
 @router.get("/serviceChain/{connection_id}")
-async def get_service_Chain(
+async def get_service_chain(
     connection_id: str,
     current_user: CurrentUser,
     timeout_seconds: Annotated[Optional[int], Query(ge=30, description="Visions API timeout in seconds")] = None,
@@ -1035,10 +1035,10 @@ async def get_serviceoffering_by_id(id: str, connection):
     url = conf["catalogUri"] + "catalog/serviceofferings/" + id
     return pdc_service.fetch_service_offering(url)
 
-def serialize_data(data, fileFormat):
-    if fileFormat == "json":
+def serialize_data(data, file_format):
+    if file_format == "json":
         return json.dumps(data, indent=2)
-    elif fileFormat == "xml":
+    elif file_format == "xml":
         # if XML string return or convert
         if isinstance(data, str):
             return data

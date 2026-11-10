@@ -38,12 +38,12 @@ class NodeDataPandasDf(NodeData[PandasSchema, DataFrame]):
     type: Literal['pandasdf'] = 'pandasdf'
 
     @field_serializer('dataExample')
-    def serialize_data_example(self, dataExample: DataFrame, _info):
-        if dataExample is None:
+    def serialize_data_example(self, data_example: DataFrame, _info):
+        if data_example is None:
             return None
         
         # Convertir le DataFrame en dictionnaire
-        data = dataExample.to_dict()
+        data = data_example.to_dict()
         if data is None:
             return None
         
@@ -85,9 +85,9 @@ class NodeDataParquet(NodeData[ParquetSchema, str]):
     type: Literal['parquet'] = 'parquet'
 
     @field_serializer('dataExample')
-    def serialize_data_example(self,dataExample : str, _info):
-        if dataExample is not None:
-            df = pd.read_parquet(dataExample)
+    def serialize_data_example(self,data_example : str, _info):
+        if data_example is not None:
+            df = pd.read_parquet(data_example)
             return df.head(20).to_dict()
         elif self.data is not None:
             df = pd.read_parquet(self.data)
@@ -95,10 +95,10 @@ class NodeDataParquet(NodeData[ParquetSchema, str]):
         return None
     
     @field_serializer('nodeSchema')
-    def serialize_node_schema(self, nodeSchema : ParquetSchema, _info):
-        if nodeSchema is not None:
+    def serialize_node_schema(self, node_schema : ParquetSchema, _info):
+        if node_schema is not None:
             fields = []
-            for field in nodeSchema:
+            for field in node_schema:
                 field_info = {
                     'name': field.name,
                     'physical_type': str(field.physical_type),

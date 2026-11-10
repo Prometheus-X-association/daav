@@ -56,32 +56,32 @@ class FilterTransform(TransformNode):
 
         """
         try:
-            dataSource, filterRules, parquetSave = self._retreiveFilterData()
+            data_source, filter_rules, parquet_save = self._retreiveFilterData()
 
-            if not filterRules:
+            if not filter_rules:
                 self.statusMessage = "WARNING: No filter rules"
                 return StatusNode.Error
             
             else:
                 try:
-                    whereClause = self.process_condition(filterRules)
-                    if not whereClause:
-                        whereClause = "1=1" 
+                    where_clause = self.process_condition(filter_rules)
+                    if not where_clause:
+                        where_clause = "1=1" 
 
                 except Exception as e:
                     self.statusMessage = f"Error in filter conditions: {str(e)}"
                     return StatusNode.Error
             
-            source_data = self.inputs[dataSource].get_node_data()
+            source_data = self.inputs[data_source].get_node_data()
 
-            if not parquetSave:
+            if not parquet_save:
                 if(isinstance(source_data, NodeDataPandasDf)):
                     data = source_data.dataExample if sample else source_data.data
 
                     conn = duckdb.connect()
                     conn.register('source_table', data)
 
-                    query = f"SELECT * FROM source_table WHERE {whereClause}"
+                    query = f"SELECT * FROM source_table WHERE {where_clause}"
                     logger.info(f"Executing query: {query}")
                     result_df = conn.execute(query).fetchdf()
                     conn.close()
@@ -121,7 +121,7 @@ class FilterTransform(TransformNode):
                     conn = duckdb.connect()
                     conn.register('source_table', data)
 
-                    query = f"SELECT * FROM source_table WHERE {whereClause}"
+                    query = f"SELECT * FROM source_table WHERE {where_clause}"
                     print(query)
                     result_df = conn.execute(query).fetchdf()
                     conn.close()
@@ -163,7 +163,7 @@ class FilterTransform(TransformNode):
                     conn = duckdb.connect()
                     conn.register('data', data)
                     
-                    query = f"COPY (SELECT * FROM data WHERE {whereClause}) TO '{result_parquet}' (FORMAT PARQUET)"
+                    query = f"COPY (SELECT * FROM data WHERE {where_clause}) TO '{result_parquet}' (FORMAT PARQUET)"
                     print(query)
                     conn.execute(query)
                     conn.close()
@@ -177,7 +177,7 @@ class FilterTransform(TransformNode):
                     
                     parquet_path = PathSecurityValidator.validate_file_path(source_data.data)
                     
-                    query = f"COPY (SELECT * FROM read_parquet('{parquet_path}') WHERE {whereClause}) TO '{result_parquet}' (FORMAT PARQUET)"
+                    query = f"COPY (SELECT * FROM read_parquet('{parquet_path}') WHERE {where_clause}) TO '{result_parquet}' (FORMAT PARQUET)"
                     print(query)
                     conn.execute(query)
                     conn.close()
@@ -208,10 +208,10 @@ class FilterTransform(TransformNode):
     
     def _retreiveFilterData(self):
         if self.data.get('dataSource') and self.data.get('filterRules') and self.data.get('parquetSave'):
-            dataSource = self.data.get('dataSource')
-            filterRules = self.data.get('filterRules')
-            parquetSave = self.data.get('parquetSave')['value']
-            return dataSource, filterRules, parquetSave
+            data_source = self.data.get('dataSource')
+            filter_rules = self.data.get('filterRules')
+            parquet_save = self.data.get('parquetSave')['value']
+            return data_source, filter_rules, parquet_save
         else:
             print(f"datasource : {self.data.get('dataSource')}, filterRules: {self.data.get('filterRules')}")
             raise ValueError("Input required")

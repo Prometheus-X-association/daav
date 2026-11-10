@@ -170,11 +170,11 @@ class WorkflowService(metaclass=SingletonMeta):
             updated_fields = workflow_updates.model_dump(exclude_unset=True)
             
             # System fields are never overwritten during updates
-            SYSTEM_FIELDS = {'id', 'created_at', 'owner_id'}
+            system_fields = {'id', 'created_at', 'owner_id'}
             
             for key, value in updated_fields.items():
                 if (hasattr(existing_workflow, key) and 
-                    key not in SYSTEM_FIELDS):
+                    key not in system_fields):
                     setattr(existing_workflow, key, value)
             
             existing_workflow.updated_at = datetime.now(timezone.utc)

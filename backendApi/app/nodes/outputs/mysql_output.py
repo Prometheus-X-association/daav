@@ -40,7 +40,7 @@ class MysqlOutput(OutputNode):
             StatusNode: The status of the node after processing.
         """
         try:
-            dataset, database, table, ifExist ,createIndex,indexTable = await self._retreiveDatabase()
+            dataset, database, table, if_exist ,create_index,index_table = await self._retreiveDatabase()
 
             try:
                 # Connect to the MySQL database
@@ -58,7 +58,7 @@ class MysqlOutput(OutputNode):
                                 raise ValueError("Input data is not a pandas DataFrame")
 
                             # Write the DataFrame to the SQL database
-                            df.to_sql(table, con=mydb, if_exists=ifExist, index=createIndex, index_label=indexTable)
+                            df.to_sql(table, con=mydb, if_exists=if_exist, index=create_index, index_label=index_table)
 
                             '''# Export the SQL database to a file
                             # Create an in-memory SQLite database
@@ -70,19 +70,19 @@ class MysqlOutput(OutputNode):
                                     f.write('%s\n' % line)
                             break'''
                         elif isinstance(data, NodeDataParquet):
-                            chunkSize = 1000 
-                            isFistChunk = True
-                            parquetFile = pq.ParquetFile(data.data)
+                            chunk_size = 1000 
+                            is_first_chunk = True
+                            parquet_file = pq.ParquetFile(data.data)
 
-                            for batch in parquetFile.iter_batches(batch_size=chunkSize):
-                                chunkDf = batch.to_pandas()
-                                if sample and isFistChunk:
-                                    chunkDf = chunkDf.head(20)
-                                    chunkDf.to_sql(table, con=engine, if_exists=ifExist, index=createIndex, index_label=indexTable)
+                            for batch in parquet_file.iter_batches(batch_size=chunk_size):
+                                chunk_df = batch.to_pandas()
+                                if sample and is_first_chunk:
+                                    chunk_df = chunk_df.head(20)
+                                    chunk_df.to_sql(table, con=engine, if_exists=if_exist, index=create_index, index_label=index_table)
                                     break
-                                if_exists = ifExist if isFistChunk else 'append'
-                                chunkDf.to_sql(table, con=engine, if_exists=if_exists, index=createIndex, index_label=indexTable)
-                                isFistChunk = False
+                                if_exists = if_exist if is_first_chunk else 'append'
+                                chunk_df.to_sql(table, con=engine, if_exists=if_exists, index=create_index, index_label=index_table)
+                                is_first_chunk = False
                             '''with open('output.sql', 'w') as f:
                                 print('Exporting SQL database to output.sql')
                                 for line in engine.raw_connection().driver_connection.iterdump():
@@ -114,17 +114,17 @@ class MysqlOutput(OutputNode):
         Raises:
             ValueError: If no data source, database, or table is selected.
         """
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
-        dataset : MysqlDataset  = await self.datasetService.get_dataset(datasetId)
+        dataset : MysqlDataset  = await self.datasetService.get_dataset(dataset_id)
         database = self.data['selectDatabaseDataSource']['value'] if self.data.get('selectDatabaseDataSource') and self.data['selectDatabaseDataSource'].get('value') else dataset.database
         table = self.data.get('tableAutoComplete').get('value') if self.data.get('tableAutoComplete') and self.data.get('tableAutoComplete').get('value')   else dataset.table
-        ifExist = self.data.get('selectExist')['value'] if self.data.get('selectExist') and self.data.get('selectExist').get('value') else "fail"
-        createIndex = self.data.get('createIndex')['value'] if self.data.get('createIndex') and self.data.get('createIndex').get('value') else False
-        indexTable = self.data.get('indexTable')['value'] if self.data.get('indexTable') and self.data.get('indexTable').get('value') else 'id'
+        if_exist = self.data.get('selectExist')['value'] if self.data.get('selectExist') and self.data.get('selectExist').get('value') else "fail"
+        create_index = self.data.get('createIndex')['value'] if self.data.get('createIndex') and self.data.get('createIndex').get('value') else False
+        index_table = self.data.get('indexTable')['value'] if self.data.get('indexTable') and self.data.get('indexTable').get('value') else 'id'
         #print("table",indexTable)
         if (table is None or table == ""):
             raise ValueError("No table selected")
@@ -133,7 +133,7 @@ class MysqlOutput(OutputNode):
         # Validate identifiers regardless of source (Pydantic model or workflow JSON)
         _validate_sql_identifier(database, 'database')
         _validate_sql_identifier(table, 'table')
-        return dataset, database, table, ifExist,createIndex,indexTable
+        return dataset, database, table, if_exist,create_index,index_table
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

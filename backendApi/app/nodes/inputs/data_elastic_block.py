@@ -88,10 +88,10 @@ class DataElasticBlock(InputNode):
         Raises:
             ValueError: If no data source or index is selected, or a parameter is invalid.
         """
-        datasetId = self._value('selectDataSource')
-        if not datasetId:
+        dataset_id = self._value('selectDataSource')
+        if not dataset_id:
             raise ValueError("No data source selected")
-        dataset: ElasticDataset = await self.datasetService.get_dataset(datasetId)
+        dataset: ElasticDataset = await self.datasetService.get_dataset(dataset_id)
         if not isinstance(dataset, ElasticDataset):
             raise ValueError("The data source is not an Elasticsearch dataset")
 

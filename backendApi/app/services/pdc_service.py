@@ -52,9 +52,9 @@ class PdcService(metaclass=SingletonMeta):
                 detail=f"Error processing data from {url}: {str(e)}"
             )
     
-    def fetch_dataResource(self, dataResource_url: str, headers: Optional[dict] = None, timeout: Optional[int] = None ) -> PdcDataResource:
+    def fetch_dataResource(self, data_resource_url: str, headers: Optional[dict] = None, timeout: Optional[int] = None ) -> PdcDataResource:
         """Fetch PDC DataResources from the given URL"""
-        data = self._make_request(dataResource_url, headers, timeout)
+        data = self._make_request(data_resource_url, headers, timeout)
         return PdcDataResource.model_validate(data)
     
     def fetch_contract(self, contract_url: str, timeout: Optional[int] = None) -> PdcContract:

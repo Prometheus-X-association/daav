@@ -53,14 +53,14 @@ async def get_output_from_custom_path(
         # Find ApiOutput node with matching URL and its workflow
         node = None
         workflow = None
-        tokenInput = None
+        token_input = None
         for wf in workflows:
             for wf_node in wf.pschema.nodes:
                 if ((wf_node.type == "ApiOutput") and 
                     wf_node.data.get("urlInput", {}).get("value") == custom_path):
                     node = wf_node
                     workflow = wf
-                    tokenInput = wf_node.data.get("tokenInput", {}).get("value")
+                    token_input = wf_node.data.get("tokenInput", {}).get("value")
                     break
             if node:
                 break
@@ -70,7 +70,7 @@ async def get_output_from_custom_path(
             raise HTTPException(status_code=404, detail="No data found with this URL")
 
         # M2M Access Control - Verify route access using tokenInput if present
-        api_keys = [tokenInput] if tokenInput else None
+        api_keys = [token_input] if token_input else None
         verify_route_access(request, api_keys=api_keys)
         try:
             user = await user_service.get_user_from_workflow(workflow)

@@ -37,9 +37,9 @@ class FlattenTransform(TransformNode):
         """
         try:
             # Retrieve the data mapping
-            parquetSave = self._retreiveColumnsMapping()
+            parquet_save = self._retreiveColumnsMapping()
             
-            if parquetSave:
+            if parquet_save:
                 raise ValueError(f"Parquet output no supported actually for flatten transform")
 
             source_df = self.inputs['datasource'].get_node_data()
@@ -105,8 +105,8 @@ class FlattenTransform(TransformNode):
             
     def _retreiveColumnsMapping(self) -> bool:
         if  self.data.get('parquetSave'):
-            parqueSave = self.data.get('parquetSave')['value']
-            return parqueSave
+            parquet_save = self.data.get('parquetSave')['value']
+            return parquet_save
         else:
             raise ValueError("Data Mapping is required")
 

@@ -56,9 +56,9 @@ class MergeTransform(TransformNode):
         """
         try:
             # Retrieve the data mapping
-            data_mapping, parquetSave = self._retreiveColumnsMapping()
+            data_mapping, parquet_save = self._retreiveColumnsMapping()
             
-            if parquetSave:
+            if parquet_save:
                 return self.process_if_parquet(data_mapping, sample)
 
             combined_df = pd.DataFrame()
@@ -146,9 +146,9 @@ class MergeTransform(TransformNode):
             total_rows = max(source_sizes.values())
 
         secure_path = os.path.join(upload_folder, f"merged_data_{self.id}.parquet")
-        parquetPath = PathSecurityValidator.validate_file_path(secure_path)
+        parquet_path = PathSecurityValidator.validate_file_path(secure_path)
         batch_size = 100
-        parquetWriter = None
+        parquet_writer = None
         schema = None
         column_types = {}
 
@@ -223,19 +223,19 @@ class MergeTransform(TransformNode):
             if start_idx == 0 and schema is None:
                 table = pa.Table.from_pandas(batch_df)
                 schema = table.schema
-                parquetWriter = pq.ParquetWriter(parquetPath, schema)
+                parquet_writer = pq.ParquetWriter(parquet_path, schema)
             else:
                 table = pa.Table.from_pandas(batch_df, schema=schema)
-            parquetWriter.write_table(table)
+            parquet_writer.write_table(table)
 
-        if parquetWriter:
-                parquetWriter.close()
+        if parquet_writer:
+                parquet_writer.close()
             
         # Create the node data output
-        parquet_file = pq.ParquetFile(parquetPath)
+        parquet_file = pq.ParquetFile(parquet_path)
         schema = parquet_file.schema
         node_data = NodeDataParquet(
-            data=parquetPath,
+            data=parquet_path,
             nodeSchema=schema,
             name="merged_data",
         )
@@ -245,8 +245,8 @@ class MergeTransform(TransformNode):
     def _retreiveColumnsMapping(self) -> tuple[List[DataMappingItem], bool]:
         if self.data.get('dataMapping') and self.data.get('parquetSave'):
             mappings = TypeAdapter(List[DataMappingItem]).validate_python(self.data.get('dataMapping'))
-            parqueSave = self.data.get('parquetSave')['value']
-            return mappings, parqueSave
+            parquet_save = self.data.get('parquetSave')['value']
+            return mappings, parquet_save
         else:
             raise ValueError("Data Mapping is required")
 

@@ -27,8 +27,8 @@ async def test_synchronous_reader_runs_outside_event_loop_thread():
         reader_threads.append(threading.current_thread())
         return {"data": []}
 
-    with patch.object(datasets, "getMongoContent", side_effect=fake_reader):
-        result = await datasets.getContentDataset(Mock(), connection_info(dataset), Mock(username="alice"))
+    with patch.object(datasets, "get_mongo_content", side_effect=fake_reader):
+        result = await datasets.get_content_dataset(Mock(), connection_info(dataset), Mock(username="alice"))
 
     assert result == {"data": []}
     assert reader_threads and reader_threads[0] is not threading.current_thread()
@@ -36,7 +36,7 @@ async def test_synchronous_reader_runs_outside_event_loop_thread():
 
 @pytest.mark.asyncio
 async def test_dataframe_reader_runs_outside_event_loop_thread():
-    """getDfContentDataset also runs the synchronous MongoDB reader in the thread pool"""
+    """get_df_content_dataset also runs the synchronous MongoDB reader in the thread pool"""
     dataset = MongoDataset.model_construct(id=None, type="mongo", name="m")
     reader_threads = []
 
@@ -45,7 +45,7 @@ async def test_dataframe_reader_runs_outside_event_loop_thread():
         return "dataframe"
 
     with patch.object(datasets.dataset_service, "getDfMongoContent", side_effect=fake_reader):
-        result = await datasets.getDfContentDataset(Mock(), connection_info(dataset), Mock(username="alice"))
+        result = await datasets.get_df_content_dataset(Mock(), connection_info(dataset), Mock(username="alice"))
 
     assert result == "dataframe"
     assert reader_threads and reader_threads[0] is not threading.current_thread()
@@ -59,10 +59,10 @@ async def test_file_access_denied_is_logged_and_returned():
     request = Mock()
     request.client.host = "10.0.0.1"
 
-    with patch.object(datasets, "getFileContent", side_effect=denied), \
+    with patch.object(datasets, "get_file_content", side_effect=denied), \
          patch.object(datasets, "log_file_access") as log_file_access:
         with pytest.raises(HTTPException) as exc_info:
-            await datasets.getContentDataset(request, connection_info(dataset), Mock(username="alice"))
+            await datasets.get_content_dataset(request, connection_info(dataset), Mock(username="alice"))
 
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     log_file_access.assert_called_with("10.0.0.1", "/forbidden.csv", "read_failed")

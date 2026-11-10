@@ -120,9 +120,9 @@ class PdcOutput(OutputNode):
 
                     elif isinstance(data, NodeDataParquet):
                         # transform parquet file to JSON using duckdb
-                        parquetFilePath = PathSecurityValidator.validate_file_path(data.data)
+                        parquet_file_path = PathSecurityValidator.validate_file_path(data.data)
                         conn = duckdb.connect()
-                        query = f"COPY (SELECT * FROM read_parquet('{parquetFilePath}')) TO '{file_path}' (FORMAT JSON, ARRAY true)"
+                        query = f"COPY (SELECT * FROM read_parquet('{parquet_file_path}')) TO '{file_path}' (FORMAT JSON, ARRAY true)"
                         conn.sql(query)
                         conn.close()
 
@@ -163,13 +163,13 @@ class PdcOutput(OutputNode):
         return StatusNode.Valid
     
     async def _retreiveEndpointConfig(self):
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
 
-        dataset: PTXDataset = await self.datasetService.get_dataset(datasetId)
+        dataset: PTXDataset = await self.datasetService.get_dataset(dataset_id)
         if not dataset:
             raise ValueError("Dataset not found")
         if self.data.get('urlInput').get('value'):

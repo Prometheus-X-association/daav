@@ -15,7 +15,7 @@ from fastapi import Request, HTTPException
 
 from app.utils.utils import (
     convert_size, folder, generate_pandas_schema, slice_generator, 
-    decodeDictionary, verify_route_access, get_user_output_path,
+    decode_dictionary, verify_route_access, get_user_output_path,
     convert_numpy_type_to_python, normalize_dtype_string, 
     resolve_file_name, filter_data_with_duckdb
 )
@@ -395,7 +395,7 @@ class TestDecodeDictionary:
             'key1': 'value1',
             'key2': 'value2'
         }
-        result = decodeDictionary(test_dict)
+        result = decode_dictionary(test_dict)
         
         assert result == test_dict
     
@@ -405,7 +405,7 @@ class TestDecodeDictionary:
             'key1': b'Hello',
             'key2': b'World'
         }
-        result = decodeDictionary(test_dict)
+        result = decode_dictionary(test_dict)
         
         assert result['key1'] == 'Hello'
         assert result['key2'] == 'World'
@@ -419,7 +419,7 @@ class TestDecodeDictionary:
                 }
             }
         }
-        result = decodeDictionary(test_dict)
+        result = decode_dictionary(test_dict)
         
         assert result['level1']['level2']['key'] == 'nested_value'
     
@@ -433,7 +433,7 @@ class TestDecodeDictionary:
                 'inner_bytes': b'inner_value'
             }
         }
-        result = decodeDictionary(test_dict)
+        result = decode_dictionary(test_dict)
         
         assert result['string'] == 'normal_string'
         assert result['bytes'] == 'bytes_string'
@@ -443,15 +443,15 @@ class TestDecodeDictionary:
     def test_decode_non_dictionary(self):
         """Test decoding non-dictionary input"""
         # Test with bytes
-        result = decodeDictionary(b'test_bytes')
+        result = decode_dictionary(b'test_bytes')
         assert result == 'test_bytes'
         
         # Test with string
-        result = decodeDictionary('normal_string')
+        result = decode_dictionary('normal_string')
         assert result == 'normal_string'
         
         # Test with number
-        result = decodeDictionary(123)
+        result = decode_dictionary(123)
         assert result == 123
 
 

@@ -185,7 +185,7 @@ async def _save_upload_file(file: UploadFile, current_user: CurrentUser, folder:
     return result
 
 @router.post("/getContentDataset", response_model=DatasetContentResponse)
-async def getContentDataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> DatasetContentResponse:
+async def get_content_dataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> DatasetContentResponse:
     """Get dataset content with permission check"""
     connection = data.dataset
 
@@ -195,7 +195,7 @@ async def getContentDataset(request: Request, data: ConnectionInfo, current_user
         connection = await dataset_service.get_dataset(connection.id, current_user)
 
     pagination = data.pagination
-    datasetParams = data.datasetParams
+    dataset_params = data.datasetParams
     # The file, MongoDB, MySQL and Elasticsearch readers are synchronous: they run in the thread pool
     # so that they do not block the event loop (and the other requests) while they wait for I/O
     if isinstance(connection, FileDataset):
@@ -203,26 +203,26 @@ async def getContentDataset(request: Request, data: ConnectionInfo, current_user
         file_path = connection.folder if connection.folder else connection.filePath
         log_file_access(client_ip, file_path, "read")
         try:
-            return await run_in_threadpool(getFileContent, connection, pagination)
+            return await run_in_threadpool(get_file_content, connection, pagination)
         except HTTPException as e:
             if e.status_code == status.HTTP_403_FORBIDDEN:
                 log_file_access(client_ip, file_path, "read_failed")
             raise
     elif isinstance(connection, MongoDataset):
-        return await run_in_threadpool(getMongoContent, connection, pagination, datasetParams)
+        return await run_in_threadpool(get_mongo_content, connection, pagination, dataset_params)
     elif isinstance(connection, MysqlDataset):
-        return await run_in_threadpool(getMysqlContent, connection, pagination, datasetParams)
+        return await run_in_threadpool(get_mysql_content, connection, pagination, dataset_params)
     elif isinstance(connection, ApiDataset):
-        return await getApiContent(connection, pagination)
+        return await get_api_content(connection, pagination)
     elif  isinstance(connection, ElasticDataset):
-        return await run_in_threadpool(getElasticContent, connection, pagination, datasetParams)
+        return await run_in_threadpool(get_elastic_content, connection, pagination, dataset_params)
     elif  isinstance(connection, PTXDataset):
-        return getPTXContent(connection, pagination, datasetParams)
+        return get_ptx_content(connection, pagination, dataset_params)
     else :
         raise ValueError("Type de connexion non reconnu")
     
 @router.post("/getDfContentDataset", response_model=NodeDataUnion)
-async def getDfContentDataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> NodeDataPandasDf:
+async def get_df_content_dataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> NodeDataPandasDf:
     """Get dataset dataframe content with permission check"""
     connection = data.dataset
 
@@ -232,7 +232,7 @@ async def getDfContentDataset(request: Request, data: ConnectionInfo, current_us
         connection = await dataset_service.get_dataset(connection.id, current_user)
 
     pagination = data.pagination
-    datasetParams = data.datasetParams
+    dataset_params = data.datasetParams
     # Synchronous readers: run in the thread pool so that they do not block the event loop
     if isinstance(connection, FileDataset):
         client_ip = request.client.host
@@ -245,18 +245,18 @@ async def getDfContentDataset(request: Request, data: ConnectionInfo, current_us
                 log_file_access(client_ip, file_path, "read_failed")
             raise
     elif isinstance(connection, MongoDataset):
-        return await run_in_threadpool(dataset_service.getDfMongoContent, connection, datasetParams, pagination)
+        return await run_in_threadpool(dataset_service.getDfMongoContent, connection, dataset_params, pagination)
     elif isinstance(connection, MysqlDataset):
-        return await run_in_threadpool(dataset_service.getDfMysqlContent, connection, datasetParams, pagination)
+        return await run_in_threadpool(dataset_service.getDfMysqlContent, connection, dataset_params, pagination)
     elif isinstance(connection, ApiDataset):
         raise ValueError("Dataset type not handle")     
     elif  isinstance(connection, ElasticDataset):
-        return await run_in_threadpool(dataset_service.getDfElasticContent, connection, datasetParams, pagination)
+        return await run_in_threadpool(dataset_service.getDfElasticContent, connection, dataset_params, pagination)
     else :
         raise ValueError("Dataset type not handle")
     
 @router.post("/getDfFromJson" ,response_model=NodeDataUnion)
-def getDfFromJson(data: dict, current_user: CurrentUser)-> NodeDataPandasDf:
+def get_df_from_json(data: dict, current_user: CurrentUser)-> NodeDataPandasDf:
     print("data", data)
     json_data = data['data']
     if not json_data:
@@ -279,7 +279,7 @@ def getDfFromJson(data: dict, current_user: CurrentUser)-> NodeDataPandasDf:
 
 import mysql.connector 
 from mysql.connector import cursor
-def getAll(cursor: cursor):
+def get_all(cursor: cursor):
     cursor.execute("SHOW DATABASES")
     db_list = [
         db["Database"].decode() if isinstance(db["Database"], (bytes, bytearray)) else db["Database"]
@@ -290,17 +290,17 @@ def getAll(cursor: cursor):
     db_list = [db for db in db_list if db not in system_dbs]
     tables_list = []
     for db in db_list:   
-        tables = getTables(cursor, db)
+        tables = get_tables(cursor, db)
         tables_list.append(tables)
     return db_list, tables_list
 
-def getTables(cursor: cursor, database_name: str) -> list[str]:
+def get_tables(cursor: cursor, database_name: str) -> list[str]:
         cursor.execute(f"USE {database_name}")
         cursor.execute("SHOW TABLES")  
         tables_list = [table[f"Tables_in_{database_name}"] for table in cursor.fetchall()]
         return tables_list
 
-def getMysqlContent(dataset: MysqlDataset, pagination: Pagination, datasetParams: DatasetParams) -> MySQLContentResponse:
+def get_mysql_content(dataset: MysqlDataset, pagination: Pagination, dataset_params: DatasetParams) -> MySQLContentResponse:
     try:        
         database_name = dataset.database if dataset.database else None
         conn = mysql.connector.connect(
@@ -313,28 +313,28 @@ def getMysqlContent(dataset: MysqlDataset, pagination: Pagination, datasetParams
 
         db_list = None
         tables_list = None
-        if not dataset.database and not datasetParams.database:
-            db_list, tables_list = getAll(cursor)
+        if not dataset.database and not dataset_params.database:
+            db_list, tables_list = get_all(cursor)
             return MySQLContentResponse(
                 databases=db_list,
                 tables=tables_list,
                 data=[]
             )
 
-        if not dataset.table and not datasetParams.table:
-            database = datasetParams.database if datasetParams.database else dataset.database
-            tables_list = getTables(cursor, database)
+        if not dataset.table and not dataset_params.table:
+            database = dataset_params.database if dataset_params.database else dataset.database
+            tables_list = get_tables(cursor, database)
             return MySQLContentResponse(
                 tables=tables_list,
                 data=[]
             )
         
-        if dataset.database or datasetParams.database and dataset.table or datasetParams.table:
-            if datasetParams.database:
-                database_name = datasetParams.database
+        if dataset.database or dataset_params.database and dataset.table or dataset_params.table:
+            if dataset_params.database:
+                database_name = dataset_params.database
 
             cursor.execute(f"USE {database_name}")
-            table_name = dataset.table if dataset.table else datasetParams.table
+            table_name = dataset.table if dataset.table else dataset_params.table
             cursor.execute(f"DESCRIBE {table_name}")
             table_description = cursor.fetchall()
 
@@ -367,18 +367,18 @@ def getMysqlContent(dataset: MysqlDataset, pagination: Pagination, datasetParams
         if 'conn' in locals():
             conn.close()
 
-def rem_ObjectId(item):
+def rem_object_id(item):
     import bson 
     if hasattr(item, 'items'): 
         for k, v in item.items(): 
             if type(v) == bson.objectid.ObjectId:  
                 yield k
             if isinstance(v, dict):
-                for result in rem_ObjectId(v):
+                for result in rem_object_id(v):
                     yield result
             elif isinstance(v, list):
                 for d in v:
-                    for result in rem_ObjectId(d):
+                    for result in rem_object_id(d):
                         yield result
 
 #convertir l'id en string
@@ -390,7 +390,7 @@ def serialize_id(document: dict) -> dict:
     # get all ObjectId values
     data = benedict(document, keypath_separator=None)
     key_list = []
-    for key in rem_ObjectId(document):
+    for key in rem_object_id(document):
         if not key in key_list:
             key_list.append(key)
 
@@ -413,21 +413,21 @@ def serialize_id(document: dict) -> dict:
     return document
 
 #connexion à MongoDB
-def getMongoContent(dataset: MongoDataset, pagination: Pagination, datasetParams: DatasetParams) -> MongoContentResponse:
+def get_mongo_content(dataset: MongoDataset, pagination: Pagination, dataset_params: DatasetParams) -> MongoContentResponse:
     from pymongo.mongo_client import MongoClient
     from pymongo.errors import ConnectionFailure
     try:
         client = MongoClient(dataset.uri)
         collections = []
         # For multiple db and collection
-        if not dataset.database and not datasetParams.database:
+        if not dataset.database and not dataset_params.database:
             databases = client.list_database_names()
             if 'config' in databases: databases.remove('config')
-            db = client[datasetParams.database] if datasetParams.database else client[databases[0]]
+            db = client[dataset_params.database] if dataset_params.database else client[databases[0]]
             for database in databases:
                 db_list = client[database]
                 collections.append(db_list.list_collection_names())
-                col = db[datasetParams.table] if datasetParams.table else None    
+                col = db[dataset_params.table] if dataset_params.table else None    
             return MongoContentResponse(
                 databases=databases,
                 collections=collections,
@@ -435,19 +435,19 @@ def getMongoContent(dataset: MongoDataset, pagination: Pagination, datasetParams
             )    
         
         # For a single db but multiple collection
-        if not dataset.collection and not datasetParams.table:
-            db = client[dataset.database] if dataset.database else client[datasetParams.database]
+        if not dataset.collection and not dataset_params.table:
+            db = client[dataset.database] if dataset.database else client[dataset_params.database]
             collections = db.list_collection_names()
-            col = db[datasetParams.table] if datasetParams.table else db[collections[0]]
+            col = db[dataset_params.table] if dataset_params.table else db[collections[0]]
             return MongoContentResponse(
                 collections=collections,
                 data=[]
             )
 
         # For a single collection
-        if dataset.database or datasetParams.database and dataset.collection or datasetParams.table:
-            db = client[dataset.database] if dataset.database else client[datasetParams.database]
-            col = db[dataset.collection] if dataset.collection else db[datasetParams.table]
+        if dataset.database or dataset_params.database and dataset.collection or dataset_params.table:
+            db = client[dataset.database] if dataset.database else client[dataset_params.database]
+            col = db[dataset.collection] if dataset.collection else db[dataset_params.table]
             if col is None:
                 dataset = {"result": [], "total": 0, "limit": 1, "offset": 0}
             else:
@@ -472,9 +472,9 @@ def getMongoContent(dataset: MongoDataset, pagination: Pagination, datasetParams
         client.close()
 
 
-def getElasticContent(dataset: ElasticDataset, pagination: Pagination, datasetParams: DatasetParams) -> ElasticContentResponse:
+def get_elastic_content(dataset: ElasticDataset, pagination: Pagination, dataset_params: DatasetParams) -> ElasticContentResponse:
     service = ElasticService()
-    index = dataset.index or datasetParams.index or datasetParams.table
+    index = dataset.index or dataset_params.index or dataset_params.table
     if not index:
         return ElasticContentResponse(indices=service.index_names(dataset), data=[])
 
@@ -488,11 +488,11 @@ def getElasticContent(dataset: ElasticDataset, pagination: Pagination, datasetPa
         current_page=page
     )
 
-def getPTXContent(dataset: PTXDataset, pagination: Pagination, datasetParams: DatasetParams):
+def get_ptx_content(dataset: PTXDataset, pagination: Pagination, dataset_params: DatasetParams):
 
     return dataset
 
-def apiContent(response: str) -> list:
+def api_content(response: str) -> list:
     if 'json' in response.headers['Content-Type']:
         data = response.json()  
         donnees = list(data.items())
@@ -508,31 +508,31 @@ def apiContent(response: str) -> list:
             donnees.append(row)
     return donnees
 
-async def getApiContent(connection: ApiDataset, pagination: Pagination) -> ApiContentResponse:
+async def get_api_content(connection: ApiDataset, pagination: Pagination) -> ApiContentResponse:
     try:
-        API_URL = pagination.nextUrl if getattr(pagination, "nextUrl", None) else connection.url
+        api_url = pagination.nextUrl if getattr(pagination, "nextUrl", None) else connection.url
         headers = {}
         if connection.apiAuth == "bearer":
             headers = { "Authorization" : f"token {connection.bearerToken}" }
         elif connection.apiAuth == "oauth2":
-            authBody = "grant_type=client_credentials"
+            auth_body = "grant_type=client_credentials"
             encode_token = connection.basicToken.encode("utf-8")
             base64_bytes = base64.b64encode(encode_token)
             base64_token = base64_bytes.decode('utf-8')
-            authHeaders = {'Authorization': f"Basic {base64_token}"}
+            auth_headers = {'Authorization': f"Basic {base64_token}"}
             async with httpx.AsyncClient() as client:
-                authRequest = await client.post(connection.authUrl, data=authBody, headers=authHeaders)
-                if authRequest.status_code != 200:
-                    authRequest = await client.get(connection.authUrl, headers=authHeaders)
-                    if authRequest.status_code != 200:
-                        raise HTTPException(status_code=authRequest.status_code, detail=f"Authentication error: {authRequest.text}")
-                authRequest.raise_for_status()
+                auth_request = await client.post(connection.authUrl, data=auth_body, headers=auth_headers)
+                if auth_request.status_code != 200:
+                    auth_request = await client.get(connection.authUrl, headers=auth_headers)
+                    if auth_request.status_code != 200:
+                        raise HTTPException(status_code=auth_request.status_code, detail=f"Authentication error: {auth_request.text}")
+                auth_request.raise_for_status()
                
-            authResponse = authRequest.json()
-            access_token = authResponse.get('access_token')
+            auth_response = auth_request.json()
+            access_token = auth_response.get('access_token')
             headers = {'access_token': access_token,'authorization': f"Bearer {access_token}"}
         async with httpx.AsyncClient() as client:
-            response = await client.get(API_URL, headers=headers)
+            response = await client.get(api_url, headers=headers)
             response.raise_for_status() 
         content_type = response.headers.get("Content-Type", "")
         if "json" in content_type:
@@ -574,7 +574,7 @@ async def getApiContent(connection: ApiDataset, pagination: Pagination) -> ApiCo
             # Fallback
             donnees = list(data.items()) if isinstance(data, dict) else data
         else:
-            donnees = apiContent(response)
+            donnees = api_content(response)
 
         return ApiContentResponse(
             data=donnees,
@@ -596,7 +596,7 @@ async def getApiContent(connection: ApiDataset, pagination: Pagination) -> ApiCo
 import pandas as pd
 from fastapi.responses import JSONResponse
 
-def toRow (dataset: dict, donnees: list):
+def to_row (dataset: dict, donnees: list):
     data = dataset
     first_item = list(data)[0]
     item_len = len(data[first_item])
@@ -610,50 +610,50 @@ def toRow (dataset: dict, donnees: list):
 
 
 #lecture du fichier json
-def JSONFile(file: str) -> JSONResponse:
+def json_file(file: str) -> JSONResponse:
     with open(file, 'r') as fichier:
         donnees = json.load(fichier)
     return donnees
 
 #lecture du fichier format colone
-def ColFile(file: str) -> list:
+def col_file(file: str) -> list:
     import pyarrow.parquet as pq
     import pyarrow.feather as pf
     import pyarrow.orc as po
     donnees = []        
     if file.endswith('.parquet'):
         dataset = pq.read_table(file).to_pydict()
-        toRow(dataset, donnees)
+        to_row(dataset, donnees)
     elif file.endswith('.feather'):
         dataset = pf.read_table(file).to_pydict()
-        toRow(dataset, donnees)
+        to_row(dataset, donnees)
     elif file.endswith('.orc'):
         dataset = po.read_table(file).to_pydict()
-        toRow(dataset, donnees)
+        to_row(dataset, donnees)
     del dataset
     return donnees
 
 #lecture du fichier XLS
-def XLSFile(file: str) -> list:
+def xls_file(file: str) -> list:
     donnees = []      
     dataset = pd.read_excel(file).to_dict()
-    toRow(dataset, donnees)   
+    to_row(dataset, donnees)   
     del dataset    
     return donnees    
 
 #lecture du fichier Avro
-def AvroFile(file: str) -> list:
+def avro_file(file: str) -> list:
     from fastavro import reader
     donnees = []        
     with open(file, 'rb') as fichier:
         avro_reader = reader(fichier)
         dataset = pd.DataFrame(avro_reader).to_dict()
-        toRow(dataset, donnees)
+        to_row(dataset, donnees)
         del dataset
     return donnees
 
 #lecture du fichier XML
-def XMLFile(file: str) -> list:
+def xml_file(file: str) -> list:
     tree = ET.parse(file)
     root = tree.getroot()
     donnees = []
@@ -665,20 +665,20 @@ def XMLFile(file: str) -> list:
     return donnees
 
 #lecture du fichier csv
-def CSVFile(filePath: str, csvHeader: str, csvDelimiter: str) -> list:
+def csv_file(file_path: str, csv_header: str, csv_delimiter: str) -> list:
     import csv
     from detect_delimiter import detect
-    with open(filePath, mode='r', encoding='utf-8') as fichier:
+    with open(file_path, mode='r', encoding='utf-8') as fichier:
         # detect csv delimiter
-        if csvDelimiter == '':                                                
+        if csv_delimiter == '':                                                
             delimiter = detect(fichier.readline(), default=",")
-        elif filePath.endswith('.tsv'):
+        elif file_path.endswith('.tsv'):
             delimiter = "\t"
         else:
-            delimiter = csvDelimiter                
+            delimiter = csv_delimiter                
         fichier.seek(0)
 
-        if csvHeader == "false":
+        if csv_header == "false":
             column_count = list(csv.reader(fichier, delimiter=delimiter))
             fichier.seek(0)
             column_name = []
@@ -718,10 +718,10 @@ def CSVFile(filePath: str, csvHeader: str, csvDelimiter: str) -> list:
     return donnees
 
 
-def getFileContent(connection: FileDataset, pagination: Pagination = None) -> FileContentResponse:
+def get_file_content(connection: FileDataset, pagination: Pagination = None) -> FileContentResponse:
     try:
         data = []
-        columnarFile = ('.parquet', '.feather', '.orc')
+        columnar_file = ('.parquet', '.feather', '.orc')
 
         if connection.folder and connection.folder != None:
             if not os.path.exists(connection.folder):
@@ -732,11 +732,11 @@ def getFileContent(connection: FileDataset, pagination: Pagination = None) -> Fi
             if isinstance(data, FileContentResponse):
                 return data
         else:
-            validated_filePath = PathSecurityValidator.validate_file_path(connection.filePath)
+            validated_file_path = PathSecurityValidator.validate_file_path(connection.filePath)
              # Get allowed directories list (including dynamic upload_dir)
             allowed_base_dirs = SecurityConfig.get_allowed_base_directories()
-            if not FileAccessController.can_read_file(validated_filePath, allowed_base_dirs):
-                raise PermissionError(f"Access denied to directory: {validated_filePath}")
+            if not FileAccessController.can_read_file(validated_file_path, allowed_base_dirs):
+                raise PermissionError(f"Access denied to directory: {validated_file_path}")
             if not connection.filePath:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File path is required")
             if not os.path.exists(connection.filePath):
@@ -746,17 +746,17 @@ def getFileContent(connection: FileDataset, pagination: Pagination = None) -> Fi
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a file: {connection.filePath}")
 
             if connection.filePath.endswith('.json'):
-                data = JSONFile(connection.filePath)
+                data = json_file(connection.filePath)
             elif connection.filePath.endswith('.csv') or connection.filePath.endswith('.tsv'):
-                data = CSVFile(connection.filePath, connection.csvHeader, connection.csvDelimiter)
-            elif connection.filePath.endswith(columnarFile):
-                data = ColFile(connection.filePath)    
+                data = csv_file(connection.filePath, connection.csvHeader, connection.csvDelimiter)
+            elif connection.filePath.endswith(columnar_file):
+                data = col_file(connection.filePath)    
             elif connection.filePath.endswith('.xls') or connection.filePath.endswith('.xlsx'):
-                data = XLSFile(connection.filePath)    
+                data = xls_file(connection.filePath)    
             elif connection.filePath.endswith('.avro'):
-                data = AvroFile(connection.filePath)  
+                data = avro_file(connection.filePath)  
             elif connection.filePath.endswith('.xml'):
-                data = XMLFile(connection.filePath)
+                data = xml_file(connection.filePath)
             elif connection.filePath.endswith('.txt'):
                 with open(connection.filePath, 'r', encoding='utf-8') as f:
                     data = [{"text": f.read()}]    

@@ -43,7 +43,7 @@ class MongoOutput(OutputNode):
             StatusNode: The status of the node after processing.
         """
         try:
-            dataset, database, collection, ifExist ,createIndex,indexTable = await self._retreiveDatabase()
+            dataset, database, collection, if_exist ,create_index,index_table = await self._retreiveDatabase()
 
             try:
                 # Connect to the MongoDB database
@@ -53,9 +53,9 @@ class MongoOutput(OutputNode):
                 # Handle collection existence based on ifExist parameter
                 collection_exists = collection in db.list_collection_names()
                 if collection_exists:
-                    if ifExist == 'fail':
+                    if if_exist == 'fail':
                         raise ValueError(f"Collection '{collection}' already exists and ifExist is set to 'fail'")
-                    elif ifExist == 'replace':
+                    elif if_exist == 'replace':
                         print(f"Dropping existing collection '{collection}' because ifExist is set to 'replace'")
                         db.drop_collection(collection)
                         print(f"Creating new collection '{collection}'")
@@ -83,20 +83,20 @@ class MongoOutput(OutputNode):
                                 records = df_chunk.to_dict(orient='records')
                                 col.insert_many(records)
                         elif isinstance(data, NodeDataParquet):
-                            chunkSize = 1000 
-                            isFistChunk = True
-                            parquetFile = pq.ParquetFile(data.data)
+                            chunk_size = 1000 
+                            is_first_chunk = True
+                            parquet_file = pq.ParquetFile(data.data)
 
-                            for batch in parquetFile.iter_batches(batch_size=chunkSize):
+                            for batch in parquet_file.iter_batches(batch_size=chunk_size):
                                 df_chunk = batch.to_pandas()
-                                if sample and isFistChunk:
+                                if sample and is_first_chunk:
                                     records = df_chunk.to_dict(orient='records')
                                     col.insert_many(records)
                                     break
-                                if_exists = ifExist if isFistChunk else 'append'
+                                if_exists = if_exist if is_first_chunk else 'append'
                                 records = df_chunk.to_dict(orient='records')
                                 col.insert_many(records)
-                                isFistChunk = False
+                                is_first_chunk = False
                         else:
                             raise TypeError("Unsupported data type: {}".format(type(data)))
                 client.close() 
@@ -122,22 +122,22 @@ class MongoOutput(OutputNode):
         Raises:
             ValueError: If no data source, database, or table is selected.
         """
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
-        dataset : MongoDataset  = await self.datasetService.get_dataset(datasetId)
+        dataset : MongoDataset  = await self.datasetService.get_dataset(dataset_id)
         database = self.data['selectDatabaseDataSource']['value'] if self.data.get('selectDatabaseDataSource') and self.data['selectDatabaseDataSource'].get('value') else dataset.database
         collection = self.data.get('collectionAutoComplete').get('value') if self.data.get('collectionAutoComplete') and self.data.get('collectionAutoComplete').get('value')   else dataset.table
-        ifExist = self.data.get('selectExist')['value'] if self.data.get('selectExist') and self.data.get('selectExist').get('value') else "fail"
-        createIndex = self.data.get('createIndex')['value'] if self.data.get('createIndex') and self.data.get('createIndex').get('value') else False
-        indexTable = self.data.get('indexTable')['value'] if self.data.get('indexTable') and self.data.get('indexTable').get('value') else 'id'
+        if_exist = self.data.get('selectExist')['value'] if self.data.get('selectExist') and self.data.get('selectExist').get('value') else "fail"
+        create_index = self.data.get('createIndex')['value'] if self.data.get('createIndex') and self.data.get('createIndex').get('value') else False
+        index_table = self.data.get('indexTable')['value'] if self.data.get('indexTable') and self.data.get('indexTable').get('value') else 'id'
         if (collection is None or collection == ""):
             raise ValueError("No collection selected")
         if (database is None or database == ""):
             raise ValueError("No database selected")
-        return dataset, database, collection, ifExist,createIndex,indexTable
+        return dataset, database, collection, if_exist,create_index,index_table
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
