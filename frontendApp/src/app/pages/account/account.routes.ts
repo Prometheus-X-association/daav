@@ -1,18 +1,12 @@
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
-import { RouterModule, Routes } from '@angular/router';
-
+import { Routes } from '@angular/router';
+import { adminGuard } from '../../guards/admin.guard';
 import { AccountPage } from './account.page';
 import { ProfileSectionComponent } from './profile/profile-section.component';
 import { SecuritySectionComponent } from './security/security-section.component';
 import { CredentialsSectionComponent } from './credentials/credentials-section.component';
 import { UsersSectionComponent } from './users/users-section.component';
 
-import { adminGuard } from '../../guards/admin.guard';
-
-const routes: Routes = [
+export const routes: Routes = [
   {
     path: '',
     component: AccountPage,
@@ -46,19 +40,3 @@ const routes: Routes = [
     ]
   }
 ];
-
-@NgModule({
-    imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    IonicModule,
-    RouterModule.forChild(routes),
-    AccountPage,
-    ProfileSectionComponent,
-    SecuritySectionComponent,
-    CredentialsSectionComponent,
-    UsersSectionComponent
-]
-})
-export class AccountPageModule {}
