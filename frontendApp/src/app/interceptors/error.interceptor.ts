@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -18,13 +18,11 @@ const PASSWORD_CHANGE_REQUIRED_DETAIL = 'Password change required';
  */
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly toastController = inject(ToastController);
 
-  constructor(
-    private readonly authService: AuthService,
-    private readonly router: Router,
-    private readonly toastController: ToastController
-  ) {}
+  private isRefreshing = false;
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     return next.handle(request).pipe(

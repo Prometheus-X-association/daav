@@ -5,6 +5,7 @@ import {
   OnChanges,
   SimpleChanges,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { FormControl, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonModal, IonicModule } from '@ionic/angular';
@@ -19,6 +20,8 @@ import { DatasetService } from 'src/app/services/dataset.service';
     imports: [IonicModule, FormsModule, ReactiveFormsModule]
 })
 export class DatasetsModalComponent implements OnChanges {
+  datasetService = inject(DatasetService);
+
   @ViewChild('modal') modal: IonModal;
 
   @Input() dataset: Dataset;
@@ -110,7 +113,7 @@ export class DatasetsModalComponent implements OnChanges {
 
   public isCsvFile: boolean = false;
 
-  constructor(public datasetService: DatasetService) {
+  constructor() {
     this.formDatabase = new FormGroup({
       name: new FormControl<string | null>('', Validators.required),
       type: new FormControl<string | null>('', Validators.required),

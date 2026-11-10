@@ -16,20 +16,18 @@ import { User } from '../../../models/auth.models';
     imports: [FormsModule, ReactiveFormsModule, IonicModule]
 })
 export class CredentialsSectionComponent implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
+  private readonly loadingController = inject(LoadingController);
+
   private readonly destroyRef = inject(DestroyRef);
   user: User | null = null;
   credentialForm!: FormGroup;
   editCredentialForm!: FormGroup;
   editingCredential: string | null = null;
   loading = false;
-
-  constructor(
-    private readonly formBuilder: FormBuilder,
-    private readonly authService: AuthService,
-    private readonly toastController: ToastController,
-    private readonly alertController: AlertController,
-    private readonly loadingController: LoadingController
-  ) {}
 
   ngOnInit() {
     this.authService.currentUser$

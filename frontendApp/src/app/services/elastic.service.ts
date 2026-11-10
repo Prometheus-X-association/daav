@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { BaseService } from './base.service.service';
 import { NodeDataPandasDf } from '../models/node-data';
@@ -47,9 +47,7 @@ export interface ElasticQueryResponse {
   providedIn: 'root',
 })
 export class ElasticService extends BaseService {
-  constructor(private readonly http: HttpClient) {
-    super();
-  }
+  private readonly http = inject(HttpClient);
 
   private url(datasetId: string, path: string): string {
     return `${this.urlBack}/datasets/${encodeURIComponent(datasetId)}/elastic/${path}`;

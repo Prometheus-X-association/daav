@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ThemeService } from '../../services/theme.service';
 import { IonicModule } from '@ionic/angular';
 
@@ -15,11 +15,11 @@ let nextId = 0;
     imports: [IonicModule]
 })
 export class AppToolbarComponent {
+  themeService = inject(ThemeService);
+
   // Several pages stay in the DOM with Ionic navigation, ids must be unique
   readonly menuId = `theme-menu-${nextId++}`;
   isMenuOpen = false;
-
-  constructor(public themeService: ThemeService) {}
 
   toggleMenu() {
     this.isMenuOpen = !this.isMenuOpen;

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { MatSelectChange, MatSelect, MatOption } from '@angular/material/select';
 import { ClassicPreset } from 'rete';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
@@ -43,10 +43,7 @@ export class SelectControl
 })
 export class SelectWidgetComponent implements OnChanges {
   @Input() data: SelectControl;
-  cdr: ChangeDetectorRef;
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
   ngOnChanges(changes: SimpleChanges): void {
     this.cdr.detectChanges();
   }

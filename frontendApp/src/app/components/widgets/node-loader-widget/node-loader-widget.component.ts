@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { MatSelectChange } from '@angular/material/select';
 import { ClassicPreset } from 'rete';
 import { IonicModule } from '@ionic/angular';
@@ -19,10 +19,7 @@ export class NodeLoaderControl extends ClassicPreset.Control {
 })
 export class NodeLoaderWidgetComponent implements OnChanges {
   @Input() data: NodeLoaderControl;
-  cdr: ChangeDetectorRef;
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
   ngOnChanges(changes: SimpleChanges): void {
     this.cdr.detectChanges();
   }

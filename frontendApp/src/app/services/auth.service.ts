@@ -1,4 +1,4 @@
-import { Injectable, Injector } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
@@ -25,18 +25,18 @@ import { BaseService } from './base.service.service';
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+  private readonly tokenService = inject(TokenService);
+  private readonly baseService = inject(BaseService);
+  private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
+
   private readonly currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
   private refreshTokenPromise: Promise<string | null> | null = null;
   private tokenRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
-  constructor(
-    private readonly http: HttpClient,
-    private readonly tokenService: TokenService,
-    private readonly baseService: BaseService,
-    private readonly router: Router,
-    private readonly injector: Injector
-  ) {
+  constructor() {
     this.currentUserSubject = new BehaviorSubject<User | null>(null);
     this.currentUser$ = this.currentUserSubject.asObservable();
   }

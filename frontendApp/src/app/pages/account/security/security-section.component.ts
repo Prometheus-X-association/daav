@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LoadingController, ToastController, IonicModule } from '@ionic/angular';
 import { AuthService } from '../../../services/auth.service';
@@ -13,15 +13,13 @@ import { AuthService } from '../../../services/auth.service';
     imports: [FormsModule, ReactiveFormsModule, IonicModule]
 })
 export class SecuritySectionComponent implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly toastController = inject(ToastController);
+  private readonly loadingController = inject(LoadingController);
+
   changePasswordForm!: FormGroup;
   loading = false;
-
-  constructor(
-    private readonly formBuilder: FormBuilder,
-    private readonly authService: AuthService,
-    private readonly toastController: ToastController,
-    private readonly loadingController: LoadingController
-  ) {}
 
   ngOnInit() {
     this.changePasswordForm = this.formBuilder.group({

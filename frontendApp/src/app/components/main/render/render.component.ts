@@ -1,5 +1,5 @@
 import { DatasetService } from 'src/app/services/dataset.service';
-import { Component, Input, ViewChild, OnInit,  OnChanges, SimpleChanges, output, ElementRef, ViewContainerRef, ChangeDetectorRef, Renderer2 } from '@angular/core';
+import { Component, Input, ViewChild, OnInit, OnChanges, SimpleChanges, output, ElementRef, ViewContainerRef, ChangeDetectorRef, Renderer2, inject } from '@angular/core';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { LoadingService } from 'src/app/services/loading.service';
 import { DataRenderTypes } from 'src/app/models/data-render-types';
@@ -19,6 +19,11 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
 })
 
 export class RenderComponent implements OnInit, OnChanges {
+  datasetService = inject(DatasetService);
+  loadingService = inject(LoadingService);
+  private readonly cd = inject(ChangeDetectorRef);
+  private readonly render = inject(Renderer2);
+
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("dashboardContainer") dashboardContainer: ElementRef;
   @ViewChild("dashboardContainerAnchor", {read: ViewContainerRef}) dashboardContainerAnchor: ViewContainerRef;
@@ -55,7 +60,7 @@ export class RenderComponent implements OnInit, OnChanges {
   @Input() dataset: Dataset;
   filterTables = "";
 
-  constructor(public datasetService : DatasetService, public loadingService : LoadingService, private readonly cd : ChangeDetectorRef, private readonly render: Renderer2) {
+  constructor() {
     this.data = this.dataDefault;
   }
 

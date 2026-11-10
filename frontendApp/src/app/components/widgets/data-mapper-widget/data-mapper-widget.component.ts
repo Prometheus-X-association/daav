@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
 import { OverlayEventDetail } from '@ionic/core';
 import { ClassicPreset } from 'rete';
 import { ColumnMapping, DatasetMapper } from 'src/app/models/data-mapper-types';
@@ -28,10 +28,7 @@ export class DataMapperWidgetComponent{
 
   @Input() data: DataMapperControl;
   isModalOpen= false;
-  cdr: ChangeDetectorRef;
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
 
 
   onWillDismiss(event: Event) {

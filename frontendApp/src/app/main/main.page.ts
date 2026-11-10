@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ViewChild, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectorRef, Component, ViewChild, ViewEncapsulation, inject } from '@angular/core';
 import { Dataset } from 'src/app/models/dataset';
 import { DatasetService } from '../services/dataset.service';
 import { LoadingService } from '../services/loading.service';
@@ -28,6 +28,10 @@ enum Tabs {
 })
 
 export class MainPage {
+  private readonly cd = inject(ChangeDetectorRef);
+  datasetService = inject(DatasetService);
+  loadingService = inject(LoadingService);
+
   fileName = '';
   dataset: Dataset;
   activeTab = Tabs.datasets;
@@ -65,9 +69,6 @@ export class MainPage {
   datasets: any;
   dataSource: any[] = [];
   matTabIndex = 0;
-
-  constructor( private readonly cd: ChangeDetectorRef, public datasetService : DatasetService, public loadingService: LoadingService) {
-  }
 
   loadDataset(){
     this.matTabIndex = 1;

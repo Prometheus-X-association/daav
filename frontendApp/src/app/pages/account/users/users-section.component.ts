@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController, ToastController, IonicModule } from '@ionic/angular';
 import { AuthService } from '../../../services/auth.service';
@@ -16,15 +16,13 @@ import { UpperCasePipe } from '@angular/common';
     imports: [IonicModule, UpperCasePipe]
 })
 export class UsersSectionComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
+  private readonly router = inject(Router);
+
   allUsers: User[] = [];
   loadingUsers = false;
-
-  constructor(
-    private readonly authService: AuthService,
-    private readonly toastController: ToastController,
-    private readonly alertController: AlertController,
-    private readonly router: Router
-  ) {}
 
   ngOnInit() {
     this.loadAllUsers();

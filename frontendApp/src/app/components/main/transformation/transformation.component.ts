@@ -17,13 +17,16 @@ import { IonicModule } from '@ionic/angular';
     imports: [IonicModule]
 })
 export class TransformationComponent  implements OnInit {
+  workflowService = inject(WorkflowService);
+  loadingService = inject(LoadingService);
+  cd = inject(ChangeDetectorRef);
+  private readonly datasetService = inject(DatasetService);
+
   @Output() transformationView = new EventEmitter<string>();
   @Output() createWorkflow = new EventEmitter<string>();
   @Output() loadWorkflow = new EventEmitter<Project>();
   readonly dialog = inject(MatDialog);
   workflowsStatus = new Map<string, string>();
-
-  constructor(public workflowService: WorkflowService, public loadingService: LoadingService, public cd: ChangeDetectorRef, private readonly datasetService: DatasetService) { }
 
   ngOnInit() {
     this.workflowService.getWorkflows().subscribe();

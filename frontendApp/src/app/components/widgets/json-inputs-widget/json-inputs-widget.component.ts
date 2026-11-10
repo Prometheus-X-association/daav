@@ -1,5 +1,5 @@
 
-import { ChangeDetectorRef, Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
 import { ClassicPreset } from 'rete';
 import { IonModalCustomEvent, OverlayEventDetail } from '@ionic/core';
 import { JsonEditorOptions, JsonEditor } from 'ang-jsoneditor';
@@ -29,11 +29,8 @@ mappings: any;
 export class JsonInputsWidgetComponent   {
   @Input() data: JsonInputsControl;
   isModalOpen= false;
-  cdr: ChangeDetectorRef;
+  cdr = inject(ChangeDetectorRef);
   hasChanged = false;
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
 
   makeOptions = () => {
     let editorOptions = new JsonEditorOptions();

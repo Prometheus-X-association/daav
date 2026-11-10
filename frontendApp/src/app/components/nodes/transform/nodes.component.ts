@@ -4,7 +4,8 @@ import {
   Input,
   HostBinding,
   ChangeDetectorRef,
-  OnChanges
+  OnChanges,
+  inject
 } from "@angular/core";
 import { ClassicPreset } from "rete";
 import { KeyValue, KeyValuePipe } from "@angular/common";
@@ -21,6 +22,8 @@ import { RefDirective } from "rete-angular-plugin/21";
     imports: [RefDirective, KeyValuePipe]
 })
 export class TransformNodeComponent implements OnChanges {
+  private readonly cdr = inject(ChangeDetectorRef);
+
   @Input() data!: ClassicPreset.Node;
   @Input() emit!: (data: any) => void;
   @Input() rendered!: () => void;
@@ -29,10 +32,6 @@ export class TransformNodeComponent implements OnChanges {
   cdrLoc = this.cdr;
   @HostBinding("class.selected") get selected() {
     return this.data.selected;
-  }
-
-  constructor(private readonly cdr: ChangeDetectorRef) {
-    //this.cdr.detach();
   }
 
   ngOnChanges(): void {

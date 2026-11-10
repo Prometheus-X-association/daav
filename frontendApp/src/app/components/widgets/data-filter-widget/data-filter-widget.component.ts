@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input } from "@angular/core";
+import { ChangeDetectorRef, Component, Input, inject } from "@angular/core";
 import { OverlayEventDetail } from "@ionic/core";
 import { ClassicPreset } from "rete";
 import { DatasetMapper } from "src/app/models/data-mapper-types";
@@ -37,11 +37,7 @@ export class DataFilterControl extends ClassicPreset.Control{
 export class DataFilterWidgetComponent{
   @Input() data: DataFilterControl;
   isModalOpen = false;
-  cdr: ChangeDetectorRef;
-
-  constructor(cdr: ChangeDetectorRef){
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
 
   onWillDismiss(event: Event){
     const ev = event as CustomEvent<OverlayEventDetail<string>>;

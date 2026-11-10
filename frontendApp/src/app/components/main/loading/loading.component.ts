@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { LoadingService } from 'src/app/services/loading.service';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 @Component({
@@ -8,7 +8,6 @@ import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
     imports: [MatProgressSpinnerModule]
 })
 export class LoadingComponent {
-
-  constructor(public loadingService:LoadingService) { }
+  loadingService = inject(LoadingService);
 
 }

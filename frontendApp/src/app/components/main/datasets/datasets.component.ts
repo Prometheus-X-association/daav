@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ViewChild } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, inject } from '@angular/core';
 // import { Observable } from 'rxjs';
 import { Dataset } from 'src/app/models/dataset';
 import { DatasetService } from 'src/app/services/dataset.service';
@@ -15,14 +15,15 @@ import { NgClass } from '@angular/common';
 })
 
 export class DatasetsComponent {
+  datasetService = inject(DatasetService);
+  loadingService = inject(LoadingService);
+
   editDataset:Dataset;
 
   @ViewChild("datasetModal", { static: false }) datasetModal: DatasetsModalComponent;
   @Input() width = "";
   @Output() selectedDataset = new EventEmitter<Dataset>();
   dataset: Dataset;
-
-  constructor(public datasetService : DatasetService, public loadingService : LoadingService) {}
 
   openModal(dataset: Dataset){
     this.editDataset = dataset;

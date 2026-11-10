@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
 import { OverlayEventDetail } from '@ionic/core';
 import { ClassicPreset } from 'rete';
 import { StatusNode } from 'src/app/enums/status-node';
@@ -27,12 +27,7 @@ export class StatusComponentComponent {
   enumStatus = StatusNode;
 
   isModalOpen = false;
-  cdr: ChangeDetectorRef;
-
-
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
 
   /** Text alternative for the status color */
   statusLabel(): string {

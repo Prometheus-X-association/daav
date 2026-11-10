@@ -16,15 +16,13 @@ import { UpperCasePipe } from '@angular/common';
     imports: [IonicModule, UpperCasePipe]
 })
 export class ProfileSectionComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
+  private readonly loadingController = inject(LoadingController);
+
   private readonly destroyRef = inject(DestroyRef);
   user: User | null = null;
-
-  constructor(
-    private readonly authService: AuthService,
-    private readonly toastController: ToastController,
-    private readonly alertController: AlertController,
-    private readonly loadingController: LoadingController
-  ) {}
 
   ngOnInit() {
     this.authService.currentUser$

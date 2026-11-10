@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Storage } from '@ionic/storage-angular';
 
 /**
@@ -11,12 +11,14 @@ import { Storage } from '@ionic/storage-angular';
   providedIn: 'root'
 })
 export class TokenService {
+  private readonly storage = inject(Storage);
+
   private accessToken: string | null = null;
   private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly REMEMBER_ME_KEY = 'remember_me';
   private storageInitialized = false;
 
-  constructor(private readonly storage: Storage) {
+  constructor() {
     this.initStorage();
   }
 

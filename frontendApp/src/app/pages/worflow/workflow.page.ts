@@ -18,6 +18,10 @@ import { FormsModule } from '@angular/forms';
     imports: [IonicModule, FormsModule]
 })
 export class WorkflowPage implements AfterViewInit {
+  private readonly injector = inject(Injector);
+  private readonly route = inject(ActivatedRoute);
+  workflowService = inject(WorkflowService);
+
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   workflow: WorkflowEditor;
@@ -26,7 +30,7 @@ export class WorkflowPage implements AfterViewInit {
   @Input() projectId: string;
   @Output() closed = new EventEmitter<void>();
 
-  constructor(private readonly injector: Injector,private readonly route: ActivatedRoute,public workflowService : WorkflowService) {
+  constructor() {
     this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(params => {

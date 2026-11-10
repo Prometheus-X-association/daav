@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger, MatAutocomplete } from '@angular/material/autocomplete';
 import { ClassicPreset } from 'rete';
 import { MatFormField, MatLabel, MatSuffix } from '@angular/material/form-field';
@@ -60,11 +60,8 @@ export class InputAutoCompleteControl
 export class InputAutoCompleteWidgetComponent implements OnInit, OnChanges {
 
   @Input() data: InputAutoCompleteControl;
-  cdr: ChangeDetectorRef;
+  cdr = inject(ChangeDetectorRef);
   filteredOptions: string[];
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
   ngOnInit() {
     this.filteredOptions = this.data.list;
   }

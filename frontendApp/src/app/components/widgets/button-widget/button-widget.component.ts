@@ -27,5 +27,4 @@ export class ButtonControl extends ClassicPreset.Control {
 export class ButtonWidgetComponent  {
   @Input() data: ButtonControl;
   cdr: ChangeDetectorRef;
-  constructor(cdr: ChangeDetectorRef) {}
 }

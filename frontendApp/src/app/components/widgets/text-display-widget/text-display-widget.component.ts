@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges } from "@angular/core";
+import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from "@angular/core";
 import { ClassicPreset } from "rete";
 import { IonicModule } from "@ionic/angular";
 
@@ -45,11 +45,7 @@ export class TextDisplayControl extends ClassicPreset.Control implements textDis
 })
 export class TextDisplayWidgetComponent implements OnChanges {
     @Input() data: TextDisplayControl;
-    cdr: ChangeDetectorRef;
-  
-    constructor(cdr: ChangeDetectorRef) {
-      this.cdr = cdr;
-    }
+    cdr = inject(ChangeDetectorRef);
   
     ngOnChanges(changes: SimpleChanges): void {
       this.cdr.detectChanges();

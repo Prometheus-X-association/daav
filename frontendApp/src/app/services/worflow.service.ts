@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable , tap } from 'rxjs';
 import { Project } from '../models/interfaces/project';
@@ -9,14 +9,12 @@ import { BaseService } from './base.service.service';
   providedIn: 'root'
 })
 export class WorkflowService extends BaseService {
+  private readonly http = inject(HttpClient);
+
   private readonly apiUrl = this.urlBack+"/workflows";
 
   private readonly workflowsSignals = signal<Project[]>([]);
   workflows = this.workflowsSignals.asReadonly();
-
-  constructor(private readonly http: HttpClient) {
-    super();
-  }
 
   // Get all workflows
   getWorkflows(): Observable<Project[]> {

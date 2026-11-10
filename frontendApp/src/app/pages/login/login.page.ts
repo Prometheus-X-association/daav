@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ToastController, LoadingController, IonicModule } from '@ionic/angular';
@@ -11,18 +11,16 @@ import { AuthService } from '../../services/auth.service';
     imports: [IonicModule, FormsModule, ReactiveFormsModule]
 })
 export class LoginPage implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly toastController = inject(ToastController);
+  private readonly loadingController = inject(LoadingController);
+
   loginForm!: FormGroup;
   loading = false;
   returnUrl: string = '/';
-
-  constructor(
-    private readonly formBuilder: FormBuilder,
-    private readonly authService: AuthService,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly toastController: ToastController,
-    private readonly loadingController: LoadingController
-  ) {}
 
   ngOnInit() {
     // Initialize form

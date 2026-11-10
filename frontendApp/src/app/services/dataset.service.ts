@@ -25,6 +25,8 @@ import { ConfirmDeletionModalComponent } from '../components/confirm-deletion-mo
   providedIn: 'root',
 })
 export class DatasetService extends BaseService {
+  private readonly http = inject(HttpClient);
+
   private readonly apiUrl = this.urlBack + '/datasets';
 
   readonly dialog = inject(MatDialog);
@@ -44,9 +46,6 @@ export class DatasetService extends BaseService {
   fiches: Array<any> = [];
   files: Array<any> = [];
 
-  constructor(private readonly http: HttpClient) {
-    super();
-  }
   exportDaav(projectDaav: Project) {
     return new Promise<Array<string>>((resolve, reject) => {
       this.http.post(this.urlBack + '/exportDaav', projectDaav).subscribe({

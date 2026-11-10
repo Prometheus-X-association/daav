@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ToastController, LoadingController, IonicModule } from '@ionic/angular';
@@ -11,17 +11,15 @@ import { AuthService } from '../../services/auth.service';
     imports: [IonicModule, FormsModule, ReactiveFormsModule]
 })
 export class ForgotPasswordPage implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly toastController = inject(ToastController);
+  private readonly loadingController = inject(LoadingController);
+
   forgotPasswordForm!: FormGroup;
   loading = false;
   emailSent = false;
-
-  constructor(
-    private readonly formBuilder: FormBuilder,
-    private readonly authService: AuthService,
-    private readonly router: Router,
-    private readonly toastController: ToastController,
-    private readonly loadingController: LoadingController
-  ) {}
 
   ngOnInit() {
     this.forgotPasswordForm = this.formBuilder.group({

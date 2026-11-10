@@ -26,6 +26,10 @@ export interface AccountSection {
     imports: [IonicModule, AppToolbarComponent, RouterLink, RouterLinkActive, RouterOutlet]
 })
 export class AccountPage implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly alertController = inject(AlertController);
+  private readonly router = inject(Router);
+
   private readonly destroyRef = inject(DestroyRef);
   user: User | null = null;
   currentSection: AccountSection | undefined;
@@ -57,12 +61,6 @@ export class AccountPage implements OnInit {
       adminOnly: true
     }
   ];
-
-  constructor(
-    private readonly authService: AuthService,
-    private readonly alertController: AlertController,
-    private readonly router: Router
-  ) {}
 
   ngOnInit() {
     this.authService.currentUser$
