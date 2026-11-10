@@ -1,4 +1,7 @@
+import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit } from '@angular/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { DashboardComponent } from '../dashboard/dashboard.component';
 import { DatasetFile } from 'src/app/models/dataset-file';
 
@@ -6,7 +9,7 @@ import { DatasetFile } from 'src/app/models/dataset-file';
     selector: 'app-file-dashboard',
     templateUrl: './file-dashboard.component.html',
     styleUrls: ['./file-dashboard.component.scss'],
-    standalone: false
+    imports: [CommonModule, MatFormFieldModule, MatSelectModule]
 })
 export class FileDashboardComponent extends DashboardComponent implements OnInit {
 

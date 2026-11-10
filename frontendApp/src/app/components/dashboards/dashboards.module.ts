@@ -6,13 +6,11 @@ import { MatOptionModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 
 import { DashboardComponent } from './dashboard/dashboard.component';
-import { FileDashboardComponent } from './file-dashboard/file-dashboard.component';
 import { MatIconModule } from '@angular/material/icon';
 
 @NgModule({
   declarations: [
-    DashboardComponent,
-    FileDashboardComponent
+    DashboardComponent
   ],
   imports: [
     CommonModule,
@@ -23,8 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
     FormsModule
   ],
   exports: [
-    DashboardComponent,
-    FileDashboardComponent
+    DashboardComponent
   ]
 })
 export class DashboardsModule { }

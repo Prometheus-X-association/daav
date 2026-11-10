@@ -19,8 +19,7 @@ describe('FileDashboardComponent', () => {
     datasetServiceSpy.editDataset.and.returnValue(of({}));
 
     TestBed.configureTestingModule({
-      declarations: [FileDashboardComponent],
-      imports: [IonicModule.forRoot(), CommonModule, MatFormFieldModule, MatSelectModule, BrowserAnimationsModule, HttpClientTestingModule],
+      imports: [FileDashboardComponent, IonicModule.forRoot(), CommonModule, MatFormFieldModule, MatSelectModule, BrowserAnimationsModule, HttpClientTestingModule],
       providers: [{ provide: DatasetService, useValue: datasetServiceSpy }]
     }).compileComponents();
     fixture = TestBed.createComponent(FileDashboardComponent);
