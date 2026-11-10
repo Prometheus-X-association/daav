@@ -1,4 +1,3 @@
-import { NodeComponent } from "rete-angular-plugin/19";
 
 import {
   Component,
@@ -32,7 +31,7 @@ export class InputNodeComponent implements OnChanges {
     return this.data.selected;
   }
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor(private readonly cdr: ChangeDetectorRef) {
     this.cdr.detach();
   }
 

@@ -1,4 +1,4 @@
-import { BaseSchemes, NestedScope, NodeEditor, Scope } from 'rete';
+import { BaseSchemes, NodeEditor, Scope } from 'rete';
 import { ContextMenuPlugin, Props } from 'rete-context-menu-plugin';
 import { BaseAreaPlugin } from 'rete-area-plugin';
 import _typeof from '@babel/runtime/helpers/typeof';
@@ -6,7 +6,6 @@ import _getPrototypeOf from '@babel/runtime/helpers/getPrototypeOf';
 import _get from '@babel/runtime/helpers/get';
 import { Item, Items, Position } from 'rete-context-menu-plugin/_types/types';
 import { BSchemes, ItemDefinition } from 'rete-context-menu-plugin/_types/presets/classic/types';
-import { Node } from '../models/interfaces/node';
 import { NodeBlock } from '../nodes';
 
 export class ContextMenuDaavPlugin<

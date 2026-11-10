@@ -58,9 +58,9 @@ export class AccountPage implements OnInit {
   ];
 
   constructor(
-    private authService: AuthService,
-    private alertController: AlertController,
-    private router: Router
+    private readonly authService: AuthService,
+    private readonly alertController: AlertController,
+    private readonly router: Router
   ) {}
 
   ngOnInit() {

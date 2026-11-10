@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ToastController } from '@ionic/angular';
@@ -21,9 +21,9 @@ export class ErrorInterceptor implements HttpInterceptor {
   private isRefreshing = false;
 
   constructor(
-    private authService: AuthService,
-    private router: Router,
-    private toastController: ToastController
+    private readonly authService: AuthService,
+    private readonly router: Router,
+    private readonly toastController: ToastController
   ) {}
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {

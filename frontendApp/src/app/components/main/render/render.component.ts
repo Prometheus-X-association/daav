@@ -1,12 +1,10 @@
 import { DatasetService } from 'src/app/services/dataset.service';
-import { Component, Input, ViewChild, OnInit,  OnChanges, SimpleChanges, output, ElementRef, reflectComponentType, ViewContainerRef, ChangeDetectorRef, Renderer2 } from '@angular/core';
+import { Component, Input, ViewChild, OnInit,  OnChanges, SimpleChanges, output, ElementRef, ViewContainerRef, ChangeDetectorRef, Renderer2 } from '@angular/core';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { LoadingService } from 'src/app/services/loading.service';
 import { DataRenderTypes } from 'src/app/models/data-render-types';
 import { Dataset } from 'src/app/models/dataset'
 import { DatasetType } from 'src/app/enums/dataset-type';
-import { NgxJsonViewerModule } from 'ngx-json-viewer';
-import { MatTab } from '@angular/material/tabs';
 import { isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
 
 @Component({
@@ -53,7 +51,7 @@ export class RenderComponent implements OnInit, OnChanges {
   @Input() dataset: Dataset;
   filterTables = "";
 
-  constructor(public datasetService : DatasetService, public loadingService : LoadingService, private cd : ChangeDetectorRef, private render: Renderer2) {
+  constructor(public datasetService : DatasetService, public loadingService : LoadingService, private readonly cd : ChangeDetectorRef, private readonly render: Renderer2) {
     this.data = this.dataDefault;
   }
 

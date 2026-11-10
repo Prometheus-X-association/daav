@@ -2,8 +2,7 @@ import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { IonicModule } from '@ionic/angular';
 import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip';
-import { StatusComponentComponent } from './status-component.component';
-import { StatusControl } from './status-component.component';
+import { StatusComponentComponent , StatusControl } from './status-component.component';
 import { StatusNode } from 'src/app/enums/status-node';
 
 describe('StatusComponentComponent', () => {

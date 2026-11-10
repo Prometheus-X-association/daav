@@ -1,5 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, Pipe, PipeTransform } from '@angular/core';
-import { Data } from '@angular/router';
+import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import { OverlayEventDetail } from '@ionic/core';
 import { ClassicPreset } from 'rete';
 import { ColumnMapping, DatasetMapper } from 'src/app/models/data-mapper-types';

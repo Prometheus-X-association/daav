@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { FieldMap, QueryBuilderConfig } from 'ngx-query-builder';
 import { DatasetMapper, DataType } from 'src/app/models/data-mapper-types';
 import { DataFilterControl } from '../widgets/data-filter-widget/data-filter-widget.component';

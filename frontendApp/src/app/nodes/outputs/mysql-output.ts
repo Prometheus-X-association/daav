@@ -24,7 +24,7 @@ import { CheckboxControl, CheckboxControlI } from 'src/app/components/widgets/ch
 export class MysqlOutput extends OutputDataBlock {
   override width = 350;
   override height = 156;
-  private node: Node;
+  private readonly node: Node;
   selectControlDatabase: SelectControl;
   tableAutoCompleteControl: InputAutoCompleteControl;
   selectExistControl: SelectControl;

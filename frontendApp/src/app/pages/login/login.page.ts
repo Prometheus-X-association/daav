@@ -16,12 +16,12 @@ export class LoginPage implements OnInit {
   returnUrl: string = '/';
 
   constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private toastController: ToastController,
-    private loadingController: LoadingController
+    private readonly formBuilder: FormBuilder,
+    private readonly authService: AuthService,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
+    private readonly toastController: ToastController,
+    private readonly loadingController: LoadingController
   ) {}
 
   ngOnInit() {

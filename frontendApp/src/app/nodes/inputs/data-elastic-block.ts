@@ -38,8 +38,8 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
   maxDocsControl: InputAutoCompleteControl;
   includeIdControl: CheckboxControl;
 
-  private node: Node;
-  private elasticService: ElasticService;
+  private readonly node: Node;
+  private readonly elasticService: ElasticService;
   private previewTimer: ReturnType<typeof setTimeout>;
 
   constructor(

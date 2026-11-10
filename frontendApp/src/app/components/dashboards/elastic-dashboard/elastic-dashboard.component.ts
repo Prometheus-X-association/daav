@@ -24,7 +24,7 @@ const QUERY_PAGE_SIZE = 20;
 export class ElasticDashboardComponent extends DashboardComponent implements OnInit {
   @Input() override dataset: DatasetElasticSearch;
 
-  private elasticService = inject(ElasticService);
+  private readonly elasticService = inject(ElasticService);
 
   info: ElasticClusterInfo;
   infoError: string;

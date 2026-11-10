@@ -19,10 +19,10 @@ export class UsersSectionComponent implements OnInit {
   loadingUsers = false;
 
   constructor(
-    private authService: AuthService,
-    private toastController: ToastController,
-    private alertController: AlertController,
-    private router: Router
+    private readonly authService: AuthService,
+    private readonly toastController: ToastController,
+    private readonly alertController: AlertController,
+    private readonly router: Router
   ) {}
 
   ngOnInit() {

@@ -19,10 +19,10 @@ export class ProfileSectionComponent implements OnInit {
   user: User | null = null;
 
   constructor(
-    private authService: AuthService,
-    private toastController: ToastController,
-    private alertController: AlertController,
-    private loadingController: LoadingController
+    private readonly authService: AuthService,
+    private readonly toastController: ToastController,
+    private readonly alertController: AlertController,
+    private readonly loadingController: LoadingController
   ) {}
 
   ngOnInit() {

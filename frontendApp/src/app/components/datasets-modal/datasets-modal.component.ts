@@ -3,13 +3,11 @@ import {
   Component,
   Input,
   OnChanges,
-  OnInit,
   SimpleChanges,
   ViewChild,
-  ViewChildren,
 } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { IonModal, IonRadio } from '@ionic/angular';
+import { IonModal } from '@ionic/angular';
 import { Dataset } from 'src/app/models/dataset';
 import { DatasetType } from 'src/app/enums/dataset-type';
 import { DatasetService } from 'src/app/services/dataset.service';

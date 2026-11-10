@@ -1,10 +1,9 @@
 import { WorkflowService } from '../../services/worflow.service';
-import { Component, ElementRef, Injector, ViewChild, AfterViewInit, OnInit, input, Input, Output, EventEmitter, OnChanges, SimpleChanges, AfterContentInit, AfterViewChecked, DestroyRef, inject } from '@angular/core';
+import { Component, ElementRef, Injector, ViewChild, AfterViewInit, Input, Output, EventEmitter, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkflowEditor } from '../../core/workflow-editor';
 import { environment } from 'src/environments/environment';
 import { Project } from '../../models/interfaces/project';
-import { AppUtils } from '../../models/app-utils';
 import { ActivatedRoute } from '@angular/router';
 import { $localize } from '@angular/localize/init';
 import { MatDialog } from '@angular/material/dialog';
@@ -25,7 +24,7 @@ export class WorkflowPage implements AfterViewInit {
   @Input() projectId: string;
   @Output() closed = new EventEmitter<void>();
 
-  constructor(private injector: Injector,private route: ActivatedRoute,public workflowService : WorkflowService) {
+  constructor(private readonly injector: Injector,private readonly route: ActivatedRoute,public workflowService : WorkflowService) {
     this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(params => {

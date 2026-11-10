@@ -5,12 +5,11 @@ import { Node } from 'src/app/models/interfaces/node';
 import { MatSelectChange } from '@angular/material/select';
 import { DatasetService } from 'src/app/services/dataset.service';
 import { of } from 'rxjs';
-import { Injector } from '@angular/core';
+import { Injector , signal } from '@angular/core';
 import { FlatObjectSocket } from 'src/app/core/sockets/sockets';
-import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
 
 describe('DataMysqlBlock', () => {
   let block: DataMysqlBlock;
@@ -198,7 +197,7 @@ describe('DataMysqlBlock', () => {
 
   it('should remove control database and clear saved table import state', () => {
     const node = { data: { selectTableDataSource: { value: null } } } as any;
-    block['node'] = node;
+    (block as any).node = node; // readonly field, only set by the constructor
     block.selectControlDatabase = { id: 'dataDatabaseSource' } as any;
 
     block.removeControlDatabase();
@@ -209,7 +208,7 @@ describe('DataMysqlBlock', () => {
 
   it('should remove control table and clear saved table import state', () => {
     const node = { data: { selectTableDataSource: { value: null } } } as any;
-    block['node'] = node;
+    (block as any).node = node; // readonly field, only set by the constructor
     block.selectControlTable = { id: 'dataTableSource' } as any;
 
     block.removeControlTable();

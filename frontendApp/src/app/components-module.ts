@@ -22,11 +22,9 @@ import { DataFilterWidgetComponent } from './components/widgets/data-filter-widg
 import { QueryBuilderModule } from 'ngx-query-builder';
 import { JsonInputsWidgetComponent } from './components/widgets/json-inputs-widget/json-inputs-widget.component';
 import { TextDisplayWidgetComponent } from './components/widgets/text-display-widget/text-display-widget.component';
-import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor';
+import { JsonEditorComponent } from 'ang-jsoneditor';
 import { CdkAccordionModule } from '@angular/cdk/accordion';
-import { DashboardsModule } from './components/dashboards/dashboards.module';
 import { AppToolbarComponent } from './components/app-toolbar/app-toolbar.component';
-import { DataFilterComponent } from './components/data-filter/data-filter.component';
 import { DataFilterModule } from './components/data-filter/data-filter.module';
 
 @NgModule({

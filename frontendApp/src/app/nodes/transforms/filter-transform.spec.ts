@@ -1,7 +1,6 @@
 import { AreaPlugin } from 'rete-area-plugin';
 import { Schemes } from 'src/app/core/workflow-editor';
 import { FilterTransform } from './filter-transform';
-import { Node } from 'src/app/models/interfaces/node';
 import { StatusNode } from 'src/app/enums/status-node';
 
 describe('FilterTransform', () => {

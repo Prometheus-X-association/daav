@@ -1,6 +1,6 @@
 import { $localize } from '@angular/localize/init';
 import { AreaPlugin } from 'rete-area-plugin';
-import { DeepObjectSocket, FlatObjectSocket } from 'src/app/core/sockets/sockets';
+import { DeepObjectSocket } from 'src/app/core/sockets/sockets';
 import { Schemes, AreaExtra } from 'src/app/core/workflow-editor';
 import { StatusNode } from 'src/app/enums/status-node';
 import { OutputDataBlock } from '../output/output-data-block';
@@ -12,7 +12,7 @@ import {
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { DatasetMySQL } from 'src/app/models/dataset-my-sql';
 import { MatSelectChange } from '@angular/material/select';
-import { MongoContentResponse, MySQLContentResponse } from 'src/app/models/dataset-content-response';
+import { MongoContentResponse } from 'src/app/models/dataset-content-response';
 import { ClassicPreset } from 'rete';
 import {
   InputAutoCompleteControl,
@@ -25,7 +25,7 @@ import { DatasetMongo } from 'src/app/models/dataset-mongo';
 export class MongoOutput extends OutputDataBlock {
   override width = 350;
   override height = 156;
-  private node: Node;
+  private readonly node: Node;
   selectControlDatabase: SelectControl;
   collectionAutoCompleteControl: InputAutoCompleteControl;
   selectExistControl: SelectControl;

@@ -15,7 +15,7 @@ export class SocketComponent  implements OnChanges {
     return this.data.name;
   }
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor(private readonly cdr: ChangeDetectorRef) {
     this.cdr.detach();
   }
 

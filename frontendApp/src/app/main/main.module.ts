@@ -12,7 +12,6 @@ import { DatasetsComponent } from '../components/main/datasets/datasets.componen
 import { TransformationComponent } from '../components/main/transformation/transformation.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import {MatTabsModule} from '@angular/material/tabs';
-import { LoadingComponent } from '../components/main/loading/loading.component';
 import { DatasetsModalComponent } from '../components/datasets-modal/datasets-modal.component';
 import { TransformationModalComponent } from '../components/transformation-modal/transformation-modal.component';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';

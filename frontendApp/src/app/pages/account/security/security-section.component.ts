@@ -17,10 +17,10 @@ export class SecuritySectionComponent implements OnInit {
   loading = false;
 
   constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private toastController: ToastController,
-    private loadingController: LoadingController
+    private readonly formBuilder: FormBuilder,
+    private readonly authService: AuthService,
+    private readonly toastController: ToastController,
+    private readonly loadingController: LoadingController
   ) {}
 
   ngOnInit() {

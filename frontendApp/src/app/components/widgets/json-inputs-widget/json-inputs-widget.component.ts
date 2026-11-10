@@ -3,7 +3,6 @@ import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import { ClassicPreset } from 'rete';
 import { IonModalCustomEvent, OverlayEventDetail } from '@ionic/core';
 import { JsonEditorOptions } from 'ang-jsoneditor';
-import {CdkAccordionModule} from '@angular/cdk/accordion'
 
 export class JsonInputsControl extends ClassicPreset.Control {
   public buttonDisabled = false;

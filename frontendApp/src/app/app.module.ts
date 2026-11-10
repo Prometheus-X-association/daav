@@ -22,7 +22,6 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { StatusComponentComponent } from './components/widgets/status-component/status-component.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { QueryBuilderModule } from 'ngx-query-builder';
-import { CdkAccordionModule } from '@angular/cdk/accordion';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { ErrorInterceptor } from './interceptors/error.interceptor';
 

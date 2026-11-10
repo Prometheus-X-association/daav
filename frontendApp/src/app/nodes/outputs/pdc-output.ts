@@ -1,4 +1,3 @@
-import { Input, Output } from "@angular/core";
 import { daavBlock } from "../node-block";
 import { OutputDataBlock } from "../output/output-data-block";
 import { AreaPlugin } from "rete-area-plugin";
@@ -14,13 +13,12 @@ import { SelectControl, selectControlI } from "src/app/components/widgets/select
 import { InputAutoCompleteControl, inputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
 import { ButtonControl } from "src/app/components/widgets/button-widget/button-widget.component";
 import { TextDisplayControl, textDisplayControlI } from "src/app/components/widgets/text-display-widget/text-display-widget.component";
-import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
 
 
 @daavBlock("output")
 export class PdcOutput extends OutputDataBlock {
   override width = 350;
-  private node: Node;
+  private readonly node: Node;
 
   private dataResourcesResponse: any;
   private selectControlDataResource: SelectControl;

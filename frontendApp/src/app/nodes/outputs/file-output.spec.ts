@@ -2,12 +2,11 @@ import { FileOutput } from './file-output';
 import { AreaPlugin } from 'rete-area-plugin';
 import { Schemes } from 'src/app/core/workflow-editor';
 import { WorkflowNodeEditor } from 'src/app/core/workflow-node-editor';
-import { Injector, inject } from '@angular/core';
+import { Injector , signal } from '@angular/core';
 import { DatasetService } from 'src/app/services/dataset.service';
-import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
 import { DatasetFile } from 'src/app/models/dataset-file';
 import { DatasetType } from 'src/app/enums/dataset-type';
 

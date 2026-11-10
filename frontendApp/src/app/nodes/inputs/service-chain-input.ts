@@ -13,18 +13,15 @@ import { IonModalCustomEvent, OverlayEventDetail } from "@ionic/core";
 import { WorkflowNodeEditor } from "src/app/core/workflow-node-editor";
 import { DeepObjectSocket, FlatObjectSocket, SimpleFieldSocket } from "src/app/core/sockets/sockets";
 import { StatusNode } from "src/app/enums/status-node";
-import { InputAutoCompleteControl } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
 import { MatSelectChange } from '@angular/material/select';
 import { SelectControl, selectControlI } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { ButtonControl } from 'src/app/components/widgets/button-widget/button-widget.component';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { inject } from '@angular/core';
 
 
 @daavBlock('input')
 export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPandasDf> {
 
-  private node: Node;
+  private readonly node: Node;
   override width = 250;
   inputsDatasource: JsonInputsControl;
   private serviceChainControl: SelectControl;

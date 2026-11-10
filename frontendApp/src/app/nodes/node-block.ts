@@ -3,7 +3,7 @@ import { StatusNode } from "../enums/status-node";
 import { Node } from "../models/interfaces/node";
 import { StatusControl } from "../components/widgets/status-component/status-component.component";
 import { AreaPlugin } from "rete-area-plugin";
-import { AreaExtra, Schemes, WorkflowEditor } from "../core/workflow-editor";
+import { AreaExtra, Schemes } from "../core/workflow-editor";
 import { NodeComponent } from "rete-angular-plugin/19";
 import { NodeLoaderControl } from '../components/widgets/node-loader-widget/node-loader-widget.component';
 import { NodeData } from '../models/node-data';
@@ -25,7 +25,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
     rebuildLocally = false;
     preventNodeEvent = false;
     dataOutput : Map<OutputId,T>;
-    private statusControl: StatusControl;
+    private readonly statusControl: StatusControl;
     width = 250;
     height = 120;
     nodeLoader: NodeLoaderControl;

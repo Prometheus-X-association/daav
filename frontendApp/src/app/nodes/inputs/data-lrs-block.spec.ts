@@ -1,12 +1,11 @@
 import { Schemes } from 'src/app/core/workflow-editor';
 import { DataLrsBlock } from './data-lrs-block';
 import { AreaPlugin } from 'rete-area-plugin';
-import { Injector } from '@angular/core';
+import { Injector , signal } from '@angular/core';
 import { DatasetService } from 'src/app/services/dataset.service';
-import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
 
 describe('DataLrsBlock', () => {
   let area: AreaPlugin<any, any>;

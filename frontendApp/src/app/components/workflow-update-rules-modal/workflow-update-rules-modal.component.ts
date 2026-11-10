@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -22,7 +22,7 @@ import { CommonModule } from '@angular/common';
     styleUrls: ['./workflow-update-rules-modal.component.scss']
 })
 export class WorkflowUpdateRulesModalComponent {
-  private dialogRef = inject(MatDialogRef<WorkflowUpdateRulesModalComponent>);
+  private readonly dialogRef = inject(MatDialogRef<WorkflowUpdateRulesModalComponent>);
 
   automatic = false;
   updateText = '';

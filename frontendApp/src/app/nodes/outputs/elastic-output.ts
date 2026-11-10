@@ -23,7 +23,7 @@ import {
 export class ElasticOutput extends OutputDataBlock {
   override width = 350;
   override height = 156;
-  private node: Node;
+  private readonly node: Node;
   indexAutoCompleteControl: InputAutoCompleteControl;
   selectExistControl: SelectControl;
   idFieldControl: InputAutoCompleteControl;

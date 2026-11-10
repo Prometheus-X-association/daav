@@ -16,11 +16,11 @@ export class ForgotPasswordPage implements OnInit {
   emailSent = false;
 
   constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private toastController: ToastController,
-    private loadingController: LoadingController
+    private readonly formBuilder: FormBuilder,
+    private readonly authService: AuthService,
+    private readonly router: Router,
+    private readonly toastController: ToastController,
+    private readonly loadingController: LoadingController
   ) {}
 
   ngOnInit() {

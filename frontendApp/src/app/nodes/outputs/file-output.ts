@@ -3,7 +3,7 @@ import { OutputDataBlock } from "../output/output-data-block";
 import { AreaExtra, Schemes } from "src/app/core/workflow-editor";
 import { StatusNode } from "src/app/enums/status-node";
 import { ClassicPreset } from "rete";
-import { FlatObjectSocket, SimpleFieldSocket } from "src/app/core/sockets/sockets";
+import { FlatObjectSocket } from "src/app/core/sockets/sockets";
 import { Node } from "src/app/models/interfaces/node";
 import { daavBlock } from "../node-block";
 import { DatasetFile } from "src/app/models/dataset-file";
@@ -16,16 +16,14 @@ import {
   InputAutoCompleteControl,
   inputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
-import { FileContentResponse } from "src/app/models/dataset-content-response";
 import { Dataset } from "src/app/models/dataset";
-import { DatasetType } from "src/app/enums/dataset-type";
 
 
 @daavBlock('output')
 export class FileOutput extends OutputDataBlock {
   override width = 350;
   override height = 156;
-  private node: Node;
+  private readonly node: Node;
   delimiterControl: SelectControl;
   fileTypeControl: SelectControl;
   fileNameControl: InputAutoCompleteControl;

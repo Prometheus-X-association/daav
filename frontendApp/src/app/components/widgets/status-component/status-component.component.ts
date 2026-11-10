@@ -1,4 +1,3 @@
-import { NgClass, NgStyle } from '@angular/common';
 import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import { OverlayEventDetail } from '@ionic/core';
 import { ClassicPreset } from 'rete';

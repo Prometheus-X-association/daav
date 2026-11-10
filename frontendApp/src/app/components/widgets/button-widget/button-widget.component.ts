@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import { ClassicPreset } from 'rete';
 
 export class ButtonControl extends ClassicPreset.Control {

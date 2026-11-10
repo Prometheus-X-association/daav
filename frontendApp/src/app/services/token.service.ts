@@ -16,7 +16,7 @@ export class TokenService {
   private readonly REMEMBER_ME_KEY = 'remember_me';
   private storageInitialized = false;
 
-  constructor(private storage: Storage) {
+  constructor(private readonly storage: Storage) {
     this.initStorage();
   }
 

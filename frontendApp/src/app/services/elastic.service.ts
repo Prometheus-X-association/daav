@@ -47,7 +47,7 @@ export interface ElasticQueryResponse {
   providedIn: 'root',
 })
 export class ElasticService extends BaseService {
-  constructor(private http: HttpClient) {
+  constructor(private readonly http: HttpClient) {
     super();
   }
 

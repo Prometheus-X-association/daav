@@ -1,7 +1,6 @@
-import { Component, Input, Output, EventEmitter, ViewChild, output } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild } from '@angular/core';
 // import { Observable } from 'rxjs';
 import { Dataset } from 'src/app/models/dataset';
-import { DataRenderTypes } from 'src/app/models/data-render-types';
 import { DatasetService } from 'src/app/services/dataset.service';
 import { DatasetsModalComponent } from '../../datasets-modal/datasets-modal.component';
 import { LoadingService } from 'src/app/services/loading.service';

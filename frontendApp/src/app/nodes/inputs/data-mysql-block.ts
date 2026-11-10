@@ -14,7 +14,7 @@ import {
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { NodeDataMysql } from 'src/app/models/node-data';
 import { MysqlSchema } from 'src/app/models/dataset-schema';
-import { FileContentResponse, MySQLContentResponse } from 'src/app/models/dataset-content-response';
+import { MySQLContentResponse } from 'src/app/models/dataset-content-response';
 
 @daavBlock('input')
 export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
@@ -27,7 +27,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
   selectControlTable: SelectControl;
   selectControlDatabase: SelectControl;
 
-  private node: Node;
+  private readonly node: Node;
 
   constructor(
     label: string,

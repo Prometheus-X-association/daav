@@ -12,7 +12,7 @@ import { Column, ColumnMapping, DatasetMapper } from 'src/app/models/data-mapper
     standalone: false
 })
 export class DataMapperComponent implements  OnDestroy {
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   @Input()datasets: DatasetMapper[] = [];
   @Input() mappings: ColumnMapping[] = [];

@@ -1,14 +1,9 @@
 import { Node } from 'src/app/models/interfaces/node';
 import { NodeBlock } from '../node-block';
-import { ClassicPreset } from 'rete';
-import {
-  FlatObjectSocket,
-  SimpleFieldSocket,
-} from 'src/app/core/sockets/sockets';
 import { AreaPlugin } from 'rete-area-plugin';
 import { Schemes, AreaExtra } from 'src/app/core/workflow-editor';
 import { InputNodeComponent } from 'src/app/components/nodes/input/nodes.component';
-import { runInInjectionContext, inject, Signal } from '@angular/core';
+import { runInInjectionContext, inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { MatSelectChange } from '@angular/material/select';
 import { Subscription, map } from 'rxjs';

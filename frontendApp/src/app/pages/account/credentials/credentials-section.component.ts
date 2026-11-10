@@ -24,11 +24,11 @@ export class CredentialsSectionComponent implements OnInit {
   loading = false;
 
   constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private toastController: ToastController,
-    private alertController: AlertController,
-    private loadingController: LoadingController
+    private readonly formBuilder: FormBuilder,
+    private readonly authService: AuthService,
+    private readonly toastController: ToastController,
+    private readonly alertController: AlertController,
+    private readonly loadingController: LoadingController
   ) {}
 
   ngOnInit() {

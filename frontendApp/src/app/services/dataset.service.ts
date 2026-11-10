@@ -25,11 +25,11 @@ import { ConfirmDeletionModalComponent } from '../components/confirm-deletion-mo
   providedIn: 'root',
 })
 export class DatasetService extends BaseService {
-  private apiUrl = this.urlBack + '/datasets';
+  private readonly apiUrl = this.urlBack + '/datasets';
 
   readonly dialog = inject(MatDialog);
 
-  private datasetsSignal = signal<Dataset[]>([]);
+  private readonly datasetsSignal = signal<Dataset[]>([]);
   datasets = this.datasetsSignal.asReadonly();
 
   pagination: { perPage: number; page: number } = {
@@ -44,7 +44,7 @@ export class DatasetService extends BaseService {
   fiches: Array<any> = [];
   files: Array<any> = [];
 
-  constructor(private http: HttpClient) {
+  constructor(private readonly http: HttpClient) {
     super();
   }
   exportDaav(projectDaav: Project) {

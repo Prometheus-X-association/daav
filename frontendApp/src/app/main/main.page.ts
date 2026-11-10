@@ -59,7 +59,7 @@ export class MainPage {
   dataSource: any[] = [];
   matTabIndex = 0;
 
-  constructor( private cd: ChangeDetectorRef, public datasetService : DatasetService, public loadingService: LoadingService) {
+  constructor( private readonly cd: ChangeDetectorRef, public datasetService : DatasetService, public loadingService: LoadingService) {
   }
 
   loadDataset(){

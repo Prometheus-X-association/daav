@@ -9,7 +9,7 @@ import { daavBlock, NodeBlock } from "../node-block";
 import { Connection } from "rete/_types/presets/classic";
 import { WorkflowNodeEditor } from "src/app/core/workflow-node-editor";
 import { DataMapperControl } from "src/app/components/widgets/data-mapper-widget/data-mapper-widget.component";
-import { DatasetMapper,ColumnMapping, DataMapperUtils } from "src/app/models/data-mapper-types";
+import { DataMapperUtils } from "src/app/models/data-mapper-types";
 
 @daavBlock('transform')
 export class MergeTransform extends TransformBlock {

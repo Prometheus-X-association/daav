@@ -22,7 +22,7 @@ export class TransformationComponent  implements OnInit {
   readonly dialog = inject(MatDialog);
   workflowsStatus = new Map<string, string>();
 
-  constructor(public workflowService: WorkflowService, public loadingService: LoadingService, public cd: ChangeDetectorRef, private datasetService: DatasetService) { }
+  constructor(public workflowService: WorkflowService, public loadingService: LoadingService, public cd: ChangeDetectorRef, private readonly datasetService: DatasetService) { }
 
   ngOnInit() {
     this.workflowService.getWorkflows().subscribe();

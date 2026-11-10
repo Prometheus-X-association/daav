@@ -2,7 +2,7 @@ import { Injectable, Injector } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { catchError, tap, switchMap } from 'rxjs/operators';
 import {
   User,
   Token,
@@ -25,17 +25,17 @@ import { BaseService } from './base.service.service';
   providedIn: 'root'
 })
 export class AuthService {
-  private currentUserSubject: BehaviorSubject<User | null>;
+  private readonly currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
   private refreshTokenPromise: Promise<string | null> | null = null;
   private tokenRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(
-    private http: HttpClient,
-    private tokenService: TokenService,
-    private baseService: BaseService,
-    private router: Router,
-    private injector: Injector
+    private readonly http: HttpClient,
+    private readonly tokenService: TokenService,
+    private readonly baseService: BaseService,
+    private readonly router: Router,
+    private readonly injector: Injector
   ) {
     this.currentUserSubject = new BehaviorSubject<User | null>(null);
     this.currentUser$ = this.currentUserSubject.asObservable();

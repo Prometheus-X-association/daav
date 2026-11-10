@@ -6,8 +6,6 @@ import { Node } from 'src/app/models/interfaces/node';
 import { StatusNode } from "src/app/enums/status-node";
 import { ClassicPreset } from "rete";
 import { AllSocket } from "src/app/core/sockets/sockets";
-import { InputAutoCompleteControl, inputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
-import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
 import { WorkflowNodeEditor } from "src/app/core/workflow-node-editor";
 import { DatasetPTX } from "src/app/models/dataset-ptx";
 import { SelectControl } from "src/app/components/widgets/select-widget/select-widget.component";
@@ -16,7 +14,7 @@ import { MatSelectChange } from "@angular/material/select";
 @daavBlock("output")
 export class ServiceChainOutput extends OutputDataBlock{
   override width = 350;
-  private node: Node;
+  private readonly node: Node;
   selectControlDataset: SelectControl;
 
   constructor(

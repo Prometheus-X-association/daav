@@ -1,6 +1,6 @@
 import { ClassicPreset } from "rete";
 import { AreaPlugin } from "rete-area-plugin";
-import { SimpleFieldSocket, FlatObjectSocket, DeepObjectSocket } from "src/app/core/sockets/sockets";
+import { FlatObjectSocket, DeepObjectSocket } from "src/app/core/sockets/sockets";
 import { Schemes, AreaExtra } from "src/app/core/workflow-editor";
 import { StatusNode } from "src/app/enums/status-node";
 import { daavBlock, NodeBlock } from "../node-block";

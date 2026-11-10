@@ -1,8 +1,6 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { MatSelectChange } from '@angular/material/select';
 import { ClassicPreset } from 'rete';
-import { selectControlI } from '../select-widget/select-widget.component';
-import { OnChange } from 'rete-render-utils/_types/sockets-position/types';
 
 export class NodeLoaderControl extends ClassicPreset.Control {
   loading = false;

@@ -3,8 +3,6 @@ import { InputDataBlock } from '../input/input-data-block';
 import { ClassicPreset } from 'rete';
 import {
   DeepObjectSocket,
-  FlatObjectSocket,
-  SimpleFieldSocket,
 } from 'src/app/core/sockets/sockets';
 import { AreaPlugin } from 'rete-area-plugin';
 import { Schemes, AreaExtra } from 'src/app/core/workflow-editor';
@@ -17,7 +15,6 @@ import { MatSelectChange } from '@angular/material/select';
 import { StatusNode } from 'src/app/enums/status-node';
 import {
   MongoContentResponse,
-  MySQLContentResponse,
 } from 'src/app/models/dataset-content-response';
 import { NodeDataPandasDf } from 'src/app/models/node-data';
 import { daavBlock } from '../node-block';
@@ -33,7 +30,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
   selectControlCollection: SelectControl;
   selectControlDatabase: SelectControl;
 
-  private node: Node;
+  private readonly node: Node;
 
   constructor(
     label: string,

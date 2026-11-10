@@ -14,7 +14,7 @@ import { MatSelectChange } from "@angular/material/select";
 @daavBlock("output")
 export class ApiOutput extends OutputDataBlock{
   override width = 500;
-  private node: Node;
+  private readonly node: Node;
 
   private nameControl: InputAutoCompleteControl;
   private urlControl: InputAutoCompleteControl;

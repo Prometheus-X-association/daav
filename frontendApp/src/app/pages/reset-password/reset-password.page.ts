@@ -17,13 +17,13 @@ export class ResetPasswordPage implements OnInit {
   tokenValid = true;
 
   constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private toastController: ToastController,
-    private loadingController: LoadingController,
-    private alertController: AlertController
+    private readonly formBuilder: FormBuilder,
+    private readonly authService: AuthService,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
+    private readonly toastController: ToastController,
+    private readonly loadingController: LoadingController,
+    private readonly alertController: AlertController
   ) {}
 
   ngOnInit() {

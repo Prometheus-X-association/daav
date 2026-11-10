@@ -60,7 +60,7 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
   contractsUseCase: any[] = [];
   pdcEndpoint: string = ''; 
   contractUri: string = '';
-  private _snackBar = inject(MatSnackBar);
+  private readonly _snackBar = inject(MatSnackBar);
   isLoadingCatalog: boolean = true;
   dataExchanges: DataExchange[] = [];
   expandedExchanges: Set<number> = new Set();

@@ -2,7 +2,6 @@ import { ClassicPreset } from 'rete';
 import {
   DeepObjectSocket,
   FlatObjectSocket,
-  SimpleFieldSocket,
 } from 'src/app/core/sockets/sockets';
 import { Node } from 'src/app/models/interfaces/node';
 import { StatusNode } from 'src/app/enums/status-node';
@@ -12,7 +11,6 @@ import { InputDataBlock } from '../input/input-data-block';
 import { daavBlock } from '../node-block';
 import { MatSelectChange } from '@angular/material/select';
 import { DatasetFile } from 'src/app/models/dataset-file';
-import { FileContentResponse } from 'src/app/models/dataset-content-response';
 import { PandasSchema, PandasSchemaUtils } from 'src/app/models/dataset-schema';
 import { NodeDataPandasDf } from 'src/app/models/node-data';
 

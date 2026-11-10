@@ -1,5 +1,3 @@
-import { Node } from 'src/app/models/interfaces/node';
-import { Preset } from 'rete-dock-plugin/_types/presets/types';
 import { NodeConnection } from '../models/interfaces/node-connection';
 import { ClassicPreset, GetSchemes } from 'rete';
 
@@ -24,7 +22,7 @@ import {
 } from 'rete-connection-plugin';
 import { AreaExtensions, AreaPlugin } from 'rete-area-plugin';
 import { Injector } from '@angular/core';
-import { DockPlugin, DockPresets } from 'rete-dock-plugin';
+import { DockPlugin } from 'rete-dock-plugin';
 import { DataLrsBlock } from '../nodes/inputs/data-lrs-block';
 import { DataMongoBlock } from '../nodes/inputs/data-mongo-block';
 import { NodeBlock, registeredBlock } from '../nodes/node-block';
@@ -47,7 +45,7 @@ import {
   StatusControl,
 } from '../components/widgets/status-component/status-component.component';
 import { Presets as ArrangePresets,AutoArrangePlugin } from 'rete-auto-arrange-plugin';
-import { ContextMenuExtra, ContextMenuPlugin,Presets as ContextMenuPresets } from 'rete-context-menu-plugin';
+import { ContextMenuExtra, ContextMenuPlugin } from 'rete-context-menu-plugin';
 import { DataMapperControl, DataMapperWidgetComponent } from '../components/widgets/data-mapper-widget/data-mapper-widget.component';
 import { SelectControl, SelectWidgetComponent } from '../components/widgets/select-widget/select-widget.component';
 import { NodeLoaderControl, NodeLoaderWidgetComponent } from '../components/widgets/node-loader-widget/node-loader-widget.component';
