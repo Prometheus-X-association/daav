@@ -5,19 +5,18 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
     selector: 'app-workflow-update-rules-modal',
     imports: [
-        MatDialogModule,
-        MatCheckboxModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        FormsModule,
-        CommonModule
-    ],
+    MatDialogModule,
+    MatCheckboxModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    FormsModule
+],
     templateUrl: './workflow-update-rules-modal.component.html',
     styleUrls: ['./workflow-update-rules-modal.component.scss']
 })

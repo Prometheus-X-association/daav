@@ -13,7 +13,6 @@ import { KeyValue } from "@angular/common";
     selector: 'app-transform-node',
     templateUrl: 'nodes.component.html',
     styleUrls: ['nodes.component.scss'],
-    // eslint-disable-next-line @angular-eslint/no-host-metadata-property
     host: {
         "data-testid": "node",
         "class": " node transform-node"

@@ -5,23 +5,24 @@
     (keydown.enter)="$event.stopPropagation()"
     (keydown.tab)="$event.stopPropagation()"
     (click)="$event.stopPropagation()"
-  (dblclick)="$event.stopPropagation()" [type]="getInputType()" matInput [(ngModel)]="data.value" [matAutocomplete]="auto" [readonly]="data.readonly">
+    (dblclick)="$event.stopPropagation()" [type]="getInputType()" matInput [(ngModel)]="data.value" [matAutocomplete]="auto" [readonly]="data.readonly">
 
-  <button
-    *ngIf="data.type === 'password'"
-    (pointerdown)="$event.stopPropagation()"
-    (dblclick)="$event.stopPropagation()"
-    mat-icon-button
-    matSuffix (click)="togglePasswordVisibility($event)"
-    type="button"
-    aria-label="Toggle password visibility">
-    <mat-icon>{{data.showPassword ? 'visibility' : 'visibility_off'}}</mat-icon>
-  </button>
+  @if (data.type === 'password') {
+    <button
+      (pointerdown)="$event.stopPropagation()"
+      (dblclick)="$event.stopPropagation()"
+      mat-icon-button
+      matSuffix (click)="togglePasswordVisibility($event)"
+      type="button"
+      aria-label="Toggle password visibility">
+      <mat-icon>{{data.showPassword ? 'visibility' : 'visibility_off'}}</mat-icon>
+    </button>
+  }
 
   <mat-autocomplete (pointerdown)="$event.stopPropagation()"
-  (dblclick)="$event.stopPropagation()" (optionSelected)="onCompleteSelectChange($event)" #auto="matAutocomplete">
+    (dblclick)="$event.stopPropagation()" (optionSelected)="onCompleteSelectChange($event)" #auto="matAutocomplete">
     @for (option of filteredOptions; track option) {
-    <mat-option [value]="option">{{option}}</mat-option>
+      <mat-option [value]="option">{{option}}</mat-option>
     }
   </mat-autocomplete>
 </mat-form-field>

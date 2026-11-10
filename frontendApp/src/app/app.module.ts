@@ -14,7 +14,7 @@ import {
   withJsonpSupport,
 } from '@angular/common/http';
 import { ComponentsModule } from './components-module';
-import { ReteModule } from 'rete-angular-plugin/20';
+import { ReteModule } from 'rete-angular-plugin/21';
 import { TransformNodeComponent } from './components/nodes/transform/nodes.component';
 import { InputNodeComponent } from './components/nodes/input/nodes.component';
 import { OutputNodeComponent } from './components/nodes/output/nodes.component';

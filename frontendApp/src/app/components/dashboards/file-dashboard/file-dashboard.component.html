@@ -14,53 +14,61 @@
         <dd><span>{{ dataset.id }}</span></dd>
       </div>
 
-      <div class="info-item" *ngIf="dataset.filePath">
-        <dt>File Path:</dt>
-        <dd><span>{{ dataset.filePath || 'Not specified' }}</span></dd>
-      </div>
+      @if (dataset.filePath) {
+        <div class="info-item">
+          <dt>File Path:</dt>
+          <dd><span>{{ dataset.filePath || 'Not specified' }}</span></dd>
+        </div>
+      }
 
-      <div class="info-item" *ngIf="dataset.folder">
-        <dt>Folder:</dt>
-        <dd><span>{{ dataset.folder || 'Default folder' }}</span></dd>
-      </div>
+      @if (dataset.folder) {
+        <div class="info-item">
+          <dt>Folder:</dt>
+          <dd><span>{{ dataset.folder || 'Default folder' }}</span></dd>
+        </div>
+      }
 
       <div class="info-item">
         <dt>Input Type:</dt>
         <dd><span class="input-type-badge">{{ dataset.inputType || 'Unknown' }}</span></dd>
       </div>
 
-      <div class="info-item" *ngIf="dataset.csvDelimiter">
-        <dt>CSV Delimiter:</dt>
-        <dd><span class="delimiter-display">{{ getDelimiterDisplay(dataset.csvDelimiter) }}</span></dd>
-      </div>
+      @if (dataset.csvDelimiter) {
+        <div class="info-item">
+          <dt>CSV Delimiter:</dt>
+          <dd><span class="delimiter-display">{{ getDelimiterDisplay(dataset.csvDelimiter) }}</span></dd>
+        </div>
+      }
 
-      <div class="info-item" *ngIf="dataset.csvHeader">
-        <dt>CSV Header:</dt>
-        <dd><span>{{ dataset.csvHeader }}</span></dd>
-      </div>
+      @if (dataset.csvHeader) {
+        <div class="info-item">
+          <dt>CSV Header:</dt>
+          <dd><span>{{ dataset.csvHeader }}</span></dd>
+        </div>
+      }
     </dl>
   </div>
 
   <!-- Configuration Section -->
-  <div class="configuration-section" *ngIf="dataset.ifExist">
-    <h3>File Configuration</h3>
-
-    <div class="form-group">
-      <span>Choose what to do if the output file already exists</span>
-      <mat-form-field appearance="fill">
-
-        <mat-label>If file exists</mat-label>
-        <mat-select
-          [value]="dataset.ifExist"
-          (selectionChange)="onIfExistChange($event.value)">
-          <mat-option
-            *ngFor="let option of ifExistOptions"
-            [value]="option.value">
-            {{ option.label }}
-          </mat-option>
-        </mat-select>
-
-      </mat-form-field>
+  @if (dataset.ifExist) {
+    <div class="configuration-section">
+      <h3>File Configuration</h3>
+      <div class="form-group">
+        <span>Choose what to do if the output file already exists</span>
+        <mat-form-field appearance="fill">
+          <mat-label>If file exists</mat-label>
+          <mat-select
+            [value]="dataset.ifExist"
+            (selectionChange)="onIfExistChange($event.value)">
+            @for (option of ifExistOptions; track option) {
+              <mat-option
+                [value]="option.value">
+                {{ option.label }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
     </div>
-  </div>
+  }
 </div>
