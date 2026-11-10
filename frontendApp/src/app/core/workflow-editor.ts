@@ -14,7 +14,7 @@ import {
   NodeComponent,
   Presets,
   SocketComponent,
-} from 'rete-angular-plugin/19';
+} from 'rete-angular-plugin/20';
 import {
   ClassicFlow,
   ConnectionPlugin,

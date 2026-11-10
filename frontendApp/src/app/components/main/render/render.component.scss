@@ -2,15 +2,15 @@
 mat-tab-group{
     height: 100% !important;
     overflow: hidden;
-    --mdc-tab-indicator-active-indicator-color: var(--darkPtx) !important;
-    --mdc-tab-indicator-indicator-color: var(--darkPtx) !important;
-    --mat-tab-header-active-label-text-color: var(--darkPtx);
-    --mat-tab-header-active-ripple-color: var(--darkPtx);
-    --mat-tab-header-inactive-ripple-color: var(--darkPtx);
-    --mat-tab-header-active-focus-label-text-color: var(--darkPtx);
-    --mat-tab-header-active-hover-label-text-color: var(--darkPtx);
-    --mat-tab-header-active-focus-indicator-color: var(--darkPtx);
-    --mat-tab-header-active-hover-indicator-color: var(--darkPtx);
+    --mat-tab-active-indicator-color: var(--darkPtx) !important;
+    --mat-tab-indicator-color: var(--darkPtx) !important;
+    --mat-tab-active-label-text-color: var(--darkPtx);
+    --mat-tab-active-ripple-color: var(--darkPtx);
+    --mat-tab-inactive-ripple-color: var(--darkPtx);
+    --mat-tab-active-focus-label-text-color: var(--darkPtx);
+    --mat-tab-active-hover-label-text-color: var(--darkPtx);
+    --mat-tab-active-focus-indicator-color: var(--darkPtx);
+    --mat-tab-active-hover-indicator-color: var(--darkPtx);
 }
 
 

@@ -9,6 +9,7 @@
     },
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
     "esModuleInterop": true,
     "strict": false,
     "noImplicitOverride": true,
