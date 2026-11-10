@@ -13,7 +13,7 @@ import {
   withInterceptorsFromDi,
   withJsonpSupport,
 } from '@angular/common/http';
-import { ComponentsModule } from './components-module';
+
 import { ReteModule } from 'rete-angular-plugin/21';
 import { TransformNodeComponent } from './components/nodes/transform/nodes.component';
 import { InputNodeComponent } from './components/nodes/input/nodes.component';
@@ -29,20 +29,19 @@ import { ErrorInterceptor } from './interceptors/error.interceptor';
     declarations: [AppComponent],
     bootstrap: [AppComponent],
     imports: [
-        BrowserModule,
-        IonicModule.forRoot(),
-        ReteModule,
-        BrowserAnimationsModule,
-        AppRoutingModule,
-        ComponentsModule,
-        IonicStorageModule.forRoot(),
-        MatTooltipModule,
-        QueryBuilderModule,
-        TransformNodeComponent,
-        OutputNodeComponent,
-        InputNodeComponent,
-        StatusComponentComponent,
-    ],
+    BrowserModule,
+    IonicModule.forRoot(),
+    ReteModule,
+    BrowserAnimationsModule,
+    AppRoutingModule,
+    IonicStorageModule.forRoot(),
+    MatTooltipModule,
+    QueryBuilderModule,
+    TransformNodeComponent,
+    OutputNodeComponent,
+    InputNodeComponent,
+    StatusComponentComponent,
+],
     exports: [QueryBuilderModule],
     providers: [
         { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },

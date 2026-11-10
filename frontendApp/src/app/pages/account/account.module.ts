@@ -9,7 +9,7 @@ import { ProfileSectionComponent } from './profile/profile-section.component';
 import { SecuritySectionComponent } from './security/security-section.component';
 import { CredentialsSectionComponent } from './credentials/credentials-section.component';
 import { UsersSectionComponent } from './users/users-section.component';
-import { ComponentsModule } from '../../components-module';
+
 import { adminGuard } from '../../guards/admin.guard';
 
 const routes: Routes = [
@@ -49,17 +49,16 @@ const routes: Routes = [
 
 @NgModule({
     imports: [
-        CommonModule,
-        FormsModule,
-        ReactiveFormsModule,
-        IonicModule,
-        ComponentsModule,
-        RouterModule.forChild(routes),
-        AccountPage,
-        ProfileSectionComponent,
-        SecuritySectionComponent,
-        CredentialsSectionComponent,
-        UsersSectionComponent
-    ]
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    IonicModule,
+    RouterModule.forChild(routes),
+    AccountPage,
+    ProfileSectionComponent,
+    SecuritySectionComponent,
+    CredentialsSectionComponent,
+    UsersSectionComponent
+]
 })
 export class AccountPageModule {}
