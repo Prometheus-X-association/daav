@@ -104,11 +104,11 @@ class MysqlOutput(OutputNode):
         else:
             raise ValueError("No data source selected")
         dataset : MysqlDataset  = await self.datasetService.get_dataset(dataset_id)
-        database = self.data['selectDatabaseDataSource']['value'] if self.data.get('selectDatabaseDataSource') and self.data['selectDatabaseDataSource'].get('value') else dataset.database
-        table = self.data.get('tableAutoComplete').get('value') if self.data.get('tableAutoComplete') and self.data.get('tableAutoComplete').get('value')   else dataset.table
-        if_exist = self.data.get('selectExist')['value'] if self.data.get('selectExist') and self.data.get('selectExist').get('value') else "fail"
-        create_index = self.data.get('createIndex')['value'] if self.data.get('createIndex') and self.data.get('createIndex').get('value') else False
-        index_table = self.data.get('indexTable')['value'] if self.data.get('indexTable') and self.data.get('indexTable').get('value') else 'id'
+        database = self._param('selectDatabaseDataSource') or dataset.database
+        table = self._param('tableAutoComplete') or dataset.table
+        if_exist = self._param('selectExist', "fail")
+        create_index = self._param('createIndex', False)
+        index_table = self._param('indexTable', 'id')
         #print("table",indexTable)
         if (table is None or table == ""):
             raise ValueError("No table selected")

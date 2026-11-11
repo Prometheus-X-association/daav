@@ -130,11 +130,11 @@ class MongoOutput(OutputNode):
         else:
             raise ValueError("No data source selected")
         dataset : MongoDataset  = await self.datasetService.get_dataset(dataset_id)
-        database = self.data['selectDatabaseDataSource']['value'] if self.data.get('selectDatabaseDataSource') and self.data['selectDatabaseDataSource'].get('value') else dataset.database
-        collection = self.data.get('collectionAutoComplete').get('value') if self.data.get('collectionAutoComplete') and self.data.get('collectionAutoComplete').get('value')   else dataset.table
-        if_exist = self.data.get('selectExist')['value'] if self.data.get('selectExist') and self.data.get('selectExist').get('value') else "fail"
-        create_index = self.data.get('createIndex')['value'] if self.data.get('createIndex') and self.data.get('createIndex').get('value') else False
-        index_table = self.data.get('indexTable')['value'] if self.data.get('indexTable') and self.data.get('indexTable').get('value') else 'id'
+        database = self._param('selectDatabaseDataSource') or dataset.database
+        collection = self._param('collectionAutoComplete') or dataset.table
+        if_exist = self._param('selectExist', "fail")
+        create_index = self._param('createIndex', False)
+        index_table = self._param('indexTable', 'id')
         if (collection is None or collection == ""):
             raise ValueError("No collection selected")
         if (database is None or database == ""):

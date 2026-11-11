@@ -216,27 +216,23 @@ class FileOutput(OutputNode):
             ValueError: If no data source is selected.
         """
         dataset = None
-        dataset_id: str = None
-        select_data_source = self.data.get('selectDataSource')
-        if select_data_source and select_data_source.get('value'):
-            dataset_id = select_data_source['value']
-        
+        dataset_id: str = self._param('selectDataSource')
         if dataset_id:
             try:  
                 dataset: FileDataset = await self.datasetService.get_dataset(dataset_id)
             except Exception:
                 dataset= None
-        delimiter = self.data.get('delimiter')['value'] if self.data.get('delimiter') and self.data.get('delimiter').get('value') else ','
-        encoding = self.data.get('encoding')['value'] if self.data.get('encoding') and self.data.get('encoding').get('value') else 'utf-8'
-        file_type = self.data.get('fileType')['value'] if self.data.get('fileType') and self.data.get('fileType').get('value') else None
-        file_name = self.data.get('fileName')['value'] if self.data.get('fileName') and self.data.get('fileName').get('value') else None
-        
+        delimiter = self._param('delimiter', ',')
+        encoding = self._param('encoding', 'utf-8')
+        file_type = self._param('fileType')
+        file_name = self._param('fileName')
+
         if file_name:
             secure_file_name = PathSecurityValidator.validate_filename(_plain_file_name(file_name))
         else:
             secure_file_name = None
-        
-        file_exist = self.data.get('fileExist')['value'] if self.data.get('fileExist') and self.data.get('fileExist').get('value') else None
+
+        file_exist = self._param('fileExist')
         
         if dataset is None and not file_name:
             raise ValueError("Either a data source must be selected or a filename must be provided")

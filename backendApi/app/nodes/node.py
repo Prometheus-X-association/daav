@@ -92,6 +92,13 @@ class Node(BaseModel):
             return None if result == StatusNode.Valid else _PARENT_ERROR_MESSAGES[StatusNode.Error]
         return _PARENT_ERROR_MESSAGES.get(parent_status, "Unknown parent node status encountered")
 
+    def _param(self, key: str, default: Any = None) -> Any:
+        """Value of a node parameter ({key: {'value': ...}}), or the default when it is missing or empty."""
+        param = self.data.get(key)
+        if param and param.get('value'):
+            return param['value']
+        return default
+
     def _fail(self, exc: Exception, print_traceback: bool = True) -> StatusNode:
         """Record an exception raised while processing the node and return the Error status."""
         if print_traceback:

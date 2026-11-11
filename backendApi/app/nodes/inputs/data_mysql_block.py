@@ -155,8 +155,8 @@ class DataMysqlBlock(InputNode):
         else:
             raise ValueError("No data source selected")
         dataset : MysqlDataset  = await self.datasetService.get_dataset(dataset_id)
-        database = self.data['selectDatabaseDataSource']['value'] if self.data.get('selectDatabaseDataSource') and self.data['selectDatabaseDataSource'].get('value') else dataset.database
-        table = self.data['selectTableDataSource']['value'] if self.data.get('selectTableDataSource') and self.data['selectTableDataSource'].get('value') else dataset.table
+        database = self._param('selectDatabaseDataSource') or dataset.database
+        table = self._param('selectTableDataSource') or dataset.table
         parquet_save = self.data['parquetSave']['value'] if self.data.get('parquetSave') else False
         if (table is None or table == ""):
             raise ValueError("No table selected")
