@@ -3,6 +3,7 @@ import traceback
 from typing import Optional, Any
 import pandas as pd
 import pyarrow.parquet as pq
+from fastapi import HTTPException
 from pydantic import ConfigDict
 from app.enums.status_node import StatusNode
 from app.models.interface.dataset_interface import FileDataset
@@ -19,6 +20,13 @@ from app.services.workflow_service import WorkflowService
 from app.core.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
+
+
+def _plain_file_name(file_name: str) -> str:
+    """The file name if it is a bare name; 400 if it carries a directory, so that the output stays in the upload folder."""
+    if file_name in ('.', '..') or '/' in file_name or '\\' in file_name or os.path.isabs(file_name):
+        raise HTTPException(status_code=400, detail="Invalid file name: a file name without directory is expected")
+    return file_name
 
 
 class FileOutput(OutputNode):
@@ -224,7 +232,7 @@ class FileOutput(OutputNode):
         file_name = self.data.get('fileName')['value'] if self.data.get('fileName') and self.data.get('fileName').get('value') else None
         
         if file_name:
-            secure_file_name = PathSecurityValidator.validate_filename(file_name)
+            secure_file_name = PathSecurityValidator.validate_filename(_plain_file_name(file_name))
         else:
             secure_file_name = None
         
