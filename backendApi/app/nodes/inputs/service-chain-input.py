@@ -56,7 +56,8 @@ class ServiceChainInput(InputNode):
                     datasets = []
                     if ( isinstance(self.datasetService.pdcChainData,PdcChainRequestData)):
                         datasets.append(self.datasetService.pdcChainData.origin)
-                        for additional_data in self.datasetService.pdcChainData.additionalData:
+                        # additionalData is optional: a request may only carry its origin data
+                        for additional_data in self.datasetService.pdcChainData.additionalData or []:
                             datasets.append(additional_data.data)
                     else :
                         datasets.append(self.datasetService.pdcChainData)
@@ -87,7 +88,7 @@ class ServiceChainInput(InputNode):
                         # should resolve when output.get_node_data() is not the same type as the new node data
                         if as_parquet:
                             if isinstance(output.get_node_data(), NodeDataParquet):
-                                output.get_node_data().parquetPath = parquet_path
+                                output.get_node_data().data = parquet_path
                                 output.get_node_data().nodeSchema = schema
                             else:
                                 raise ValueError("Output node data is not of type NodeDataParquet")

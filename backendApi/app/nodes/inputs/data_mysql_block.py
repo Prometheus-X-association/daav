@@ -66,18 +66,23 @@ class DataMysqlBlock(InputNode):
                     print(f"Saving data to {parquet_path}")
                     chunksize = 50
                     parquet_writer = None
-                    for chunk in pd.read_sql_query(query, engine, chunksize=chunksize):
-                        table = pa.Table.from_pandas(chunk)
+                    try:
+                        # Nullable dtypes: an integer column keeps its type in a chunk that holds a NULL
+                        # (it would become a float there, and no longer match the schema of the file)
+                        for chunk in pd.read_sql_query(query, engine, chunksize=chunksize, dtype_backend="numpy_nullable"):
+                            table = pa.Table.from_pandas(chunk)
 
-                        if parquet_writer is None:
-                            parquet_writer = pq.ParquetWriter(parquet_path, table.schema)
-                            if sample:
-                                parquet_writer.write_table(table)
-                                break
-                        parquet_writer.write_table(table)
-
-                    if parquet_writer:
-                        parquet_writer.close()
+                            if parquet_writer is None:
+                                parquet_writer = pq.ParquetWriter(parquet_path, table.schema)
+                                if sample:
+                                    parquet_writer.write_table(table)
+                                    break
+                            elif not table.schema.equals(parquet_writer.schema):
+                                table = table.cast(parquet_writer.schema)
+                            parquet_writer.write_table(table)
+                    finally:
+                        if parquet_writer:
+                            parquet_writer.close()
 
                     parquet_file = pq.ParquetFile(parquet_path)
                     schema = parquet_file.schema 
@@ -88,7 +93,7 @@ class DataMysqlBlock(InputNode):
                         # should resolve when output.get_node_data() is not the same type as the new node data
                         if parquet_save:
                             if isinstance(output.get_node_data(), NodeDataParquet):
-                                output.get_node_data().parquetPath = parquet_path
+                                output.get_node_data().data = parquet_path
                                 output.get_node_data().nodeSchema = schema
                             else:
                                 raise ValueError("Output node data is not of type NodeDataParquet")
