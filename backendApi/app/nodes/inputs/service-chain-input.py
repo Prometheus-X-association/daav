@@ -2,11 +2,9 @@ import asyncio
 import pyarrow.parquet as pq
 from typing import List, Optional, Any
 import pandas as pd
-import traceback
 from pydantic import ConfigDict
 from app.enums.status_node import StatusNode
 from app.models.interface.dataset_interface import PTXDataset
-from app.models.interface.node_data import NodeDataPandasDf, NodeDataParquet
 from app.models.interface.pdc_chain_interface import PdcChainRequestData
 from app.nodes.inputs.input_node import InputNode
 from app.services.dataset_service import DatasetService
@@ -45,96 +43,62 @@ class ServiceChainInput(InputNode):
         """
         try:
             dataset,parquet_save,input_data_source_example = await self._retreiveDatabase()
-            
-
-            try:
-                if(sample):
-                    datasets = input_data_source_example
-
-                else :
-                    self.datasetService.pdcChainData
-                    datasets = []
-                    if ( isinstance(self.datasetService.pdcChainData,PdcChainRequestData)):
-                        datasets.append(self.datasetService.pdcChainData.origin)
-                        # additionalData is optional: a request may only carry its origin data
-                        for additional_data in self.datasetService.pdcChainData.additionalData or []:
-                            datasets.append(additional_data.data)
-                    else :
-                        datasets.append(self.datasetService.pdcChainData)
-                chain_headers = self.datasetService.pdcChainHeaders
-                # A sample is always kept in memory, even when the parquet option is on
-                as_parquet = parquet_save and not sample
-                for index, chain_data in enumerate(datasets):
-
-                    df = pd.DataFrame(chain_data)
-                    schema = generate_pandas_schema(df)
-                    if as_parquet:
-                        parquet_path = f"{dataset.id}_{index}.parquet"                    
-                        print(f"Saving data to {parquet_path}")
-                        table = pa.Table.from_pandas(df)
-                        parquet_writer = pq.ParquetWriter(parquet_path, table.schema)
-                        parquet_writer.write_table(table)
-
-                        if parquet_writer:
-                            parquet_writer.close()
-
-                        parquet_file = pq.ParquetFile(parquet_path)
-                        schema = parquet_file.schema 
-
-                    output = self.outputs.get(f"pdc-{index}")
-
-                    if output.get_node_data():
-                        # Update existing node data
-                        # should resolve when output.get_node_data() is not the same type as the new node data
-                        if as_parquet:
-                            if isinstance(output.get_node_data(), NodeDataParquet):
-                                output.get_node_data().data = parquet_path
-                                output.get_node_data().nodeSchema = schema
-                            else:
-                                raise ValueError("Output node data is not of type NodeDataParquet")
-
-                        else:
-                            if isinstance(output.get_node_data(), NodeDataPandasDf):
-                                output.get_node_data().nodeSchema = schema
-                                if sample:
-                                    output.get_node_data().dataExample = df
-                                else:
-                                    output.get_node_data().data = df
-                            else:
-                                raise ValueError("Output node data is not of type NodeDataPandasDf")
-                    else:
-                        # Create new node data
-                        if as_parquet:
-                            if isinstance(schema, ParquetSchema):
-                                node_data = NodeDataParquet(
-                                    type = 'parquet',
-                                    data = parquet_path,
-                                    nodeSchema=schema,
-                                    name=f"{'Example' if sample else chain_headers.x_ptx_service_chain_id} {index}"
-                                )
-                            else: 
-                                raise ValueError("Schema is not a ParquetSchema")
-                        else:
-                            node_data = NodeDataPandasDf(
-                                nodeSchema=schema,
-                                name=f"{'Example' if sample else chain_headers.x_ptx_service_chain_id} {index}"
-                            )
-                            if sample:
-                                node_data.dataExample = df
-                            else :
-                                node_data.data = df    
-                        output.set_node_data(node_data, self)
-                return StatusNode.Valid
-            except Exception as e:
-                traceback.print_exc()
-                self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-                self.statusMessage = e.__str__()
-                return StatusNode.Error
+            return self._publish_datasets(dataset, parquet_save, input_data_source_example, sample)
         except ValueError as e:
-            traceback.print_exc()
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            self.statusMessage = e.__str__()
-            return StatusNode.Error
+            return self._fail(e)
+
+    def _publish_datasets(self, dataset: PTXDataset, parquet_save: bool, examples: List, sample: bool) -> StatusNode:
+        """Publish each dataset of the service chain (or each example for a sample) on its output pdc-<index>."""
+        try:
+            datasets = self._datasets_to_process(sample, examples)
+            # A sample is always kept in memory, even when the parquet option is on
+            as_parquet = parquet_save and not sample
+            for index, chain_data in enumerate(datasets):
+
+                df = pd.DataFrame(chain_data)
+                schema = generate_pandas_schema(df)
+                parquet_path = None
+                if as_parquet:
+                    parquet_path = f"{dataset.id}_{index}.parquet"
+                    schema = self._dump_to_parquet(df, parquet_path)
+
+                output = self.outputs.get(f"pdc-{index}")
+                self._publish(output, self._new_data_name(output, sample, index), schema, df, parquet_path, sample)
+            return StatusNode.Valid
+        except Exception as e:
+            return self._fail(e)
+
+    def _datasets_to_process(self, sample: bool, examples: List) -> List:
+        """The examples of the node for a sample, else the data received from the service chain."""
+        if sample:
+            return examples
+        chain_data = self.datasetService.pdcChainData
+        if not isinstance(chain_data, PdcChainRequestData):
+            return [chain_data]
+        datasets = [chain_data.origin]
+        # additionalData is optional: a request may only carry its origin data
+        for additional_data in chain_data.additionalData or []:
+            datasets.append(additional_data.data)
+        return datasets
+
+    @staticmethod
+    def _dump_to_parquet(df: pd.DataFrame, parquet_path: str) -> ParquetSchema:
+        """Write the DataFrame to a parquet file, and return the schema of the file."""
+        print(f"Saving data to {parquet_path}")
+        table = pa.Table.from_pandas(df)
+        parquet_writer = pq.ParquetWriter(parquet_path, table.schema)
+        parquet_writer.write_table(table)
+        parquet_writer.close()
+
+        parquet_file = pq.ParquetFile(parquet_path)
+        return parquet_file.schema
+
+    def _new_data_name(self, output, sample: bool, index: int) -> Optional[str]:
+        """Name of the node data to create on an output; None when the output already holds its node data."""
+        if output.get_node_data():
+            return None
+        chain_headers = self.datasetService.pdcChainHeaders
+        return f"{'Example' if sample else chain_headers.x_ptx_service_chain_id} {index}"
 
     async def _retreiveDatabase(self) -> tuple[PTXDataset, bool, List]:
         """Retrieve the database configuration.
