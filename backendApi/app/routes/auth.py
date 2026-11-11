@@ -108,6 +108,8 @@ async def register(
         user = await user_service.create_user(user_data)
         logger.info(f"New user registered: {user.username}")
         return UserResponse.model_validate(user)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Registration error: {e}", exc_info=True)
         raise HTTPException(

@@ -87,6 +87,8 @@ async def create_dataset(dataset: DatasetUnion, current_user: CurrentUser):
             logger.warning(f"Dataset creation failed: {result['status']}")
             
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating dataset {dataset.name}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

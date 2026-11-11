@@ -152,6 +152,8 @@ async def update_data_resource(
                     detail=f"Url update failed: {response.text}"
             )
         
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -180,6 +182,8 @@ async def get_data_resources(
         
         return {"dataResources": data_resources}
     
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -791,6 +795,8 @@ async def trigger_data_exchange(
                 detail=f"Data exchange failed: {response.text}"
             )
             
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -841,6 +847,8 @@ async def trigger_service_chain(
                 detail=f"Data exchange failed: {response.text}"
             )
             
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -866,6 +874,8 @@ async def get_billateral_contract(
         endpoint = config.get("endpoint")
         if not catalog_uri or not contract_uri:
             raise ValueError("Missing catalogUri or contractUri in config")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading private configuration: {str(e)}")
     
@@ -874,6 +884,8 @@ async def get_billateral_contract(
         participants_id = await get_participants_id_from_connection(connection_id, current_user)
         if not participants_id:
             raise ValueError("No participants found for this connection")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving participants: {str(e)}")
 

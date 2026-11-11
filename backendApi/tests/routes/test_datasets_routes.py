@@ -87,3 +87,27 @@ async def test_uploaded_file_is_written_outside_event_loop_thread(tmp_path):
     assert (tmp_path / "user-1" / "data.csv").read_bytes() == b"a,b\n1,2\n"
     assert result["filepath"].endswith("data.csv")
     assert writer_threads and writer_threads[0] is not threading.current_thread()
+
+
+@pytest.mark.asyncio
+async def test_create_dataset_keeps_the_client_error_of_the_service():
+    """An HTTPException of add_connection (e.g. a forbidden file path) is returned as is, not as a 500"""
+    dataset = FileDataset.model_construct(id=None, type="file", name="f", filePath="/etc/passwd")
+    forbidden = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or dangerous file path")
+
+    with patch.object(datasets.dataset_service, "add_connection", AsyncMock(side_effect=forbidden)):
+        with pytest.raises(HTTPException) as exc_info:
+            await datasets.create_dataset(dataset, Mock(username="alice"))
+
+    assert exc_info.value is forbidden
+
+
+@pytest.mark.asyncio
+async def test_create_dataset_unexpected_error_is_a_500():
+    dataset = FileDataset.model_construct(id=None, type="file", name="f", filePath="/data/f.csv")
+
+    with patch.object(datasets.dataset_service, "add_connection", AsyncMock(side_effect=RuntimeError("boom"))):
+        with pytest.raises(HTTPException) as exc_info:
+            await datasets.create_dataset(dataset, Mock(username="alice"))
+
+    assert (exc_info.value.status_code, exc_info.value.detail) == (500, "Internal server error")
