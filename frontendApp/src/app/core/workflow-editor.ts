@@ -169,7 +169,6 @@ export class WorkflowEditor {
   }
 
   private connectionRule() {
-    //this.connection.addPreset(() => new ClassicFlow());
     this.nodeEditor.addPipe((context) => {
       if (context.type === 'connectioncreate') {
         const { data } = context;
@@ -245,7 +244,7 @@ export class WorkflowEditor {
               this.nodeEditor,
               data.payload
             );
-            const port = source ? source : target;
+            const port = source || target;
             if (port) {
               return port?.getConnectionComponent();
             } else {
@@ -337,7 +336,7 @@ export class WorkflowEditor {
         }
         //deactivate node event who can fire reactive input creation
         node.preventNodeEvent = true;
-        console.log("activate prevent default "+node);
+        console.log("activate prevent default", node);
       } else {
         throw new Error("this type : {nodeI.type} of block can't be found ");
       }
@@ -395,9 +394,8 @@ export class WorkflowEditor {
     //reactivate node event
     this.nodeEditor.getNodes().forEach((node) => {
       node.preventNodeEvent = false;
-      console.log("desactivate prevent default "+node);
+      console.log("desactivate prevent default", node);
     });
-    //await this.arrange.layout({options : {}});
     AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
     this.markAsSaved();
   }
@@ -502,7 +500,6 @@ export class WorkflowEditor {
     registeredBlock.forEach((block) => {
       let blockClass = block.class as any;
       this.dock.add(() => new blockClass(blockClass.name, this.area));
-      this.dock.addPipe
     });
   }
 
@@ -589,7 +586,6 @@ export class WorkflowEditor {
                   outputKey: key,
               }
             });
-          this.nodeEditor.getNode(node.id).outputs[key].id
           }
         });
     });

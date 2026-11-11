@@ -5,7 +5,6 @@ import { StatusNode } from "src/app/enums/status-node";
 import { AreaExtra, Schemes } from "src/app/core/workflow-editor";
 import { AreaPlugin } from "rete-area-plugin";
 import { InputDataBlock } from "../input/input-data-block";
-// import { NodeComponent } from "src/app/components/nodes/nodes.component";
 
 //@daavBlock('input')
 export class ExampleInput extends InputDataBlock {

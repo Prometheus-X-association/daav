@@ -28,7 +28,7 @@ describe('ButtonComponent', () => {
     fixture.detectChanges();
     const btn: HTMLButtonElement | null = fixture.nativeElement.querySelector('button');
     expect(btn).toBeTruthy();
-    btn!.click();
+    btn.click();
     expect(spy).toHaveBeenCalled();
   });
 });

@@ -30,7 +30,7 @@ describe('CheckboxWidgetComponent', () => {
     fixture.detectChanges();
 
     const changeEvent: any = { checked: true };
-    component.onInputChange(changeEvent as any);
+    component.onInputChange(changeEvent);
     expect(component.data.value).toBeTrue();
     expect(called).toBeTrue();
   });

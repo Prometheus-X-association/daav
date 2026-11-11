@@ -8,7 +8,7 @@ import { Node } from 'src/app/models/interfaces/node';
 import { daavBlock } from '../node-block';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { DatasetMySQL } from 'src/app/models/dataset-my-sql';
 import { MatSelectChange } from '@angular/material/select';
@@ -16,7 +16,7 @@ import { MongoContentResponse } from 'src/app/models/dataset-content-response';
 import { ClassicPreset } from 'rete';
 import {
   InputAutoCompleteControl,
-  inputAutoCompleteControlI,
+  InputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { CheckboxControl, CheckboxControlI } from 'src/app/components/widgets/checkbox-widget/checkbox-widget.component';
@@ -65,7 +65,7 @@ export class MongoOutput extends OutputDataBlock {
   }
 
   addInputCollection(data: MongoContentResponse, node: Node, collection?: string) {
-    let collectionAutoComplete: inputAutoCompleteControlI;
+    let collectionAutoComplete: InputAutoCompleteControlI;
     if (node?.data?.collectionAutoComplete) {
       //if node is given it's an import and we report content from json
       collectionAutoComplete = node.data?.collectionAutoComplete;
@@ -106,7 +106,7 @@ export class MongoOutput extends OutputDataBlock {
   }
 
   addSelectExist(node: Node) {
-    let selectExist: selectControlI;
+    let selectExist: SelectControlI;
     if (node?.data?.selectExist) {
       //if node is given it's an import and we report content from json
       selectExist = node.data?.selectExist;
@@ -159,7 +159,7 @@ export class MongoOutput extends OutputDataBlock {
   }
 
   addIndexTable(node: Node){
-    let indexTable: inputAutoCompleteControlI;
+    let indexTable: InputAutoCompleteControlI;
     if (node?.data?.indexTable) {
       //if node is given it's an import and we report content from json
       indexTable = node.data?.indexTable;
@@ -190,7 +190,7 @@ export class MongoOutput extends OutputDataBlock {
 
 
   addSelectDatabase(data: MongoContentResponse, node: Node) {
-    let selectDatabaseSource: selectControlI;
+    let selectDatabaseSource: SelectControlI;
     if (node?.data?.selectDatabaseDataSource) {
       //if node is given it's an import and we report content from json
       selectDatabaseSource = node.data?.selectDatabaseDataSource;

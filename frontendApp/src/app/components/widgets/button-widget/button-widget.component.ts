@@ -21,7 +21,6 @@ export class ButtonControl extends ClassicPreset.Control {
 @Component({
     selector: 'app-button-widget',
     templateUrl: './button-widget.component.html',
-    styleUrls: ['./button-widget.component.scss'],
     imports: [MatIconButton, NgClass, MatIcon]
 })
 export class ButtonWidgetComponent  {

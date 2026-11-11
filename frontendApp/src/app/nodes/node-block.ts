@@ -24,7 +24,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
     errorStacktrace : string[];
     rebuildLocally = false;
     preventNodeEvent = false;
-    dataOutput : Map<OutputId,T>;
+    dataOutput : Map<string,T>;
     private readonly statusControl: StatusControl;
     width = 250;
     height = 120;
@@ -132,5 +132,3 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
      */
     abstract getRevision():string
   }
-
-  export type OutputId = string;

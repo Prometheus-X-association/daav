@@ -30,7 +30,6 @@ export class CheckboxControl
 @Component({
     selector: 'app-checkbox-widget',
     templateUrl: './checkbox-widget.component.html',
-    styleUrls: ['./checkbox-widget.component.scss'],
     imports: [MatCheckbox]
 })
 export class CheckboxWidgetComponent {
@@ -40,7 +39,6 @@ export class CheckboxWidgetComponent {
 
 
   onInputChange(event: MatCheckboxChange) {
-    //console.log('input change', event);
     this.data.value = event.checked
     if (this.data.callback) {
       this.data.callback(event);

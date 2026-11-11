@@ -31,7 +31,7 @@ describe('DataFilterWidgetComponent', () => {
     const callbackSpy = jasmine.createSpy('callback');
     component.data.callback = callbackSpy;
 
-    component.onWillDismiss(customEvent as any);
+    component.onWillDismiss(customEvent);
 
     expect(component.isModalOpen).toBeFalse();
     expect(callbackSpy).toHaveBeenCalledWith(customEvent);

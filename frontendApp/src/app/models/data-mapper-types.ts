@@ -115,7 +115,6 @@ export class DataMapperUtils {
             id: sourceKey,
             name: node.name,
             columns: Object.keys(nodeData.dataExample[0]).map((columns) => {
-              nodeData.dataExample[0][columns];
               return {
                 id: columns,
                 name: columns,

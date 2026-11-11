@@ -10,11 +10,11 @@ import { DatasetFile } from "src/app/models/dataset-file";
 import { MatSelectChange } from "@angular/material/select";
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import {
   InputAutoCompleteControl,
-  inputAutoCompleteControlI,
+  InputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
 import { Dataset } from "src/app/models/dataset";
 
@@ -69,7 +69,7 @@ export class FileOutput extends OutputDataBlock {
   }
 
   addFileNameControl(node? : Node) {
-    let fileNameOptions: inputAutoCompleteControlI = {
+    let fileNameOptions: InputAutoCompleteControlI = {
       value: '',
       label: 'File Name',
       list: [],
@@ -93,7 +93,7 @@ export class FileOutput extends OutputDataBlock {
 
   addDelimiterControl(node? : Node) {
     if (this.delimiterControl) return;
-    const delimiterOptions: selectControlI = {
+    const delimiterOptions: SelectControlI = {
       value: ',',
       list: [
         { label: 'Comma (,)', value: ',' },
@@ -110,8 +110,8 @@ export class FileOutput extends OutputDataBlock {
   }
 
   addFileTypeControl(type? : string) {
-    const fileTypeOptions: selectControlI = {
-      value: type?type : 'csv',
+    const fileTypeOptions: SelectControlI = {
+      value: type || 'csv',
       list: [
         { label: 'CSV', value: 'csv' },
         { label: 'JSON', value: 'json' },
@@ -130,7 +130,7 @@ export class FileOutput extends OutputDataBlock {
   }
 
     addFileExistControl(node? : Node) {
-    const fileTypeOptions: selectControlI = {
+    const fileTypeOptions: SelectControlI = {
       value: 'replace',
       list: [
         { label: 'Replace', value: 'replace' },

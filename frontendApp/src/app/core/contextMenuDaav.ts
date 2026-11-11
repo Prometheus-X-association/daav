@@ -34,7 +34,7 @@ export class ContextMenuDaavPlugin<
       []
     >
   ): void {
-    //super.setParent(scope);
+    // Call the parent setParent through the Babel helper, as the compiled plugin does
     _superPropGet(ContextMenuPlugin, 'setParent', this, 3)([scope]);
     let parentScope = this.parentScope(BaseAreaPlugin);
     const container = (parentScope as any).container as HTMLElement;

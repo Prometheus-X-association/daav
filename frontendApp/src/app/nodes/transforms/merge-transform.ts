@@ -49,7 +49,7 @@ export class MergeTransform extends TransformBlock {
       }
       if (!this.preventNodeEvent){
         if (context.type === 'connectioncreated' || context.type === 'connectionremoved') {
-          const { source, target } = context.data;
+          const { target } = context.data;
           if (target === this.id) {
             console.log('Connection changed for node:', context);
             this.onConnectionChange(context.data,context.type);
@@ -58,7 +58,7 @@ export class MergeTransform extends TransformBlock {
       }
       if (context.type === 'noderemoved') {
         if (context.data.id === this.id) {
-          area.signal.pipes.splice(area.signal.pipes.findIndex(pipe => pipe === contextPipe), 1);
+          area.signal.pipes.splice(area.signal.pipes.indexOf(contextPipe), 1);
         }
       }
       if (context.type === 'nodeDataOutputUpdated') {

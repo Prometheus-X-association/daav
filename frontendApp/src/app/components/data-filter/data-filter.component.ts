@@ -8,7 +8,6 @@ import { IonContent } from '@ionic/angular/standalone';
 @Component({
     selector: 'app-data-filter',
     templateUrl: './data-filter.component.html',
-    styleUrls: ['./data-filter.component.scss'],
     imports: [IonContent, QueryBuilderModule]
 })
 export class DataFilterComponent implements OnInit{

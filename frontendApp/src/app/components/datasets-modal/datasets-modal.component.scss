@@ -21,7 +21,7 @@ ion-modal{
     }
 
     .ion-page {
-        position: relative;
+        position: unset !important;
         display: block;
         contain: content;
 
@@ -31,10 +31,6 @@ ion-modal{
             padding: 0px;
         }
     }
-}
-
-ion-modal .ion-page{
-    position: unset !important;
 }
 
 // Data type selection ---------------------------------------------------------
@@ -154,10 +150,6 @@ ion-select{
     opacity: 1;
 }
 
-// #folder-label{
-//     padding-left: 15px;
-// }
-
 input{
     padding: 0px 15px 3px 15px;
 }
@@ -194,13 +186,6 @@ input{
         margin-right: 40px;
     }
 }
-
-// .input-container{
-//     display: flex;
-//     flex-direction: column;
-//     height: 61.5%;
-//     overflow: scroll;
-// }
 
 // Confirm connection ---------------------------------------------------------
 #confirm-container{

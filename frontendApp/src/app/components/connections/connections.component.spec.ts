@@ -28,6 +28,6 @@ describe('CustomConnectionComponent', () => {
     fixture.detectChanges();
     const pathEl: SVGPathElement | null = fixture.nativeElement.querySelector('path');
     expect(pathEl).toBeTruthy();
-    expect(pathEl!.getAttribute('d')).toBe(testPath);
+    expect(pathEl.getAttribute('d')).toBe(testPath);
   });
 });

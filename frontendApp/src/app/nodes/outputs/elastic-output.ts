@@ -12,11 +12,11 @@ import { daavBlock } from '../node-block';
 import { DatasetElasticSearch } from 'src/app/models/dataset-elastic-search';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import {
   InputAutoCompleteControl,
-  inputAutoCompleteControlI,
+  InputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
 
 @daavBlock('output')
@@ -72,7 +72,7 @@ export class ElasticOutput extends OutputDataBlock {
 
   /** Target index (existing or new), behaviour when it exists and document id field */
   addOptionControls(indices: string[], node: Node, index?: string) {
-    const indexAutoComplete: inputAutoCompleteControlI = node?.data?.indexAutoComplete ?? {
+    const indexAutoComplete: InputAutoCompleteControlI = node?.data?.indexAutoComplete ?? {
       value: index ?? '',
       list: indices,
       label: $localize`Index`,
@@ -86,7 +86,7 @@ export class ElasticOutput extends OutputDataBlock {
     });
     this.addControl('index', this.indexAutoCompleteControl);
 
-    const selectExist: selectControlI = node?.data?.selectExist ?? {
+    const selectExist: SelectControlI = node?.data?.selectExist ?? {
       value: 'fail',
       list: [
         { label: $localize`:@@exist:Fail`, value: 'fail', default: true },
@@ -99,7 +99,7 @@ export class ElasticOutput extends OutputDataBlock {
     this.selectExistControl = new SelectControl(selectExist);
     this.addControl('exist', this.selectExistControl);
 
-    const idField: inputAutoCompleteControlI = node?.data?.idField ?? {
+    const idField: InputAutoCompleteControlI = node?.data?.idField ?? {
       value: '',
       list: [],
       label: $localize`Id field`,

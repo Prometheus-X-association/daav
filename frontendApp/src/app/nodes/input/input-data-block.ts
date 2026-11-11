@@ -9,7 +9,7 @@ import { MatSelectChange } from '@angular/material/select';
 import { Subscription, map } from 'rxjs';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { WorkflowNodeEditor } from 'src/app/core/workflow-node-editor';
 import { Dataset } from 'src/app/models/dataset';
@@ -91,7 +91,7 @@ export class InputDataBlock<
    * @param {Node} node - The node to which the source select control will be added.
    */
   private addSourceSelect(node: Node) {
-    let selectDataSource: selectControlI;
+    let selectDataSource: SelectControlI;
     if (node?.data?.selectDataSource) {
       //if node is given it's an import and we report content from json
       selectDataSource = node.data?.selectDataSource;
@@ -111,7 +111,7 @@ export class InputDataBlock<
     this.area.update('control', this.selectControl.id);
     //update list from service on dataset signal
     // this is obscur toObservable have problem context and need to run in runInInjectionContext
-    const result = runInInjectionContext(this.worflowEditor.injector, () => {
+    runInInjectionContext(this.worflowEditor.injector, () => {
       const service = inject(DatasetService);
       this.selectDataSourceSub = toObservable(service.datasets)
         .pipe(
@@ -119,9 +119,7 @@ export class InputDataBlock<
             const list = [];
             let idInside = false;
             if (this.filterInputType) {
-              params = params.filter((dataset) =>
-                this.filterInputType.some((type) => dataset instanceof type)
-              );
+              params = params.filter(this.datasetFilter.bind(this));
             }
             params.forEach((dataset: Dataset) => {
               if (this.selectControl?.value === dataset.id) {
@@ -140,6 +138,10 @@ export class InputDataBlock<
           this.area.update('control', this.selectControl.id);
         });
     });
+  }
+
+  protected datasetFilter(dataset: Dataset): boolean {
+    return this.filterInputType.some((type) => dataset instanceof type);
   }
 
   async popAlert(message: string): Promise<boolean> {
@@ -165,7 +167,7 @@ export class InputDataBlock<
         return alert.onDidDismiss<boolean>()
       }
     );
-    return result.role === 'cancel' ? false : true;
+    return result.role !== 'cancel';
   }
 
   /**
@@ -219,5 +221,7 @@ export class InputDataBlock<
       .some((conn) => conn.source === this.id);
   }
 
-  testConnection() {}
+  testConnection() {
+    // No connection to test by default: overridden by the blocks that need it.
+  }
 }

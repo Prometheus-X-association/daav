@@ -158,6 +158,7 @@ export class TokenService {
 
       return expirationDate < now;
     } catch (error) {
+      console.error('Error checking token expiration:', error);
       return true;
     }
   }
@@ -175,6 +176,7 @@ export class TokenService {
 
       return new Date(decoded.exp * 1000);
     } catch (error) {
+      console.error('Error reading token expiration:', error);
       return null;
     }
   }
@@ -200,6 +202,7 @@ export class TokenService {
       // Refresh if less than 5 minutes until expiration
       return (expirationDate.getTime() - now.getTime()) < fiveMinutes;
     } catch (error) {
+      console.error('Error checking token refresh:', error);
       return true;
     }
   }

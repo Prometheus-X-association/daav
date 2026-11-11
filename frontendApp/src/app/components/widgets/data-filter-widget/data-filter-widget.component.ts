@@ -31,7 +31,6 @@ export class DataFilterControl extends ClassicPreset.Control{
 @Component({
     selector: 'app-data-filter-widget',
     templateUrl: './data-filter-widget.component.html',
-    styleUrls: ['./data-filter-widget.component.scss'],
     imports: [IonButton, IonContent, IonHeader, IonModal, IonTitle, DataFilterComponent, HasDatasetsPipe]
 })
 export class DataFilterWidgetComponent{

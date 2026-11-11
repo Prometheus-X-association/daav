@@ -4,18 +4,18 @@ import { IonButton, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { copyOutline } from "ionicons/icons";
 
-export interface textDisplayControlI{
+export interface TextDisplayControlI{
     value: string,
     label?: string,
     copyable?: boolean;
 }
 
-export class TextDisplayControl extends ClassicPreset.Control implements textDisplayControlI{
+export class TextDisplayControl extends ClassicPreset.Control implements TextDisplayControlI{
     value: string;
     label?: string;
     copyable?: boolean;
 
-    constructor(data: textDisplayControlI){
+    constructor(data: TextDisplayControlI){
         super();
         if(data){
             this.value = data.value;

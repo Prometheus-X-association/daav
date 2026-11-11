@@ -14,7 +14,7 @@ import { WorkflowNodeEditor } from "src/app/core/workflow-node-editor";
 import { DeepObjectSocket, FlatObjectSocket, SimpleFieldSocket } from "src/app/core/sockets/sockets";
 import { StatusNode } from "src/app/enums/status-node";
 import { MatSelectChange } from '@angular/material/select';
-import { SelectControl, selectControlI } from 'src/app/components/widgets/select-widget/select-widget.component';
+import { SelectControl, SelectControlI } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { ButtonControl } from 'src/app/components/widgets/button-widget/button-widget.component';
 
 
@@ -41,17 +41,10 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
     this.filterInputType = [];
     this.filterInputType.push(DatasetPTX);
     this.node = node;
-    if (node?.data?.inputsDatasource) {
-      this.inputsDatasource = new JsonInputsControl(
-        node?.data?.inputsDatasource,
-        this.inputsDataChange.bind(this)
-      );
-    } else {
-      this.inputsDatasource = new JsonInputsControl(
-        node?.data?.inputsDatasource,
-        this.inputsDataChange.bind(this)
-      );
-    }
+    this.inputsDatasource = new JsonInputsControl(
+      node?.data?.inputsDatasource,
+      this.inputsDataChange.bind(this)
+    );
     if(node?.data?.selectServiceChainControl){
       this.addSelectControlServiceChain(null, node)
     }
@@ -84,7 +77,7 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
   }
 
   addSelectControlServiceChain(data, node?: Node){
-    let selectServiceChain: selectControlI;
+    let selectServiceChain: SelectControlI;
 
     if(node?.data?.selectServiceChainControl){
       selectServiceChain = node?.data?.selectServiceChainControl;

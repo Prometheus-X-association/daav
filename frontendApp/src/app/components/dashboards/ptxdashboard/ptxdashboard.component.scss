@@ -200,13 +200,13 @@ $color-text-secondary: #6c757d;
   
   &.signed {
     background: rgba(8, 255, 173, 0.15);
-    color: #00875a;
+    color: #1a7f37;
     border: 1px solid rgba(8, 255, 173, 0.3);
   }
   
   &.pending {
     background: rgba(255, 193, 7, 0.15);
-    color: #b78103;
+    color: #916602;
     border: 1px solid rgba(255, 193, 7, 0.3);
   }
 }

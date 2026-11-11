@@ -14,11 +14,11 @@ import { DatasetElasticSearch } from 'src/app/models/dataset-elastic-search';
 import { ElasticService } from 'src/app/services/elastic.service';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import {
   InputAutoCompleteControl,
-  inputAutoCompleteControlI,
+  InputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
 import {
   CheckboxControl,
@@ -114,7 +114,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
   }
 
   addSelectIndex(indices: string[]) {
-    const selectIndex: selectControlI = {
+    const selectIndex: SelectControlI = {
       value: null,
       list: (indices ?? []).map((index) => ({ label: index, value: index })),
       none: true,
@@ -138,19 +138,19 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
   /** Query, fields, maximum number of documents and _id option */
   addOptionControls(node: Node) {
     const onChange = () => this.schedulePreview();
-    const query: inputAutoCompleteControlI = node?.data?.query ?? {
+    const query: InputAutoCompleteControlI = node?.data?.query ?? {
       value: '',
       list: [],
       label: $localize`Query`,
       type: 'text',
     };
-    const fields: inputAutoCompleteControlI = node?.data?.fields ?? {
+    const fields: InputAutoCompleteControlI = node?.data?.fields ?? {
       value: '',
       list: [],
       label: $localize`Fields`,
       type: 'text',
     };
-    const maxDocs: inputAutoCompleteControlI = node?.data?.maxDocs ?? {
+    const maxDocs: InputAutoCompleteControlI = node?.data?.maxDocs ?? {
       value: '',
       list: [],
       label: $localize`Max documents`,

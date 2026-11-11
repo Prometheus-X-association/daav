@@ -11,7 +11,7 @@ export class DataLrsBlock extends InputDataBlock{
 
 
     override execute(){
-
+        // Intentionally empty: this block cannot be executed on its own yet.
     }
 
 }

@@ -8,7 +8,7 @@ import { AreaPlugin } from 'rete-area-plugin';
 import { Schemes, AreaExtra } from 'src/app/core/workflow-editor';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { DatasetMongo } from 'src/app/models/dataset-mongo';
 import { MatSelectChange } from '@angular/material/select';
@@ -148,7 +148,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
   }
 
   addSelectCollection(data: MongoContentResponse, node: Node) {
-    let selectTableSource: selectControlI;
+    let selectTableSource: SelectControlI;
     if (node?.data?.selectTableSource) {
       //if node is given it's an import and we report content from json
       selectTableSource = node.data?.selectDataSource;
@@ -181,7 +181,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
   }
 
   addSelectDatabase(data: MongoContentResponse, node: Node) {
-    let selectDatabaseSource: selectControlI;
+    let selectDatabaseSource: SelectControlI;
     if (node?.data?.selectDatabaseDataSource) {
       //if node is given it's an import and we report content from json
       selectDatabaseSource = node.data?.selectDatabaseDataSource;
@@ -303,5 +303,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
     return { ...super.data(), ...data };
   }
 
-  override execute() {}
+  override execute() {
+    // Intentionally empty: the data is loaded when the source is selected.
+  }
 }

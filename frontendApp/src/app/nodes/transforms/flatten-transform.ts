@@ -45,7 +45,7 @@ export class FlattenTransform extends TransformBlock {
       }
       if (!this.preventNodeEvent){
         if (context.type === 'connectioncreated' || context.type === 'connectionremoved') {
-          const { source, target } = context.data;
+          const { target } = context.data;
           if (target === this.id) {
             console.log('Connection changed for node:', context);
             this.onConnectionChange(context.data,context.type);
@@ -54,7 +54,7 @@ export class FlattenTransform extends TransformBlock {
       }
       if (context.type === 'noderemoved') {
         if (context.data.id === this.id) {
-          area.signal.pipes.splice(area.signal.pipes.findIndex(pipe => pipe === contextPipe), 1);
+          area.signal.pipes.splice(area.signal.pipes.indexOf(contextPipe), 1);
         }
       }
       return context;
@@ -69,8 +69,6 @@ export class FlattenTransform extends TransformBlock {
      */
     private onConnectionChange(connection : Connection<NodeBlock, NodeBlock>,type : 'connectioncreated'|'connectionremoved') {
       console.log('Connection changed for node:', this.id);
-      // get node source from area
-      const worflowEditor = this.area.parent as WorkflowNodeEditor<Schemes>;
       if (connection.targetInput === "datasource" ){
         if (type === 'connectioncreated'){
           this.updateStatus(StatusNode.Complete);

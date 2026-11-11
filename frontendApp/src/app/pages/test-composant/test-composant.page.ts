@@ -5,7 +5,6 @@ import { DataMapperComponent } from '../../components/data-mapper/data-mapper.co
 @Component({
     selector: 'app-test-composant',
     templateUrl: './test-composant.page.html',
-    styleUrls: ['./test-composant.page.scss'],
     imports: [IonContent, IonHeader, IonTitle, IonToolbar, DataMapperComponent]
 })
 export class TestComposantPage {

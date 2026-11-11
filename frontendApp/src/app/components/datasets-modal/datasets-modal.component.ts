@@ -239,7 +239,6 @@ export class DatasetsModalComponent implements OnChanges {
             );
           } else if (event.type === HttpEventType.Response) {
             this.uploadProgress = null;
-            event.body;
             if (event.body && event.body.length > 1) {
               this.formDatabase
                 .get('folder')

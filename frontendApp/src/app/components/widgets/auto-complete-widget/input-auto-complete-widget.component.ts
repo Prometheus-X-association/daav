@@ -9,7 +9,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatOption } from '@angular/material/select';
 
 
-export interface inputAutoCompleteControlI {
+export interface InputAutoCompleteControlI {
   value: string;
   list: string[];
   readonly?: boolean;
@@ -21,7 +21,7 @@ export interface inputAutoCompleteControlI {
 
 export class InputAutoCompleteControl
   extends ClassicPreset.Control
-  implements inputAutoCompleteControlI
+  implements InputAutoCompleteControlI
 {
   value: string;
   list: string[];
@@ -31,7 +31,7 @@ export class InputAutoCompleteControl
   type: 'number' | 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'date' | 'datetime-local' | 'month' | 'week' | 'time' | 'color';
   showPassword: boolean = false;
   disabled: boolean;
-  constructor(data: inputAutoCompleteControlI,onChange?:(event?: InputEvent |MatAutocompleteSelectedEvent)=>void) {
+  constructor(data: InputAutoCompleteControlI,onChange?:(event?: InputEvent |MatAutocompleteSelectedEvent)=>void) {
     super();
     if (data){
       this.label = data.label ? data.label : null;
@@ -54,7 +54,6 @@ export class InputAutoCompleteControl
 @Component({
     selector: 'app-input-auto-complete-widget',
     templateUrl: './input-auto-complete-widget.component.html',
-    styleUrls: ['./input-auto-complete-widget.component.scss'],
     imports: [MatFormField, MatLabel, MatInput, FormsModule, MatAutocompleteTrigger, MatIconButton, MatSuffix, MatIcon, MatAutocomplete, MatOption]
 })
 export class InputAutoCompleteWidgetComponent implements OnInit, OnChanges {

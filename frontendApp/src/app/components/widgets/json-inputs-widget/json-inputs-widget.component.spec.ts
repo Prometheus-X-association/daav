@@ -61,7 +61,7 @@ describe('JsonInputsWidgetComponent', () => {
     component.hasChanged = true;
 
     const event: any = { detail: { data: undefined } };
-    component.onWillDismiss(event as any);
+    component.onWillDismiss(event);
 
     expect(event.detail.data).toBeTrue();
     expect(component.isModalOpen).toBeFalse();

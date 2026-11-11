@@ -4,7 +4,6 @@ import { IonHeader, IonModal, IonTitle, IonToolbar } from '@ionic/angular/standa
 @Component({
     selector: 'app-transformation-modal',
     templateUrl: './transformation-modal.component.html',
-    styleUrls: ['./transformation-modal.component.scss'],
     imports: [IonHeader, IonModal, IonTitle, IonToolbar]
 })
 export class TransformationModalComponent {

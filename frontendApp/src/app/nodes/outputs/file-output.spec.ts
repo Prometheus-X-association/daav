@@ -15,7 +15,6 @@ describe('FileOutput', () => {
   let injector: Injector;
   let mockWorkflowEditor: Partial<WorkflowNodeEditor<Schemes>>;
   let mockDatasetService: any;
-  let mockHttp: any;
 
   beforeEach(() => {
     mockDatasetService = {
@@ -24,7 +23,6 @@ describe('FileOutput', () => {
       urlBack: 'https://api',
       addDatasetToList: jasmine.createSpy('addDatasetToList')
     };
-    mockHttp = jasmine.createSpyObj('HttpClient', ['get', 'post', 'put']);
 
     TestBed.configureTestingModule({
       imports: [],

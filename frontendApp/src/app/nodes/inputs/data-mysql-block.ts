@@ -10,7 +10,7 @@ import { FlatObjectSocket } from 'src/app/core/sockets/sockets';
 import { StatusNode } from 'src/app/enums/status-node';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { NodeDataMysql } from 'src/app/models/node-data';
 import { MysqlSchema } from 'src/app/models/dataset-schema';
@@ -140,7 +140,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
   }
 
   addSelectTable(data: MySQLContentResponse, node: Node) {
-    let selectTableSource: selectControlI;
+    let selectTableSource: SelectControlI;
     if (node?.data?.selectTableSource) {
       //if node is given it's an import and we report content from json
       selectTableSource = node.data?.selectDataSource;
@@ -173,7 +173,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
   }
 
   addSelectDatabase(data: MySQLContentResponse, node: Node) {
-    let selectDatabaseSource: selectControlI;
+    let selectDatabaseSource: SelectControlI;
     if (node?.data?.selectDatabaseDataSource) {
       //if node is given it's an import and we report content from json
       selectDatabaseSource = node.data?.selectDatabaseDataSource;
@@ -295,5 +295,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
     return { ...super.data(), ...data };
   }
 
-  override execute() {}
+  override execute() {
+    // Intentionally empty: the data is loaded when the source is selected.
+  }
 }

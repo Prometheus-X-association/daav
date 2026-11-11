@@ -113,9 +113,6 @@ export class MainPage {
     this.transformationView = 'list';
   }
 
-  ionViewWillEnter() {
-  }
-
   closeModalAddConnection() {
     this.datasetModal.modal.isOpen = false;
   }

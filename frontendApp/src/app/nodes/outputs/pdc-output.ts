@@ -9,10 +9,10 @@ import { StatusNode } from "src/app/enums/status-node";
 import { ClassicPreset } from "rete";
 import { AllSocket } from "src/app/core/sockets/sockets";
 import { MatSelectChange } from "@angular/material/select";
-import { SelectControl, selectControlI } from "src/app/components/widgets/select-widget/select-widget.component";
-import { InputAutoCompleteControl, inputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
+import { SelectControl, SelectControlI } from "src/app/components/widgets/select-widget/select-widget.component";
+import { InputAutoCompleteControl, InputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
 import { ButtonControl } from "src/app/components/widgets/button-widget/button-widget.component";
-import { TextDisplayControl, textDisplayControlI } from "src/app/components/widgets/text-display-widget/text-display-widget.component";
+import { TextDisplayControl, TextDisplayControlI } from "src/app/components/widgets/text-display-widget/text-display-widget.component";
 
 
 @daavBlock("output")
@@ -73,7 +73,7 @@ export class PdcOutput extends OutputDataBlock {
     private addCurrentUrlControl(url?: string): void {
       const currentUrl = url || window.location.href;
       
-      const currentUrlData: textDisplayControlI = {
+      const currentUrlData: TextDisplayControlI = {
         value: currentUrl,
         label: 'Current URL',
         copyable: true,
@@ -107,8 +107,8 @@ export class PdcOutput extends OutputDataBlock {
         .toLowerCase()
         .trim()
         .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9\-_\.]/g, '') 
-        .replace(/\-+/g, '-') 
+        .replace(/[^a-z0-9_.-]/g, '') 
+        .replace(/-+/g, '-') 
         .replace(/^-|-$/g, ''); 
     }
 
@@ -160,7 +160,7 @@ export class PdcOutput extends OutputDataBlock {
     }
 
     addSelectControlDataResource(data, node?: Node) {
-      let selectDataResource: selectControlI;
+      let selectDataResource: SelectControlI;
 
       if (node?.data?.selectDataResource) {
         // If node is given, it's an import and we report content from JSON
@@ -232,7 +232,7 @@ export class PdcOutput extends OutputDataBlock {
     }
 
     private addUrlControl(url?: string, node?: Node): void {
-      let urlControlData: inputAutoCompleteControlI; 
+      let urlControlData: InputAutoCompleteControlI; 
       if(node?.data?.urlInput) {
         urlControlData = { ...node.data.urlInput };
         
@@ -242,7 +242,7 @@ export class PdcOutput extends OutputDataBlock {
           urlControlData.label = baseUrl;  
         }
       } else {
-        const { baseUrl, fileName } = this.extractUrlParts(url);
+        const { fileName } = this.extractUrlParts(url);
         
         urlControlData = {
           value: fileName, 
@@ -301,6 +301,7 @@ export class PdcOutput extends OutputDataBlock {
             fileName: fileName
           };
         } catch (error) {
+          console.warn('Invalid URL, using the default output URL:', error);
           return {
             baseUrl: this.datasetService.urlBack + '/output/',
             fileName: fullUrl
@@ -334,13 +335,7 @@ export class PdcOutput extends OutputDataBlock {
       const baseUrl = this.urlInputControl?.label || this.datasetService.urlBack + '/output/';
       const fileName = this.urlInputControl?.value || '';
       
-      let newUrl: string;
-      
-      if (baseUrl.includes('://')) {
-        newUrl = baseUrl + fileName;
-      } else {
-        newUrl = baseUrl + fileName;
-      }
+      const newUrl = baseUrl + fileName;
       
       if (this.selectControlDataResource?.value && newUrl) {
         const payload = {

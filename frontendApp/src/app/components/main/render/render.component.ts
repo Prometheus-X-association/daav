@@ -114,7 +114,6 @@ export class RenderComponent implements OnInit, OnChanges {
       };
 
       const dashboardComponent = this.dashboardContainerAnchor.createComponent(this.dataset.dashboardComponent);
-      // this.render.appendChild(this.dashboardContainer.nativeElement, dashboardComponent.location.nativeElement);
       dashboardComponent.setInput("dataset", this.data.selectedDataset);
 
     }
@@ -220,8 +219,7 @@ export class RenderComponent implements OnInit, OnChanges {
           if (this.data.dbNames !== null || this.data.tableNames !== null) {
             // When db and/or table are not specified
             let items = this.data.fiche.items;
-            let keys: string[];
-            items.length !== 0 ? keys = Object.keys(items[0]) : keys = [" "]
+            const keys: string[] = items.length !== 0 ? Object.keys(items[0]) : [" "];
             this.data.displayedColumns = keys;
           }
           else if (this.data.fiche.items?.length > 0){
@@ -242,7 +240,7 @@ export class RenderComponent implements OnInit, OnChanges {
           };
           this.data.renderTabIndex = 0;
           alert("Connection successful but unable to get data.")
-          reject();
+          reject(new Error("Connection successful but unable to get data."));
         }
       },error => {
         // Connection don't work
@@ -257,7 +255,7 @@ export class RenderComponent implements OnInit, OnChanges {
         this.data.renderTabIndex = 0;
         alert("Connection error.")
         this.data.pagination.nextUrl = null;
-        reject();
+        reject(new Error("Connection error.", { cause: error }));
       });
     })
   }

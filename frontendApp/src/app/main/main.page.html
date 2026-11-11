@@ -33,20 +33,12 @@
       <app-datasets-modal #datasetModal></app-datasets-modal>
       <app-transformation-modal #transformationModal></app-transformation-modal>
 
-      <!-- <ion-text>
-      <ion-accordion-group [multiple]="true" [value]="['first']">
-        <ion-accordion value="first">
-          <div slot="content"> -->
             @if(matTabIndex !== 2){
               <app-datasets [width]="width.left" (selectedDataset)="getDataset($event)"></app-datasets>
             }
             @else if(matTabIndex === 2){
             <app-transformation (createWorkflow)="createWorkflow()" (transformationView)="changeTransformationView($event)" (loadWorkflow)="loadWorkflow($event)"></app-transformation>
           }
-        <!-- </div>
-      </ion-accordion>
-    </ion-accordion-group>
-  </ion-text> -->
 
   @if(matTabIndex !== 2){
     <ion-button id="add-connexion" expand="full" (click)="openDatasetsModal()" i18n>Add dataset</ion-button>

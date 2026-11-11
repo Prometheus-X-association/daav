@@ -56,7 +56,7 @@ export class DatasetService extends BaseService {
         error: (err: any) => {
           console.log('errrr', err);
           console.error(err);
-          reject();
+          reject(new Error('Request failed', { cause: err }));
         },
       });
     });
@@ -73,7 +73,7 @@ export class DatasetService extends BaseService {
         },
         error: (err: any) => {
           console.error(err);
-          reject();
+          reject(new Error('Request failed', { cause: err }));
         },
       });
     });
@@ -90,7 +90,7 @@ export class DatasetService extends BaseService {
         },
         error: (err: any) => {
           console.error(err);
-          reject();
+          reject(new Error('Request failed', { cause: err }));
         },
       });
     });
@@ -107,7 +107,7 @@ export class DatasetService extends BaseService {
         },
         error: (err: any) => {
           console.error(err);
-          reject();
+          reject(new Error('Request failed', { cause: err }));
         },
       });
     });
@@ -168,8 +168,8 @@ export class DatasetService extends BaseService {
   ) {
     const data = {
       dataset,
-      pagination: paginationParams ? paginationParams : this.pagination,
-      datasetParams: datasetParams ? datasetParams : this.datasetParams,
+      pagination: paginationParams || this.pagination,
+      datasetParams: datasetParams || this.datasetParams,
     };
     return this.http.post<DatasetResponseMap<T>>(
       this.apiUrl + '/getContentDataset',
@@ -184,8 +184,8 @@ export class DatasetService extends BaseService {
   ) {
     const data = {
       dataset,
-      pagination: paginationParams ? paginationParams : this.pagination,
-      datasetParams: datasetParams ? datasetParams : this.datasetParams,
+      pagination: paginationParams || this.pagination,
+      datasetParams: datasetParams || this.datasetParams,
     };
     return this.http.post<NodeDataPandasDf>(
       this.apiUrl + '/getDfContentDataset',

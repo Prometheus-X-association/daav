@@ -76,7 +76,6 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
 
   ngOnInit(): void {
     this.loadCatalog();
-    //this.loadContractsBilaterals();
     this.loadContractsUseCase();
     this.loadDataExchangeHistory();
   }
@@ -202,13 +201,13 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
 
     const sortedExecutions = exchange.executions
       .filter(exec => exec.createdAt)
-      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (sortedExecutions.length === 0) {
       return '';
     }
 
-    return new Date(sortedExecutions[0].createdAt!).toLocaleDateString('fr-FR', {
+    return new Date(sortedExecutions[0].createdAt).toLocaleDateString('fr-FR', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -248,7 +247,7 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
   }
 
   getSkeletonArray(count: number = 1): number[] {
-    return Array(count).fill(0).map((x, i) => i);
+    return new Array(count).fill(0).map((x, i) => i);
   }
 
   loadContractsBilaterals() {
@@ -256,7 +255,6 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
       .subscribe({
         next: (res) => {
           this.contractsBilaterals = res.contracts;
-          //console.log('Bilateral contracts loaded:', this.contractsBilaterals);
           this.pdcEndpoint = res.endpoint;
           this.contractUri = res.contractUri;
         },

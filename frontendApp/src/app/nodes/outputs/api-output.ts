@@ -6,7 +6,7 @@ import { Node } from 'src/app/models/interfaces/node';
 import { StatusNode } from "src/app/enums/status-node";
 import { ClassicPreset } from "rete";
 import { AllSocket } from "src/app/core/sockets/sockets";
-import { InputAutoCompleteControl, inputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
+import { InputAutoCompleteControl, InputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
 import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
 import { WorkflowNodeEditor } from "src/app/core/workflow-node-editor";
 import { MatSelectChange } from "@angular/material/select";
@@ -47,7 +47,7 @@ export class ApiOutput extends OutputDataBlock{
   }
 
   override addSourceSelect(){
-
+    // No data source select: the API output is configured by its URL.
   }
 
   private generateRandomToken(length: number = 64): string {
@@ -65,7 +65,7 @@ export class ApiOutput extends OutputDataBlock{
   }
 
   private addTokenInput(node: Node): void{
-    let tokenInput: inputAutoCompleteControlI;
+    let tokenInput: InputAutoCompleteControlI;
     if(node?.data?.tokenInput){
         tokenInput = node.data.tokenInput
     }else {
@@ -96,7 +96,7 @@ export class ApiOutput extends OutputDataBlock{
 }
 
   private addNameInput(node: Node): void{
-    let nameInput: inputAutoCompleteControlI;
+    let nameInput: InputAutoCompleteControlI;
     if(node?.data?.nameInput){
       nameInput = node.data.nameInput
     }else {
@@ -126,7 +126,7 @@ export class ApiOutput extends OutputDataBlock{
   }
 
   private addUrlInput(node: Node): void{
-    let urlInput: inputAutoCompleteControlI;
+    let urlInput: InputAutoCompleteControlI;
     if(node?.data?.urlInput){
       urlInput = node.data.urlInput
     }else {
@@ -181,7 +181,7 @@ export class ApiOutput extends OutputDataBlock{
       return;
     }
 
-    const isValidUrl = /^[a-zA-Z0-9_\/-]+$/.test(urlValue);
+    const isValidUrl = /^[a-zA-Z0-9_/-]+$/.test(urlValue);
     if (!isValidUrl) {
       this.updateStatus(StatusNode.Incomplete, "Invalid URL format");
       return;

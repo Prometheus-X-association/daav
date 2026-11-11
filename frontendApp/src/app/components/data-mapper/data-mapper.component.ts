@@ -55,21 +55,19 @@ export class DataMapperComponent implements  OnDestroy {
 
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
-    } else {
-      if (targetMappingId) {
-        // Ajouter à un mapping existant
-        const mapping = this.mappings.find(m => m.id === targetMappingId);
-        if (mapping) {
-          mapping.sources.push(column);
-        }
-      } else {
-        // Créer un nouveau mapping
-        this.addMapping({
-          id: crypto.randomUUID(),
-          sources: [column],
-          targetName: column.name
-        });
+    } else if (targetMappingId) {
+      // Ajouter à un mapping existant
+      const mapping = this.mappings.find(m => m.id === targetMappingId);
+      if (mapping) {
+        mapping.sources.push(column);
       }
+    } else {
+      // Créer un nouveau mapping
+      this.addMapping({
+        id: crypto.randomUUID(),
+        sources: [column],
+        targetName: column.name
+      });
     }
   }
 

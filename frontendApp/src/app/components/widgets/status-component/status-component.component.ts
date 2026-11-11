@@ -1,5 +1,4 @@
 import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
-import { OverlayEventDetail } from '@ionic/core';
 import { ClassicPreset } from 'rete';
 import { StatusNode } from 'src/app/enums/status-node';
 import { MatTooltip } from '@angular/material/tooltip';
@@ -41,6 +40,5 @@ export class StatusComponentComponent {
 
   onWillDismiss(event: Event) {
     this.isModalOpen = false;
-    const ev = event as CustomEvent<OverlayEventDetail<string>>;
   }
 }

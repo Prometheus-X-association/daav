@@ -18,7 +18,6 @@ import { MatButtonModule } from '@angular/material/button';
     FormsModule
 ],
     templateUrl: './workflow-update-rules-modal.component.html',
-    styleUrls: ['./workflow-update-rules-modal.component.scss']
 })
 export class WorkflowUpdateRulesModalComponent {
   private readonly dialogRef = inject(MatDialogRef<WorkflowUpdateRulesModalComponent>);

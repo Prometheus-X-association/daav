@@ -6,9 +6,6 @@ import { IonSpinner } from '@ionic/angular/standalone';
 export class NodeLoaderControl extends ClassicPreset.Control {
   loading = false;
   callback?: (event?: MatSelectChange) => void;
-  constructor() {
-    super();
-  }
 }
 
 @Component({
