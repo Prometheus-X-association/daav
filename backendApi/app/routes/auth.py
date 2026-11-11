@@ -22,6 +22,7 @@ from app.middleware.auth import (
     PASSWORD_CHANGE_REQUIRED_DETAIL
 )
 from app.config.settings import settings
+from app.routes.responses import error_responses
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,7 @@ async def conditional_admin_check(
     return current_user
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, responses=error_responses(401, 403, 500))
 async def register(
     user_data: UserCreate,
     admin_user: Optional[User] = Depends(conditional_admin_check)
@@ -118,7 +119,7 @@ async def register(
         )
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, responses=error_responses(500))
 async def login(login_data: LoginRequest):
     """
     Login with username/email and password
@@ -142,7 +143,7 @@ async def login(login_data: LoginRequest):
         )
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh", response_model=Token, responses=error_responses(401))
 async def refresh_token(refresh_data: RefreshTokenRequest):
     """
     Refresh access token using refresh token
@@ -189,7 +190,7 @@ async def forgot_password(request: ForgotPasswordRequest):
         }
 
 
-@router.post("/reset-password", status_code=status.HTTP_200_OK)
+@router.post("/reset-password", status_code=status.HTTP_200_OK, responses=error_responses(500))
 async def reset_password(request: ResetPasswordRequest):
     """
     Reset password using reset token
@@ -230,7 +231,7 @@ async def get_current_user_info(current_user: CurrentUserPendingPasswordChange):
     return UserResponse.model_validate(current_user)
 
 
-@router.put("/me", response_model=UserResponse)
+@router.put("/me", response_model=UserResponse, responses=error_responses(400, 500))
 async def update_current_user(
     user_update: UserUpdate,
     current_user: CurrentUser
@@ -266,7 +267,7 @@ async def update_current_user(
         )
 
 
-@router.post("/change-password")
+@router.post("/change-password", responses=error_responses(400, 500))
 async def change_password(
     password_data: ChangePasswordRequest,
     current_user: CurrentUserPendingPasswordChange
@@ -308,7 +309,7 @@ async def change_password(
         )
 
 
-@router.put("/me/config", response_model=UserResponse)
+@router.put("/me/config", response_model=UserResponse, responses=error_responses(500))
 async def update_user_configuration(
     config_update: UserConfigUpdate,
     current_user: CurrentUser
@@ -337,7 +338,7 @@ async def update_user_configuration(
 
 # ==================== ADMIN ROUTES ====================
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=List[UserResponse], responses=error_responses(500))
 async def get_all_users(admin_user: AdminUser):
     """
     Get all users (Admin only)
@@ -355,7 +356,7 @@ async def get_all_users(admin_user: AdminUser):
         )
 
 
-@router.get("/users/{user_id}", response_model=UserResponse)
+@router.get("/users/{user_id}", response_model=UserResponse, responses=error_responses(404, 500))
 async def get_user_by_id(user_id: str, admin_user: AdminUser):
     """
     Get user by ID (Admin only)
@@ -378,7 +379,7 @@ async def get_user_by_id(user_id: str, admin_user: AdminUser):
         )
 
 
-@router.put("/users/{user_id}", response_model=UserResponse)
+@router.put("/users/{user_id}", response_model=UserResponse, responses=error_responses(500))
 async def update_user(
     user_id: str,
     user_update: UserUpdate,
@@ -406,7 +407,7 @@ async def update_user(
         )
 
 
-@router.delete("/users/{user_id}")
+@router.delete("/users/{user_id}", responses=error_responses(500))
 async def delete_user(user_id: str, admin_user: AdminUser):
     """
     Delete a user (Admin only)
@@ -426,7 +427,7 @@ async def delete_user(user_id: str, admin_user: AdminUser):
         )
 
 
-@router.post("/users/{user_id}/deactivate")
+@router.post("/users/{user_id}/deactivate", responses=error_responses(400, 404, 500))
 async def deactivate_user(
     user_id: str,
     admin_user: AdminUser,
@@ -502,7 +503,7 @@ async def deactivate_user(
         )
 
 
-@router.post("/users/{user_id}/activate")
+@router.post("/users/{user_id}/activate", responses=error_responses(400, 404, 500))
 async def activate_user(
     user_id: str,
     admin_user: AdminUser
@@ -567,7 +568,7 @@ async def activate_user(
 
 # ==================== SHARING ROUTES ====================
 
-@router.post("/share")
+@router.post("/share", responses=error_responses(400, 500))
 async def share_resource(
     share_request: ShareResourceRequest,
     current_user: CurrentUser
@@ -611,7 +612,7 @@ async def share_resource(
         )
 
 
-@router.post("/unshare")
+@router.post("/unshare", responses=error_responses(400, 500))
 async def unshare_resource(
     unshare_request: UnshareResourceRequest,
     current_user: CurrentUser

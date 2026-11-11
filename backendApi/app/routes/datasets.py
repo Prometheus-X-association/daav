@@ -21,6 +21,7 @@ from app.utils.security import FileAccessController, PathSecurityValidator
 from pathlib import Path
 from app.config.settings import settings
 from app.utils.utils import json_api_schema, custom_api_schema
+from app.routes.responses import error_responses
 
 
 
@@ -31,7 +32,7 @@ dataset_service = DatasetService()
 
 UPLOAD_DIR = Path(settings.upload_dir)
 
-@router.get("/")
+@router.get("/", responses=error_responses(500))
 async def get_all_datasets(current_user: CurrentUser):
     """Get all datasets accessible by current user"""
     try:
@@ -49,7 +50,7 @@ async def get_dataset(id: str, current_user: CurrentUser) -> Dataset:
     """Get a single dataset with permission check"""
     return await dataset_service.get_dataset(id, current_user)
 
-@router.delete("/{dataset_id}")
+@router.delete("/{dataset_id}", responses=error_responses(404, 500))
 async def delete_dataset(dataset_id: str, current_user: CurrentUser):
     """Delete a dataset with permission check"""
     try:
@@ -74,7 +75,7 @@ async def edit_dataset(dataset: DatasetUnion, current_user: CurrentUser) -> bool
     """Edit a dataset with permission check"""
     return await dataset_service.edit_dataset(dataset, current_user)
 
-@router.post("/")
+@router.post("/", responses=error_responses(500))
 async def create_dataset(dataset: DatasetUnion, current_user: CurrentUser):
     """Create a new dataset with ownership assignment"""
     try:
@@ -93,7 +94,7 @@ async def create_dataset(dataset: DatasetUnion, current_user: CurrentUser):
         logger.error(f"Error creating dataset {dataset.name}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/uploadFile")
+@router.post("/uploadFile", responses=error_responses(400, 413, 500))
 async def receive_file(
     file: list[UploadFile] | UploadFile,
     current_user: CurrentUser,
@@ -186,7 +187,7 @@ async def _save_upload_file(file: UploadFile, current_user: CurrentUser, folder:
         result["folder"] = str(base_dir)
     return result
 
-@router.post("/getContentDataset", response_model=DatasetContentResponse)
+@router.post("/getContentDataset", response_model=DatasetContentResponse, responses=error_responses(400, 403, 404, 413, 422, 500, 503, 504))
 async def get_content_dataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> DatasetContentResponse:
     """Get dataset content with permission check"""
     connection = data.dataset
@@ -257,7 +258,7 @@ async def get_df_content_dataset(request: Request, data: ConnectionInfo, current
     else :
         raise ValueError("Dataset type not handle")
     
-@router.post("/getDfFromJson" ,response_model=NodeDataUnion)
+@router.post("/getDfFromJson" ,response_model=NodeDataUnion, responses=error_responses(400, 500))
 def get_df_from_json(data: dict, current_user: CurrentUser)-> NodeDataPandasDf:
     print("data", data)
     json_data = data['data']

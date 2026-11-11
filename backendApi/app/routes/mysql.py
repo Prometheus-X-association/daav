@@ -11,6 +11,7 @@ from app.middleware.auth import CurrentUser
 from app.models.interface.dataset_interface import MysqlDataset
 from app.services.dataset_service import DatasetService
 from app.services.mysql_service import MysqlService
+from app.routes.responses import error_responses
 
 router = APIRouter(prefix="/datasets", tags=["mysql"],
                    responses={404: {"description": "Not found"}})
@@ -35,21 +36,21 @@ async def _get_mysql_dataset(dataset_id: str, user, database: str = None, table:
     return dataset
 
 
-@router.get("/{dataset_id}/mysql/info")
+@router.get("/{dataset_id}/mysql/info", responses=error_responses(400, 403))
 async def server_info(dataset_id: str, current_user: CurrentUser) -> Dict[str, Any]:
     """Server version and uptime, connected user and a summary of the visible databases"""
     dataset = await _get_mysql_dataset(dataset_id, current_user)
     return await asyncio.to_thread(mysql_service.info, dataset)
 
 
-@router.get("/{dataset_id}/mysql/databases/{database}/tables")
+@router.get("/{dataset_id}/mysql/databases/{database}/tables", responses=error_responses(400, 403))
 async def list_tables(dataset_id: str, database: SqlName, current_user: CurrentUser) -> List[Dict[str, Any]]:
     """Tables and views of a database with engine, approximate row count and size"""
     dataset = await _get_mysql_dataset(dataset_id, current_user, database)
     return await asyncio.to_thread(mysql_service.list_tables, dataset, database)
 
 
-@router.get("/{dataset_id}/mysql/databases/{database}/tables/{table}/columns")
+@router.get("/{dataset_id}/mysql/databases/{database}/tables/{table}/columns", responses=error_responses(400, 403))
 async def list_columns(dataset_id: str, database: SqlName, table: SqlName,
                        current_user: CurrentUser) -> List[Dict[str, Any]]:
     """Columns of a table"""

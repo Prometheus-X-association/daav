@@ -15,6 +15,7 @@ import logging
 from app.services.user_service import UserService
 from app.models.interface.user_interface import User
 from app.config.settings import settings
+from app.routes.responses import error_responses
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["api"])
@@ -24,7 +25,7 @@ workflow_service = WorkflowService()
 drupal_filter_converter = DrupalFilterConverter()
 user_service = UserService()
 
-@router.get("/{custom_path}")
+@router.get("/{custom_path}", responses=error_responses(400, 404, 500, 503))
 async def get_output_from_custom_path(
         custom_path: str, 
         request: Request
@@ -139,7 +140,7 @@ async def get_output_from_custom_path(
             detail=f"Internal server error: {str(e)}"
         )
 
-@router.get("/workflow/{workflow_id}")
+@router.get("/workflow/{workflow_id}", responses=error_responses(400, 404, 500, 503))
 async def get_workflow_output(
         workflow_id: str, 
         request: Request

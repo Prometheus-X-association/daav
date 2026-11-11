@@ -7,6 +7,7 @@ from app.middleware.auth import CurrentUser
 from app.core.workflow import Workflow
 from app.core.execution_context import ExecutionContext
 from app.models.interface.user_interface import User
+from app.routes.responses import error_responses
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}}
 )
 
-@router.get("/", response_model=List[IProject])
+@router.get("/", response_model=List[IProject], responses=error_responses(500))
 async def get_workflows(current_user: CurrentUser) -> List[IProject]:
     """
     Fetch the list of workflows accessible by current user.
@@ -58,7 +59,7 @@ async def get_workflows(current_user: CurrentUser) -> List[IProject]:
         logger.error(f"Error fetching workflows: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/{id}", response_model=IProject)
+@router.get("/{id}", response_model=IProject, responses=error_responses(500))
 async def get_workflow(id: str, current_user: CurrentUser) -> IProject:
     """
     Retrieve a workflow by its ID with permission check.
@@ -107,7 +108,7 @@ async def get_workflow(id: str, current_user: CurrentUser) -> IProject:
         logger.error(f"Error fetching workflow {id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/", response_model=IProject, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=IProject, status_code=status.HTTP_201_CREATED, responses=error_responses(500))
 async def create_workflow(current_user: CurrentUser, workflow_data: IProject) -> IProject:
     """
     Create a new workflow with ownership assignment.
@@ -330,7 +331,7 @@ async def create_workflow(current_user: CurrentUser, workflow_data: IProject) ->
         logger.error(f"Error creating workflow: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to create workflow")
 
-@router.put("/", response_model=IProject)
+@router.put("/", response_model=IProject, responses=error_responses(400, 500))
 async def update_workflow(current_user: CurrentUser, workflow_data: IProject) -> IProject:
     """
     Update an existing workflow with permission check.
@@ -398,7 +399,7 @@ async def update_workflow(current_user: CurrentUser, workflow_data: IProject) ->
         logger.error(f"Error updating workflow: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to update workflow")
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, responses=error_responses(404, 500))
 async def delete_workflow(id: str, current_user: CurrentUser):
     """
     Delete a workflow by its ID with permission check.
@@ -443,7 +444,7 @@ async def delete_workflow(id: str, current_user: CurrentUser):
         logger.error(f"Error deleting workflow {id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/execute/{id}", status_code=status.HTTP_200_OK, response_model=IProject)
+@router.post("/execute/{id}", status_code=status.HTTP_200_OK, response_model=IProject, responses=error_responses(500))
 async def execute_workflow(id: str, current_user: CurrentUser):
     """
     Execute a workflow by its ID.
@@ -492,7 +493,7 @@ async def execute_workflow(id: str, current_user: CurrentUser):
         logger.error(f"Error executing workflow {id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to execute workflow")
 
-@router.post("/execute_node/{id}/{node_id}", status_code=status.HTTP_200_OK, response_model=IProject)
+@router.post("/execute_node/{id}/{node_id}", status_code=status.HTTP_200_OK, response_model=IProject, responses=error_responses(404, 500))
 async def execute_node(id: str, node_id: str, current_user: CurrentUser):
     """
     Execute a specific node in a workflow by its ID.
@@ -546,7 +547,7 @@ async def execute_node(id: str, node_id: str, current_user: CurrentUser):
         logger.error(f"Error executing node {node_id} in workflow {id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to execute node")
 
-@router.post("/execute", status_code=status.HTTP_200_OK, response_model=IProject)
+@router.post("/execute", status_code=status.HTTP_200_OK, response_model=IProject, responses=error_responses(500))
 async def execute_workflow_json(current_user: CurrentUser, workflow_json: IProject = Body(..., description="The workflow object to execute")):
     """
     Execute a workflow from its JSON representation.
@@ -603,7 +604,7 @@ async def execute_workflow_json(current_user: CurrentUser, workflow_json: IProje
         logger.error(f"Error executing workflow from JSON: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to execute workflow")
 
-@router.post("/execute_node/{node_id}", status_code=status.HTTP_200_OK, response_model=IProject)
+@router.post("/execute_node/{node_id}", status_code=status.HTTP_200_OK, response_model=IProject, responses=error_responses(404, 500))
 async def execute_node_json(node_id: str, current_user: CurrentUser, workflow: IProject = Body(..., description="The workflow object containing the node to execute")):
     """
     Execute a specific node in a workflow from its JSON representation.

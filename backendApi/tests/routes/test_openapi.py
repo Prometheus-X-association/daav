@@ -1,6 +1,8 @@
 """
 The OpenAPI schema (/openapi.json, used by /docs) can be generated for every route
 """
+from http import HTTPStatus
+
 import pandas as pd
 from fastapi.testclient import TestClient
 
@@ -32,3 +34,21 @@ def test_dataframe_serialization_unchanged():
 
     assert dumped["dataExample"] == {"a": {0: 1, 1: 2}}
     assert dumped["type"] == "pandasdf"
+
+
+def test_error_responses_are_documented():
+    """The HTTP error status codes raised by the routes appear in the OpenAPI schema"""
+    paths = TestClient(app).get("/openapi.json").json()["paths"]
+
+    upload = paths["/datasets/uploadFile"]["post"]["responses"]
+    assert {"400", "413", "500"} <= upload.keys()
+    assert upload["413"]["description"] == HTTPStatus(413).phrase  # "Content Too Large" since Python 3.13
+    delete_workflow = paths["/workflows/{id}"]["delete"]["responses"]
+    assert {"404", "500"} <= delete_workflow.keys()
+    assert {"400", "401"} <= paths["/ptx/executeChainService"]["post"]["responses"].keys()
+
+
+def test_error_responses_helper():
+    from app.routes.responses import error_responses
+
+    assert error_responses(404, 500) == {404: {"description": "Not Found"}, 500: {"description": "Internal Server Error"}}

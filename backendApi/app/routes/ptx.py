@@ -32,6 +32,7 @@ from app.utils.utils import decode_dictionary
 from app.utils.auth_utils import authenticate_m2m_credentials, AuthenticatedUser
 from app.middleware.auth import CurrentUser
 from app.config.settings import settings
+from app.routes.responses import error_responses
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ptx", tags=["prometheus-x"])
@@ -54,7 +55,7 @@ def _resolve_timeout(timeout_seconds: Optional[int]) -> int:
 
 
 
-@router.get("/{id}")
+@router.get("/{id}", responses=error_responses(401))
 async def get_ptx_data(
     id: str,
     current_user: CurrentUser,
@@ -105,7 +106,7 @@ async def get_ptx_data(
 
     return {"catalog": catalog}
 
-@router.put("/dataResources/{connection_id}")
+@router.put("/dataResources/{connection_id}", responses=error_responses(400, 401, 500))
 async def update_data_resource(
     connection_id: str,
     request: Request,
@@ -158,7 +159,7 @@ async def update_data_resource(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.get("/dataResources/{connection_id}")
+@router.get("/dataResources/{connection_id}", responses=error_responses(401, 500))
 async def get_data_resources(
     connection_id: str,
     current_user: CurrentUser,
@@ -188,7 +189,7 @@ async def get_data_resources(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.post("/executeChainService", status_code=status.HTTP_200_OK)
+@router.post("/executeChainService", status_code=status.HTTP_200_OK, responses=error_responses(400, 401))
 async def execute_chain_service(
     background_tasks: BackgroundTasks,
     payload: PdcChainRequest,
@@ -267,7 +268,7 @@ async def delete_service_chain_data(service_chain_id: str, current_user: Current
         return True
     return False
 
-@router.post("/pdcInput")
+@router.post("/pdcInput", responses=error_responses(401))
 async def read_input(request: Request, response: Response, headers: Annotated[PdcDataExchangeHeaders, Header()]):
     """ pdc input endpoint to handle PDC data exchange.
     This endpoint processes the input data and headers, fetches the PDC contract,
@@ -411,7 +412,7 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
         "user_datasets": user_datasets
     }
 
-@router.get("/participants_id/{connection_id}")
+@router.get("/participants_id/{connection_id}", responses=error_responses(401))
 async def get_participants_id_from_connection(
     connection_id: str,
     current_user: CurrentUser,
@@ -451,7 +452,7 @@ async def fetch_participant_id(client: httpx.AsyncClient, content: dict) -> Opti
         print(f"Error fetching {content['@id']}: {e}")
     return None
 
-@router.get("/contracts/use-case/{connection_id}")
+@router.get("/contracts/use-case/{connection_id}", responses=error_responses(401))
 async def get_use_case_contract(
     connection_id: str,
     current_user: CurrentUser,
@@ -550,7 +551,7 @@ async def get_use_case_contract(
 
     return all_use_case_contracts
 
-@router.get("/serviceChain/{connection_id}")
+@router.get("/serviceChain/{connection_id}", responses=error_responses(401))
 async def get_service_chain(
     connection_id: str,
     current_user: CurrentUser,
@@ -592,7 +593,7 @@ async def get_service_chain(
     return result
 
 
-@router.get("/dataExchanges/{connection_id}")
+@router.get("/dataExchanges/{connection_id}", responses=error_responses(401, 500))
 async def get_data_exchanges(
     connection_id: str,
     request: Request,
@@ -748,7 +749,7 @@ async def get_data_exchanges(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
-@router.post("/trigger-data-exchange/{connection_id}")
+@router.post("/trigger-data-exchange/{connection_id}", responses=error_responses(401, 500))
 async def trigger_data_exchange(
     connection_id: str,
     request: Request,
@@ -801,7 +802,7 @@ async def trigger_data_exchange(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.post("/triggerServiceChain/{connection_id}")
+@router.post("/triggerServiceChain/{connection_id}", responses=error_responses(401, 500))
 async def trigger_service_chain(
     connection_id: str,
     request: Request,
@@ -853,7 +854,7 @@ async def trigger_service_chain(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.get("/contracts/bilaterals/{connection_id}")
+@router.get("/contracts/bilaterals/{connection_id}", responses=error_responses(401, 500))
 async def get_billateral_contract(
     connection_id: str,
     current_user: CurrentUser,

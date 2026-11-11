@@ -14,6 +14,7 @@ from app.models.interface.pdc_chain_interface import PdcChainHeaders, PdcChainRe
 from app.utils.auth_utils import AuthenticatedUser, authenticate_m2m_credentials
 from app.utils.drupal_filter_converter import DrupalFilterConverter
 from app.utils.utils import filter_data_with_duckdb, get_user_output_path
+from app.routes.responses import error_responses
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ workflow_service = WorkflowService()
 user_service = UserService()
 drupal_filter_converter = DrupalFilterConverter()
 
-@router.get("/{custom_path}")
+@router.get("/{custom_path}", responses=error_responses(400, 401, 404, 500, 503))
 async def get_output_from_custom_path(custom_path: str, request: Request,):
     """
     Get output from custom path by searching through workflows with optional filtering.
@@ -142,7 +143,7 @@ async def get_output_from_custom_path(custom_path: str, request: Request,):
         logger.error(f"Unexpected error processing custom path {custom_path}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.get("/workflow/{workflow_id}")
+@router.get("/workflow/{workflow_id}", responses=error_responses(400, 401, 404, 500, 503))
 async def get_workflow_output(workflow_id: str, request: Request):
     """
     Get workflow output by workflow ID with optional filtering.
