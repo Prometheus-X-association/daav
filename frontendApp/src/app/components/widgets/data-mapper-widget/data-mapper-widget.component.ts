@@ -2,7 +2,9 @@ import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
 import { OverlayEventDetail } from '@ionic/core';
 import { ClassicPreset } from 'rete';
 import { ColumnMapping, DatasetMapper } from 'src/app/models/data-mapper-types';
-import { IonButton, IonContent, IonHeader, IonModal, IonTitle } from '@ionic/angular/standalone';
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { closeOutline } from 'ionicons/icons';
 import { DataMapperComponent } from '../../data-mapper/data-mapper.component';
 import { HasDatasetsPipe } from '../../../models/data-mapper-types';
 
@@ -22,7 +24,7 @@ export class DataMapperControl extends ClassicPreset.Control {
     selector: 'app-data-mapper-widget',
     templateUrl: './data-mapper-widget.component.html',
     styleUrls: ['./data-mapper-widget.component.scss'],
-    imports: [IonButton, IonContent, IonHeader, IonModal, IonTitle, DataMapperComponent, HasDatasetsPipe]
+    imports: [IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar, DataMapperComponent, HasDatasetsPipe]
 })
 export class DataMapperWidgetComponent{
 
@@ -30,6 +32,9 @@ export class DataMapperWidgetComponent{
   isModalOpen= false;
   cdr = inject(ChangeDetectorRef);
 
+  constructor() {
+    addIcons({ closeOutline });
+  }
 
   onWillDismiss(event: Event) {
     const ev = event as CustomEvent<OverlayEventDetail<string>>;
@@ -41,6 +46,11 @@ export class DataMapperWidgetComponent{
 
   openModal(){
     this.isModalOpen = true;
+  }
+
+  // Dismisses the modal, which triggers onWillDismiss like a backdrop click
+  closeModal(){
+    this.isModalOpen = false;
   }
 
 }

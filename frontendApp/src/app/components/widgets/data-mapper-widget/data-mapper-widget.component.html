@@ -3,9 +3,16 @@
 <ion-modal [isOpen]="isModalOpen" (willDismiss)="onWillDismiss($event)">
   <ng-template>
     <ion-header>
-      <ion-title>
-        Manage data mapping
-      </ion-title>
+      <ion-toolbar>
+        <ion-title>
+          Manage data mapping
+        </ion-title>
+        <ion-buttons slot="end">
+          <ion-button class="close-button" aria-label="Close" (click)="closeModal()">
+            <ion-icon name="close-outline" slot="icon-only" aria-hidden="true"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
     </ion-header>
     <ion-content class="ion-padding" scroll-y="false">
       <app-data-mapper [mappings]="data.mappings" [datasets]="data.datasets"></app-data-mapper>
