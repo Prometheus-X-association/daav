@@ -1,8 +1,9 @@
 
 import os
 import re
+import urllib.parse
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 from fastapi import HTTPException
 from app.config.security import SecurityConfig
 
@@ -87,61 +88,71 @@ class PathSecurityValidator:
                 detail="Null byte injection detected in file path"
             )
         
-        # URL decode to catch encoded attacks
-        import urllib.parse
-        try:
-            decoded_path = urllib.parse.unquote(file_path)
-            # Check both original and decoded versions
-            paths_to_check = [file_path, decoded_path]
-        except Exception:
-            paths_to_check = [file_path]
-        
+        # Check both original and URL decoded versions, to catch encoded attacks
+        paths_to_check = PathSecurityValidator._path_variants(file_path)
+
         # Normalize path
         normalized_path = os.path.normpath(file_path)
-        
+
         # Check dangerous patterns on all variations
-        for path_variant in paths_to_check:
-            normalized_variant = os.path.normpath(path_variant)
-            for pattern in SecurityConfig.DANGEROUS_PATH_PATTERNS:
-                if re.search(pattern, normalized_variant, re.IGNORECASE):
-                    # if base_dir, access problem (403)
-                    # else is a format problem (400)
-                    status_code = 403 if base_dir else 400
-                    raise HTTPException(
-                        status_code=status_code, 
-                        detail=f"Dangerous path pattern detected: {pattern}"
-                    )
-        
+        PathSecurityValidator._reject_dangerous_patterns(paths_to_check, base_dir)
+
         # Check dangerous characters
         if any(char in normalized_path for char in ['<', '>', '|', '*', '?', '"']):
             raise HTTPException(
                 status_code=400,
                 detail="Invalid characters in file path"
             )
-        
+
         # If base directory is specified, verify we don't escape it
         if base_dir:
-            try:
-                resolved_base = Path(base_dir).resolve()
-                resolved_path = Path(base_dir) / normalized_path
-                resolved_full = resolved_path.resolve()
-                
-                # Verify the final path is within allowed directory
-                if not str(resolved_full).startswith(str(resolved_base)):
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Access outside base directory not allowed"
-                    )
-                    
-                return str(resolved_full)
-                
-            except (OSError, ValueError) as e:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid path: {str(e)}"
-                )
-    
+            return PathSecurityValidator._resolve_within(base_dir, normalized_path)
+
         return normalized_path
+
+    @staticmethod
+    def _path_variants(file_path: str) -> List[str]:
+        """The path and its URL decoded version."""
+        try:
+            return [file_path, urllib.parse.unquote(file_path)]
+        except Exception:
+            return [file_path]
+
+    @staticmethod
+    def _reject_dangerous_patterns(paths_to_check: List[str], base_dir: Optional[str]) -> None:
+        """Raise if a normalized variant matches a dangerous pattern: 403 with a base directory (access problem), else 400 (format problem)."""
+        for path_variant in paths_to_check:
+            normalized_variant = os.path.normpath(path_variant)
+            for pattern in SecurityConfig.DANGEROUS_PATH_PATTERNS:
+                if re.search(pattern, normalized_variant, re.IGNORECASE):
+                    status_code = 403 if base_dir else 400
+                    raise HTTPException(
+                        status_code=status_code,
+                        detail=f"Dangerous path pattern detected: {pattern}"
+                    )
+
+    @staticmethod
+    def _resolve_within(base_dir: str, normalized_path: str) -> str:
+        """Resolve the path under the base directory, refusing (403) a path that escapes it."""
+        try:
+            resolved_base = Path(base_dir).resolve()
+            resolved_path = Path(base_dir) / normalized_path
+            resolved_full = resolved_path.resolve()
+
+            # Verify the final path is within allowed directory
+            if not str(resolved_full).startswith(str(resolved_base)):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access outside base directory not allowed"
+                )
+
+            return str(resolved_full)
+
+        except (OSError, ValueError) as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid path: {str(e)}"
+            )
     
     @staticmethod
     def validate_filename(filename: str) -> str:

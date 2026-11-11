@@ -3,7 +3,7 @@ import hmac
 import json
 import logging
 import os
-from typing import Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Dict, List, NoReturn, Optional, Union, TYPE_CHECKING
 from urllib.parse import urlparse
 
 import duckdb
@@ -612,49 +612,69 @@ def verify_route_access(
         verify_route_access(request, api_keys=[{"X-Key": "val"}])  # Custom headers
         verify_route_access(request, api_keys=["token1", {"X-Key": "val"}])  # Mixed
     """
-    
-    # Check domain whitelist from env
-    if settings.domain_whitelist:
-        origin = request.headers.get("origin") or request.headers.get("referer")
-        
-        if origin:
-            parsed = urlparse(origin)
-            domain = parsed.netloc or parsed.path.split('/')[0]
-            
-            for whitelisted_domain in settings.domain_whitelist:
-                if domain == whitelisted_domain or domain.endswith(f".{whitelisted_domain}"):
-                    logger.info(f"Route access granted via domain whitelist: {domain}")
-                    return
-    
+
+    if _origin_is_whitelisted(request):
+        return
+
     # Deny if no api_keys provided
     if not api_keys:
-        logger.warning(f"Route access denied for request from {request.client.host if request.client else 'unknown'}")
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied. Valid authentication required."
-        )
-    
+        _deny(request)
+
     # Get authorization header from request
     authorization = request.headers.get("authorization")
+    if any(_matches_api_key(request, api_key, authorization) for api_key in api_keys):
+        return
 
-    for api_key in api_keys:
-        # String = Bearer token
-        if isinstance(api_key, str):
-            if authorization and authorization.startswith("Bearer "):
-                token = authorization.replace("Bearer ", "").strip()
-                if _secret_equals(token, api_key):
-                    logger.info("Route access granted via Bearer token")
-                    return
+    _deny(request)
 
-        # Dict = Custom header (request.headers is case-insensitive)
-        elif isinstance(api_key, dict):
-            for header_name, expected_value in api_key.items():
-                value = request.headers.get(header_name)
-                if value is not None and _secret_equals(value, expected_value):
-                    logger.info(f"Route access granted via custom header: {header_name}")
-                    return
-    
-    # Access denied
+
+def _origin_is_whitelisted(request: Request) -> bool:
+    """True if the Origin (or Referer) header is a domain of the whitelist (from env DOMAIN_WHITELIST) or one of its subdomains."""
+    if not settings.domain_whitelist:
+        return False
+    origin = request.headers.get("origin") or request.headers.get("referer")
+    if not origin:
+        return False
+    parsed = urlparse(origin)
+    domain = parsed.netloc or parsed.path.split('/')[0]
+    for whitelisted_domain in settings.domain_whitelist:
+        if domain == whitelisted_domain or domain.endswith(f".{whitelisted_domain}"):
+            logger.info(f"Route access granted via domain whitelist: {domain}")
+            return True
+    return False
+
+
+def _matches_api_key(request: Request, api_key: Union[str, Dict[str, str]], authorization: Optional[str]) -> bool:
+    """True if the request carries the API key: a Bearer token (str) or custom headers (dict)."""
+    if isinstance(api_key, str):
+        return _matches_bearer_token(authorization, api_key)
+    if isinstance(api_key, dict):
+        return _matches_custom_headers(request, api_key)
+    return False
+
+
+def _matches_bearer_token(authorization: Optional[str], api_key: str) -> bool:
+    if not (authorization and authorization.startswith("Bearer ")):
+        return False
+    token = authorization.replace("Bearer ", "").strip()
+    if _secret_equals(token, api_key):
+        logger.info("Route access granted via Bearer token")
+        return True
+    return False
+
+
+def _matches_custom_headers(request: Request, api_key: Dict[str, str]) -> bool:
+    # request.headers is case-insensitive
+    for header_name, expected_value in api_key.items():
+        value = request.headers.get(header_name)
+        if value is not None and _secret_equals(value, expected_value):
+            logger.info(f"Route access granted via custom header: {header_name}")
+            return True
+    return False
+
+
+def _deny(request: Request) -> NoReturn:
+    """Log and refuse the route access (403)."""
     logger.warning(f"Route access denied for request from {request.client.host if request.client else 'unknown'}")
     raise HTTPException(
         status_code=403,

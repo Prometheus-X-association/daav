@@ -232,6 +232,24 @@ def ensure_utc_aware(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(timezone.utc)
 
 
+def _header_value(request_headers: Headers, name: str) -> Optional[str]:
+    """Value of the first request header with this name (case-insensitive), or None."""
+    for header_name, header_val in request_headers.items():
+        if header_name.lower() == name.lower():
+            return header_val
+    return None
+
+
+def _matched_credentials(user_credentials: Dict[str, str], request_headers: Headers) -> Dict[str, str]:
+    """The user's credentials whose value is carried by the request headers (constant-time comparison)."""
+    matched = {}
+    for cred_key, cred_value in user_credentials.items():
+        header_value = _header_value(request_headers, cred_key)
+        if header_value and cred_value and hmac.compare_digest(header_value.encode(), cred_value.encode()):
+            matched[cred_key] = cred_value
+    return matched
+
+
 def authenticate_m2m_credentials(request_headers: Headers, users: List[User]) -> List[AuthenticatedUser]:
     """
     Authenticate M2M requests by matching request headers against user credentials.
@@ -258,23 +276,9 @@ def authenticate_m2m_credentials(request_headers: Headers, users: List[User]) ->
             # Check if user has credentials configured
             if not user.config or not user.config.credentials:
                 continue
-                
-            user_credentials = user.config.credentials
-            user_matched_credentials = {}
-            
-            # Check if any of the user's credentials match request headers
-            for cred_key, cred_value in user_credentials.items():
-                # Look for the credential key in request headers (case-insensitive)
-                header_value = None
-                for header_name, header_val in request_headers.items():
-                    if header_name.lower() == cred_key.lower():
-                        header_value = header_val
-                        break
-                
-                # If header matches credential value (constant-time comparison)
-                if header_value and cred_value and hmac.compare_digest(header_value.encode(), cred_value.encode()):
-                    user_matched_credentials[cred_key] = cred_value
-            
+
+            user_matched_credentials = _matched_credentials(user.config.credentials, request_headers)
+
             # If user has at least one matching credential, add to authenticated list
             if user_matched_credentials:
                 authenticated_users.append({
@@ -282,7 +286,7 @@ def authenticate_m2m_credentials(request_headers: Headers, users: List[User]) ->
                     'matched_credentials': user_matched_credentials
                 })
                 logger.info(f"User {user.username} authenticated via M2M credentials: {list(user_matched_credentials.keys())}")
-        
+
         return authenticated_users
         
     except Exception as e:
