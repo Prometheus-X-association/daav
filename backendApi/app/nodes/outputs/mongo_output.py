@@ -45,6 +45,7 @@ class MongoOutput(OutputNode):
         try:
             dataset, database, collection, if_exist ,create_index,index_table = await self._retreiveDatabase()
 
+            client = None
             try:
                 # Connect to the MongoDB database
                 client = MongoClient(dataset.uri)
@@ -99,13 +100,14 @@ class MongoOutput(OutputNode):
                                 is_first_chunk = False
                         else:
                             raise TypeError("Unsupported data type: {}".format(type(data)))
-                client.close() 
             except Exception as e:
-                client.close()  # Ensure the connection is closed in case of an error
                 traceback.print_exc()
                 self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
                 self.statusMessage = e.__str__()
-                return StatusNode.Error        
+                return StatusNode.Error
+            finally:
+                if client is not None:
+                    client.close()
         except ValueError as e:
             traceback.print_exc()
             self.errorStackTrace = traceback.TracebackException.from_exception(e).format()

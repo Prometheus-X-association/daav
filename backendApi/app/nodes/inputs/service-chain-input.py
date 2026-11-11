@@ -61,11 +61,13 @@ class ServiceChainInput(InputNode):
                     else :
                         datasets.append(self.datasetService.pdcChainData)
                 chain_headers = self.datasetService.pdcChainHeaders
-                for index, dataset in enumerate(datasets):
+                # A sample is always kept in memory, even when the parquet option is on
+                as_parquet = parquet_save and not sample
+                for index, chain_data in enumerate(datasets):
 
-                    df = pd.DataFrame(dataset)
+                    df = pd.DataFrame(chain_data)
                     schema = generate_pandas_schema(df)
-                    if parquet_save and not sample:
+                    if as_parquet:
                         parquet_path = f"{dataset.id}_{index}.parquet"                    
                         print(f"Saving data to {parquet_path}")
                         table = pa.Table.from_pandas(df)
@@ -83,15 +85,15 @@ class ServiceChainInput(InputNode):
                     if output.get_node_data():
                         # Update existing node data
                         # should resolve when output.get_node_data() is not the same type as the new node data
-                        if parquet_save and not sample:
-                            if isinstance(output.get_node_data, NodeDataParquet):
+                        if as_parquet:
+                            if isinstance(output.get_node_data(), NodeDataParquet):
                                 output.get_node_data().parquetPath = parquet_path
                                 output.get_node_data().nodeSchema = schema
                             else:
                                 raise ValueError("Output node data is not of type NodeDataParquet")
 
                         else:
-                            if isinstance(output.get_node_data, NodeDataPandasDf):
+                            if isinstance(output.get_node_data(), NodeDataPandasDf):
                                 output.get_node_data().nodeSchema = schema
                                 if sample:
                                     output.get_node_data().dataExample = df
@@ -101,7 +103,7 @@ class ServiceChainInput(InputNode):
                                 raise ValueError("Output node data is not of type NodeDataPandasDf")
                     else:
                         # Create new node data
-                        if parquet_save:
+                        if as_parquet:
                             if isinstance(schema, ParquetSchema):
                                 node_data = NodeDataParquet(
                                     type = 'parquet',

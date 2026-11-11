@@ -8,7 +8,6 @@ from app.enums.status_node import StatusNode
 from app.models.interface.dataset_interface import MysqlDataset, _validate_sql_identifier
 from app.models.interface.node_data import NodeDataPandasDf, NodeDataParquet
 from app.nodes.outputs.output_node import OutputNode
-from mysql import connector
 import pyarrow.parquet as pq
 
 from app.services.dataset_service import DatasetService
@@ -42,10 +41,10 @@ class MysqlOutput(OutputNode):
         try:
             dataset, database, table, if_exist ,create_index,index_table = await self._retreiveDatabase()
 
+            engine = None
             try:
-                # Connect to the MySQL database
-                mydb = connector.connect(host=dataset.host, database=database, user=dataset.user, password=dataset.password, use_pure=True)
-                engine = create_engine('sqlite://', echo=False)
+                # pandas only writes through SQLAlchemy: a raw mysql.connector connection is handled as SQLite
+                engine = create_engine(f"mysql+mysqlconnector://{dataset.user}:{dataset.password}@{dataset.host}/{database}")
                 for input in self.inputs.values():
                     if (input.get_connected_node()):
                         data = input.get_node_data()
@@ -58,7 +57,7 @@ class MysqlOutput(OutputNode):
                                 raise ValueError("Input data is not a pandas DataFrame")
 
                             # Write the DataFrame to the SQL database
-                            df.to_sql(table, con=mydb, if_exists=if_exist, index=create_index, index_label=index_table)
+                            df.to_sql(table, con=engine, if_exists=if_exist, index=create_index, index_label=index_table)
                         elif isinstance(data, NodeDataParquet):
                             chunk_size = 1000 
                             is_first_chunk = True
@@ -75,13 +74,14 @@ class MysqlOutput(OutputNode):
                                 is_first_chunk = False
                         else:
                             raise TypeError("Unsupported data type: {}".format(type(data)))
-                mydb.close()
             except Exception as e:
-                mydb.close()  # Ensure the connection is closed in case of an error
                 traceback.print_exc()
                 self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
                 self.statusMessage = e.__str__()
-                return StatusNode.Error        
+                return StatusNode.Error
+            finally:
+                if engine is not None:
+                    engine.dispose()
         except ValueError as e:
             traceback.print_exc()
             self.errorStackTrace = traceback.TracebackException.from_exception(e).format()

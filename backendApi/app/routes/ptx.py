@@ -671,14 +671,14 @@ async def get_data_exchanges(
                 if resource_response.status_code == 200:
                     resource_data = PdcDataResource.model_validate(resource_response.json())
                     owner_url =  f"{participant_url}{resource_data.producedBy}" if resource_data.producedBy else None
-                    owner_details = pdc_service.fetch_participant(owner_url, timeout=timeout) if owner_url else {}
+                    owner_details = pdc_service.fetch_participant(owner_url, timeout=timeout) if owner_url else None
                     details = {
                         "id": resource_data.id,
                         "name": resource_data.name,
                         "description": resource_data.description,
                         "owner": {
-                            "id": owner_details.id,
-                            "name": owner_details.legalName 
+                            "id": owner_details.id if owner_details else None,
+                            "name": owner_details.legalName if owner_details else None
                          } 
                     }
                     resource_cache[resource_url] = details
@@ -865,6 +865,8 @@ async def get_billateral_contract(
         connection = await dataset_service.get_dataset(connection_id, current_user)
         if not connection:
             raise HTTPException(status_code=404, detail="Connection not found")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error finding connection: {str(e)}")
     

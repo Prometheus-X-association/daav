@@ -85,7 +85,7 @@ class NodeDataPandasDf(NodeData[PandasSchema, JsonDataFrame]):
                 return float(value)
             elif numpy.issubdtype(value.dtype, numpy.bool_):
                 return bool(value)
-            elif numpy.issubdtype(value.dtype, numpy.str_) or numpy.issubdtype(value.dtype, numpy.unicode_):
+            elif numpy.issubdtype(value.dtype, numpy.str_):
                 return str(value)
             else:
                 # For other numpy types, convert to Python type

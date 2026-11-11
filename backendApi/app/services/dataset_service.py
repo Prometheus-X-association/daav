@@ -253,6 +253,8 @@ class DatasetService(metaclass=SingletonMeta):
             logger.info(f"User {user.username} successfully added connection: {connection.name} (Type: {connection.type})")
             return {"status": "Connection added"}
             
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Error adding connection {connection.name}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail="Failed to add connection")
@@ -338,9 +340,12 @@ class DatasetService(metaclass=SingletonMeta):
                     logger.error(f"Security validation failed for file path {connection.filePath}: {e}")
                     raise HTTPException(status_code=403, detail="Invalid or dangerous file path")
                 
-                if os.path.exists(connection.filePath):
-                    logger.debug(f"Processing file metadata for: {connection.filePath}")
-                    stats = os.stat(connection.filePath)
+                if not os.path.exists(connection.filePath):
+                    logger.warning(f"File not found for dataset: {connection.name}")
+                    return connection
+
+                logger.debug(f"Processing file metadata for: {connection.filePath}")
+                stats = os.stat(connection.filePath)
                 file_size = stats.st_size
                 
                 logger.debug(f"File size: {file_size} bytes for {connection.filePath}")
@@ -387,6 +392,8 @@ class DatasetService(metaclass=SingletonMeta):
             else:
                 logger.warning(f"File not found or path not specified for dataset: {connection.name}")
                 
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Error processing file dataset {connection.name}: {e}", exc_info=True)
         
@@ -525,9 +532,16 @@ class DatasetService(metaclass=SingletonMeta):
             logger.info(f"Connecting to MongoDB dataset: {dataset.name}")
             logger.debug(f"MongoDB URI: {dataset.uri[:20]}... (truncated for security)")
             
+            database_name = dataset.database or dataset_params.database
+            collection_name = dataset.collection or dataset_params.table
+            if not database_name or not collection_name:
+                logger.error("Database and collection must be specified")
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                  detail="Database and collection must be specified")
+
             client = MongoClient(dataset.uri)
-            db = client[dataset.database] if dataset.database else client[dataset_params.database]
-            col = db[dataset.collection] if dataset.collection else db[dataset_params.table]
+            db = client[database_name]
+            col = db[collection_name]
             
             if db is not None and col is not None:
                 logger.debug(f"Querying collection: {col.name} in database: {db.name}")
@@ -561,6 +575,8 @@ class DatasetService(metaclass=SingletonMeta):
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
                                   detail="Database and collection must be specified")
                                   
+        except HTTPException:
+            raise
         except ConnectionFailure as err:
             logger.error(f"MongoDB connection failed for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
@@ -641,6 +657,8 @@ class DatasetService(metaclass=SingletonMeta):
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
                                   detail="Database and table must be specified")
                 
+        except HTTPException:
+            raise
         except mysql.connector.Error as err:
             logger.error(f"MySQL error for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 

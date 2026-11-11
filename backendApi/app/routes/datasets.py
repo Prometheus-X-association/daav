@@ -419,6 +419,7 @@ def serialize_id(document: dict) -> dict:
 def get_mongo_content(dataset: MongoDataset, pagination: Pagination, dataset_params: DatasetParams) -> MongoContentResponse:
     from pymongo.mongo_client import MongoClient
     from pymongo.errors import ConnectionFailure
+    client = None
     try:
         client = MongoClient(dataset.uri)
         collections = []
@@ -472,7 +473,8 @@ def get_mongo_content(dataset: MongoDataset, pagination: Pagination, dataset_par
     except PermissionError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Permission error: {err}")
     finally:
-        client.close()
+        if client is not None:
+            client.close()
 
 
 def get_elastic_content(dataset: ElasticDataset, pagination: Pagination, dataset_params: DatasetParams) -> ElasticContentResponse:

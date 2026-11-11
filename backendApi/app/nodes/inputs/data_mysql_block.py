@@ -46,6 +46,8 @@ class DataMysqlBlock(InputNode):
             dataset, database, table, parquet_save = await self._retreiveDatabase()
             parquet_path = f"{dataset.id}_{table}.parquet"
 
+            engine = None
+            mydb = None
             try:
                 # Connect to the MySQL database
                 engine = create_engine(f"mysql+mysqlconnector://{dataset.user}:{dataset.password}@{dataset.host}/{database}")
@@ -80,8 +82,6 @@ class DataMysqlBlock(InputNode):
                     parquet_file = pq.ParquetFile(parquet_path)
                     schema = parquet_file.schema 
                 
-                mydb.close()  # Close the connection
-
                 for key, output in self.outputs.items():
                     if output.get_node_data():
                         # Update existing node data
@@ -125,11 +125,15 @@ class DataMysqlBlock(InputNode):
                         output.set_node_data(node_data, self)
                 return StatusNode.Valid
             except Exception as e:
-                mydb.close()  # Ensure the connection is closed in case of an error
                 traceback.print_exc()
                 self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
                 self.statusMessage = e.__str__()
                 return StatusNode.Error
+            finally:
+                if mydb is not None:
+                    mydb.close()
+                if engine is not None:
+                    engine.dispose()
         except ValueError as e:
             traceback.print_exc()
             self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
