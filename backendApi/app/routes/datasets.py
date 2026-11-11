@@ -1,5 +1,7 @@
 import logging
 import traceback
+from contextlib import contextmanager
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Request, status, UploadFile, Depends
 from fastapi.concurrency import run_in_threadpool
 import httpx
@@ -199,31 +201,44 @@ async def get_content_dataset(request: Request, data: ConnectionInfo, current_us
 
     pagination = data.pagination
     dataset_params = data.datasetParams
-    # The file, MongoDB, MySQL and Elasticsearch readers are synchronous: they run in the thread pool
-    # so that they do not block the event loop (and the other requests) while they wait for I/O
     if isinstance(connection, FileDataset):
-        client_ip = request.client.host
-        file_path = connection.folder if connection.folder else connection.filePath
-        log_file_access(client_ip, file_path, "read")
-        try:
-            return await run_in_threadpool(get_file_content, connection, pagination)
-        except HTTPException as e:
-            if e.status_code == status.HTTP_403_FORBIDDEN:
-                log_file_access(client_ip, file_path, "read_failed")
-            raise
-    elif isinstance(connection, MongoDataset):
-        return await run_in_threadpool(get_mongo_content, connection, pagination, dataset_params)
-    elif isinstance(connection, MysqlDataset):
-        return await run_in_threadpool(get_mysql_content, connection, pagination, dataset_params)
-    elif isinstance(connection, ApiDataset):
+        return await _get_file_dataset_content(request, connection, pagination)
+    if isinstance(connection, ApiDataset):
         return await get_api_content(connection, pagination)
-    elif  isinstance(connection, ElasticDataset):
-        return await run_in_threadpool(get_elastic_content, connection, pagination, dataset_params)
-    elif  isinstance(connection, PTXDataset):
+    if isinstance(connection, PTXDataset):
         return get_ptx_content(connection, pagination, dataset_params)
-    else :
+    reader = _synchronous_content_reader(connection)
+    if reader is None:
         raise ValueError("Type de connexion non reconnu")
-    
+    # The MongoDB, MySQL and Elasticsearch readers are synchronous: they run in the thread pool
+    # so that they do not block the event loop (and the other requests) while they wait for I/O
+    return await run_in_threadpool(reader, connection, pagination, dataset_params)
+
+
+def _synchronous_content_reader(connection):
+    """The synchronous content reader of a MongoDB, MySQL or Elasticsearch dataset; None for other types."""
+    if isinstance(connection, MongoDataset):
+        return get_mongo_content
+    if isinstance(connection, MysqlDataset):
+        return get_mysql_content
+    if isinstance(connection, ElasticDataset):
+        return get_elastic_content
+    return None
+
+
+async def _get_file_dataset_content(request: Request, connection: FileDataset, pagination: Pagination):
+    """Read a file dataset in the thread pool, logging the access and the refused reads."""
+    client_ip = request.client.host
+    file_path = connection.folder if connection.folder else connection.filePath
+    log_file_access(client_ip, file_path, "read")
+    try:
+        return await run_in_threadpool(get_file_content, connection, pagination)
+    except HTTPException as e:
+        if e.status_code == status.HTTP_403_FORBIDDEN:
+            log_file_access(client_ip, file_path, "read_failed")
+        raise
+
+
 @router.post("/getDfContentDataset", response_model=NodeDataUnion)
 async def get_df_content_dataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> NodeDataPandasDf:
     """Get dataset dataframe content with permission check"""
@@ -303,86 +318,90 @@ def get_tables(cursor: cursor, database_name: str) -> list[str]:
         tables_list = [table[f"Tables_in_{database_name}"] for table in cursor.fetchall()]
         return tables_list
 
-def get_mysql_content(dataset: MysqlDataset, pagination: Pagination, dataset_params: DatasetParams) -> MySQLContentResponse:
-    try:        
-        database_name = dataset.database if dataset.database else None
-        conn = mysql.connector.connect(
-            host=dataset.host,
-            user=dataset.user,
-            password=dataset.password,
-            auth_plugin='mysql_native_password'
-        )
+@contextmanager
+def _mysql_cursor(dataset: MysqlDataset):
+    """Dictionary cursor on the MySQL server of the dataset, closed with its connection."""
+    conn = mysql.connector.connect(
+        host=dataset.host,
+        user=dataset.user,
+        password=dataset.password,
+        auth_plugin='mysql_native_password'
+    )
+    try:
         cursor = conn.cursor(dictionary=True)
+        try:
+            yield cursor
+        finally:
+            cursor.close()
+    finally:
+        conn.close()
 
-        db_list = None
-        tables_list = None
-        if not dataset.database and not dataset_params.database:
-            db_list, tables_list = get_all(cursor)
-            return MySQLContentResponse(
-                databases=db_list,
-                tables=tables_list,
-                data=[]
-            )
 
-        if not dataset.table and not dataset_params.table:
-            database = dataset_params.database if dataset_params.database else dataset.database
-            tables_list = get_tables(cursor, database)
-            return MySQLContentResponse(
-                tables=tables_list,
-                data=[]
-            )
-        
-        if dataset.database or dataset_params.database and dataset.table or dataset_params.table:
-            if dataset_params.database:
-                database_name = dataset_params.database
-
-            cursor.execute(f"USE {database_name}")
-            table_name = dataset.table if dataset.table else dataset_params.table
-            cursor.execute(f"DESCRIBE {table_name}")
-            table_description = cursor.fetchall()
-
-            # Get total rows
-            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-            row_count = cursor.fetchone()['COUNT(*)']
-
-            # Get table content with pagination
-            offset = (pagination.page - 1) * pagination.perPage
-            cursor.execute(f"SELECT * FROM {table_name} LIMIT {pagination.perPage} OFFSET {offset}")
-
-            table_content = cursor.fetchall()
-
-            return MySQLContentResponse(
-                table_description=table_description,
-                data=table_content,
-                total_rows=row_count,
-                current_page=offset,
-                limit=pagination.perPage
-            )
-
+def get_mysql_content(dataset: MysqlDataset, pagination: Pagination, dataset_params: DatasetParams) -> MySQLContentResponse:
+    try:
+        with _mysql_cursor(dataset) as cursor:
+            if not dataset.database and not dataset_params.database:
+                return _mysql_list_all(cursor)
+            database_name = dataset_params.database or dataset.database
+            if not dataset.table and not dataset_params.table:
+                return MySQLContentResponse(tables=get_tables(cursor, database_name), data=[])
+            return _mysql_read_page(cursor, database_name, dataset.table or dataset_params.table, pagination)
     except mysql.connector.Error as err:
         print(err)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Database error: {err}")
     except PermissionError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Permission error: {err}")
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals():
-            conn.close()
+
+
+def _mysql_list_all(cursor) -> MySQLContentResponse:
+    db_list, tables_list = get_all(cursor)
+    return MySQLContentResponse(
+        databases=db_list,
+        tables=tables_list,
+        data=[]
+    )
+
+
+def _mysql_read_page(cursor, database_name: str, table_name: str, pagination: Pagination) -> MySQLContentResponse:
+    cursor.execute(f"USE {database_name}")
+    cursor.execute(f"DESCRIBE {table_name}")
+    table_description = cursor.fetchall()
+
+    # Get total rows
+    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+    row_count = cursor.fetchone()['COUNT(*)']
+
+    # Get table content with pagination
+    offset = (pagination.page - 1) * pagination.perPage
+    cursor.execute(f"SELECT * FROM {table_name} LIMIT {pagination.perPage} OFFSET {offset}")
+    table_content = cursor.fetchall()
+
+    return MySQLContentResponse(
+        table_description=table_description,
+        data=table_content,
+        total_rows=row_count,
+        current_page=offset,
+        limit=pagination.perPage
+    )
+
 
 def rem_object_id(item):
-    import bson 
-    if hasattr(item, 'items'): 
-        for k, v in item.items(): 
-            if type(v) == bson.objectid.ObjectId:  
-                yield k
-            if isinstance(v, dict):
-                for result in rem_object_id(v):
-                    yield result
-            elif isinstance(v, list):
-                for d in v:
-                    for result in rem_object_id(d):
-                        yield result
+    """Yield the keys whose value is an ObjectId, in the document and its nested dictionaries and lists."""
+    import bson
+    if not hasattr(item, 'items'):
+        return
+    for k, v in item.items():
+        if type(v) == bson.objectid.ObjectId:
+            yield k
+        yield from _nested_object_id_keys(v)
+
+
+def _nested_object_id_keys(value):
+    if isinstance(value, dict):
+        yield from rem_object_id(value)
+    elif isinstance(value, list):
+        for d in value:
+            yield from rem_object_id(d)
 
 #convertir l'id en string
 def serialize_id(document: dict) -> dict:
@@ -422,52 +441,17 @@ def get_mongo_content(dataset: MongoDataset, pagination: Pagination, dataset_par
     client = None
     try:
         client = MongoClient(dataset.uri)
-        collections = []
         # For multiple db and collection
         if not dataset.database and not dataset_params.database:
-            databases = client.list_database_names()
-            if 'config' in databases: databases.remove('config')
-            db = client[dataset_params.database] if dataset_params.database else client[databases[0]]
-            for database in databases:
-                db_list = client[database]
-                collections.append(db_list.list_collection_names())
-                col = db[dataset_params.table] if dataset_params.table else None    
-            return MongoContentResponse(
-                databases=databases,
-                collections=collections,
-                data=[]
-            )    
-        
+            return _mongo_list_all(client)
+
+        db = client[dataset.database or dataset_params.database]
         # For a single db but multiple collection
         if not dataset.collection and not dataset_params.table:
-            db = client[dataset.database] if dataset.database else client[dataset_params.database]
-            collections = db.list_collection_names()
-            col = db[dataset_params.table] if dataset_params.table else db[collections[0]]
-            return MongoContentResponse(
-                collections=collections,
-                data=[]
-            )
+            return _mongo_list_collections(db)
 
         # For a single collection
-        if dataset.database or dataset_params.database and dataset.collection or dataset_params.table:
-            db = client[dataset.database] if dataset.database else client[dataset_params.database]
-            col = db[dataset.collection] if dataset.collection else db[dataset_params.table]
-            if col is None:
-                dataset = {"result": [], "total": 0, "limit": 1, "offset": 0}
-            else:
-                offset = (pagination.page * pagination.perPage) - pagination.perPage
-                limit = pagination.perPage
-                all_traces = list(col.find({}).skip(offset).limit(limit))
-                total = col.count_documents({})    
-        
-                result = [serialize_id(doc) for doc in all_traces]
-                dataset = {"result": result, "total": total, "limit": limit, "offset": offset}
-            return MongoContentResponse(
-                data=dataset['result'],
-                total_rows=dataset['total'],
-                limit=dataset['limit'],
-                current_page=dataset['offset']
-            )
+        return _mongo_read_page(db[dataset.collection or dataset_params.table], pagination)
     except  ConnectionFailure as err:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Database error: {err}")
     except PermissionError as err:
@@ -475,6 +459,45 @@ def get_mongo_content(dataset: MongoDataset, pagination: Pagination, dataset_par
     finally:
         if client is not None:
             client.close()
+
+
+def _mongo_list_all(client) -> MongoContentResponse:
+    databases = client.list_database_names()
+    if 'config' in databases:
+        databases.remove('config')
+    if not databases:
+        # Behavior kept from the original code, which read databases[0]: no database is an IndexError
+        raise IndexError("list index out of range")
+    collections = [client[database].list_collection_names() for database in databases]
+    return MongoContentResponse(
+        databases=databases,
+        collections=collections,
+        data=[]
+    )
+
+
+def _mongo_list_collections(db) -> MongoContentResponse:
+    collections = db.list_collection_names()
+    if not collections:
+        # Behavior kept from the original code, which read collections[0]: no collection is an IndexError
+        raise IndexError("list index out of range")
+    return MongoContentResponse(
+        collections=collections,
+        data=[]
+    )
+
+
+def _mongo_read_page(col, pagination: Pagination) -> MongoContentResponse:
+    offset = (pagination.page * pagination.perPage) - pagination.perPage
+    limit = pagination.perPage
+    all_traces = list(col.find({}).skip(offset).limit(limit))
+    total = col.count_documents({})
+    return MongoContentResponse(
+        data=[serialize_id(doc) for doc in all_traces],
+        total_rows=total,
+        limit=limit,
+        current_page=offset
+    )
 
 
 def get_elastic_content(dataset: ElasticDataset, pagination: Pagination, dataset_params: DatasetParams) -> ElasticContentResponse:
@@ -516,77 +539,14 @@ def api_content(response: str) -> list:
 async def get_api_content(connection: ApiDataset, pagination: Pagination) -> ApiContentResponse:
     try:
         api_url = pagination.nextUrl if getattr(pagination, "nextUrl", None) else connection.url
-        headers = {}
-        if connection.apiAuth == "bearer":
-            headers = { "Authorization" : f"token {connection.bearerToken}" }
-        elif connection.apiAuth == "oauth2":
-            auth_body = "grant_type=client_credentials"
-            encode_token = connection.basicToken.encode("utf-8")
-            base64_bytes = base64.b64encode(encode_token)
-            base64_token = base64_bytes.decode('utf-8')
-            auth_headers = {'Authorization': f"Basic {base64_token}"}
-            async with httpx.AsyncClient() as client:
-                auth_request = await client.post(connection.authUrl, data=auth_body, headers=auth_headers)
-                if auth_request.status_code != 200:
-                    auth_request = await client.get(connection.authUrl, headers=auth_headers)
-                    if auth_request.status_code != 200:
-                        raise HTTPException(status_code=auth_request.status_code, detail=f"Authentication error: {auth_request.text}")
-                auth_request.raise_for_status()
-               
-            auth_response = auth_request.json()
-            access_token = auth_response.get('access_token')
-            headers = {'access_token': access_token,'authorization': f"Bearer {access_token}"}
+        headers = await _api_auth_headers(connection)
         async with httpx.AsyncClient() as client:
             response = await client.get(api_url, headers=headers)
             response.raise_for_status() 
         content_type = response.headers.get("Content-Type", "")
         if "json" in content_type:
-            data = response.json()
-            # Detection JSON:API
-            try:
-                jsonschema.validate(instance=data, schema=json_api_schema)
-                items = data["data"] if isinstance(data["data"], list) else [data["data"]]
-                total = data.get("meta", {}).get("count") or data.get("meta", {}).get("total") or len(items)
-                next_url = data.get("links", {}).get("next")
-                prev_url = data.get("links", {}).get("prev")
-                return ApiContentResponse(
-                    data=items,
-                    total_rows=total,
-                    limit=len(items),
-                    current_page=pagination.page,
-                    next_url=next_url,
-                    prev_url=prev_url
-                )
-            except jsonschema.ValidationError:
-                pass
-            # Detection custom_api
-            try:
-                jsonschema.validate(instance=data, schema=custom_api_schema)
-                items = data["data"]
-                total = data.get("count", len(items))
-                next_url = data.get("next", {}).get("href") if data.get("next") else None
-                prev_url = data.get("previous", {}).get("href") if data.get("previous") else None
-                return ApiContentResponse(
-                    data=items,
-                    total_rows=total,
-                    limit=len(items),
-                    current_page=pagination.page,
-                    next_url=next_url,
-                    prev_url=prev_url
-                )
-            except jsonschema.ValidationError:
-                pass
-            # Fallback
-            donnees = list(data.items()) if isinstance(data, dict) else data
-        else:
-            donnees = api_content(response)
-
-        return ApiContentResponse(
-            data=donnees,
-            total_rows=len(donnees),
-            limit=pagination.perPage,
-            current_page=pagination.page
-        )
+            return _json_api_content(response.json(), pagination)
+        return _rows_api_content(api_content(response), pagination)
     except httpx.HTTPStatusError as err:
         raise HTTPException(status_code=err.response.status_code, detail=f"HTTP error: {err}")
     except httpx.ConnectError as err:
@@ -597,6 +557,85 @@ async def get_api_content(connection: ApiDataset, pagination: Pagination) -> Api
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Request error: {err}")
     except PermissionError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Permission error: {err}")
+
+
+async def _api_auth_headers(connection: ApiDataset) -> dict:
+    """Request headers of the API authentication: a token, an OAuth2 access token, or none."""
+    if connection.apiAuth == "bearer":
+        return { "Authorization" : f"token {connection.bearerToken}" }
+    if connection.apiAuth == "oauth2":
+        access_token = await _oauth2_access_token(connection)
+        return {'access_token': access_token,'authorization': f"Bearer {access_token}"}
+    return {}
+
+
+async def _oauth2_access_token(connection: ApiDataset):
+    """Client credentials access token: POST to the authentication URL, then GET if the POST fails."""
+    auth_body = "grant_type=client_credentials"
+    base64_token = base64.b64encode(connection.basicToken.encode("utf-8")).decode('utf-8')
+    auth_headers = {'Authorization': f"Basic {base64_token}"}
+    async with httpx.AsyncClient() as client:
+        auth_request = await client.post(connection.authUrl, data=auth_body, headers=auth_headers)
+        if auth_request.status_code != 200:
+            auth_request = await client.get(connection.authUrl, headers=auth_headers)
+            if auth_request.status_code != 200:
+                raise HTTPException(status_code=auth_request.status_code, detail=f"Authentication error: {auth_request.text}")
+        auth_request.raise_for_status()
+    return auth_request.json().get('access_token')
+
+
+def _json_api_content(data, pagination: Pagination) -> ApiContentResponse:
+    """Page of a JSON response: JSON:API, then the custom API format, then the raw data."""
+    for parse in (_parse_json_api, _parse_custom_api):
+        parsed = parse(data, pagination)
+        if parsed is not None:
+            return parsed
+    # Fallback
+    return _rows_api_content(list(data.items()) if isinstance(data, dict) else data, pagination)
+
+
+def _rows_api_content(donnees: list, pagination: Pagination) -> ApiContentResponse:
+    return ApiContentResponse(
+        data=donnees,
+        total_rows=len(donnees),
+        limit=pagination.perPage,
+        current_page=pagination.page
+    )
+
+
+def _parse_json_api(data, pagination: Pagination) -> Optional[ApiContentResponse]:
+    """Page of a JSON:API response; None if the data does not follow JSON:API."""
+    try:
+        jsonschema.validate(instance=data, schema=json_api_schema)
+    except jsonschema.ValidationError:
+        return None
+    items = data["data"] if isinstance(data["data"], list) else [data["data"]]
+    total = data.get("meta", {}).get("count") or data.get("meta", {}).get("total") or len(items)
+    return ApiContentResponse(
+        data=items,
+        total_rows=total,
+        limit=len(items),
+        current_page=pagination.page,
+        next_url=data.get("links", {}).get("next"),
+        prev_url=data.get("links", {}).get("prev")
+    )
+
+
+def _parse_custom_api(data, pagination: Pagination) -> Optional[ApiContentResponse]:
+    """Page of a response in the custom API format; None if the data does not follow it."""
+    try:
+        jsonschema.validate(instance=data, schema=custom_api_schema)
+    except jsonschema.ValidationError:
+        return None
+    items = data["data"]
+    return ApiContentResponse(
+        data=items,
+        total_rows=data.get("count", len(items)),
+        limit=len(items),
+        current_page=pagination.page,
+        next_url=data.get("next", {}).get("href") if data.get("next") else None,
+        prev_url=data.get("previous", {}).get("href") if data.get("previous") else None
+    )
 
 import pandas as pd
 from fastapi.responses import JSONResponse

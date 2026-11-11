@@ -540,39 +540,11 @@ class DatasetService(metaclass=SingletonMeta):
             client = MongoClient(dataset.uri)
             db = client[database_name]
             col = db[collection_name]
-            
-            if db is not None and col is not None:
-                logger.debug(f"Querying collection: {col.name} in database: {db.name}")
-                
-                cursor = col.find({})
-                total_docs = col.count_documents({})
-                logger.info(f"Found {total_docs} documents in collection")
-                
-                if pagination and pagination.page and pagination.perPage:
-                    skip = (pagination.page - 1) * pagination.perPage
-                    cursor = cursor.skip(skip).limit(pagination.perPage)
-                    logger.debug(f"Applied pagination: skip={skip}, limit={pagination.perPage}")
-                
-                df = pd.DataFrame(list(cursor))
-                logger.info(f"Successfully retrieved {len(df)} records from MongoDB")
-                
-                schema = generate_pandas_schema(df)
-                node_data = NodeDataPandasDf(
-                    nodeSchema=schema,
-                    name=dataset.collection if dataset.collection else dataset_params.table
-                )
-                
-                if pagination:
-                    node_data.dataExample = df.iloc[:pagination.perPage] if pagination.perPage else df
-                else:
-                    node_data.data = df
-                    
-                return node_data
-            else:
-                logger.error("Database and collection must be specified")
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
-                                  detail="Database and collection must be specified")
-                                  
+            logger.debug(f"Querying collection: {col.name} in database: {db.name}")
+            df = self._read_mongo_df(col, pagination)
+            example = df.iloc[:pagination.perPage] if pagination and pagination.perPage else None
+            return self._to_node_data(df, collection_name, pagination, example)
+
         except HTTPException:
             raise
         except ConnectionFailure as err:
@@ -590,6 +562,22 @@ class DatasetService(metaclass=SingletonMeta):
             if client:
                 client.close()
                 logger.debug("MongoDB connection closed")
+
+    @staticmethod
+    def _read_mongo_df(col, pagination: Pagination = None) -> pd.DataFrame:
+        """Documents of a collection (of the requested page) as a DataFrame."""
+        cursor = col.find({})
+        total_docs = col.count_documents({})
+        logger.info(f"Found {total_docs} documents in collection")
+
+        if pagination and pagination.page and pagination.perPage:
+            skip = (pagination.page - 1) * pagination.perPage
+            cursor = cursor.skip(skip).limit(pagination.perPage)
+            logger.debug(f"Applied pagination: skip={skip}, limit={pagination.perPage}")
+
+        df = pd.DataFrame(list(cursor))
+        logger.info(f"Successfully retrieved {len(df)} records from MongoDB")
+        return df
 
     def getDfElasticContent(self, dataset: ElasticDataset, dataset_params: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve Elasticsearch index content as a DataFrame (a sample when pagination is given)"""
@@ -622,39 +610,19 @@ class DatasetService(metaclass=SingletonMeta):
             
             database = dataset_params.database if dataset_params.database else dataset.database
             table = dataset_params.table if dataset_params.table else dataset.table
-            
-            if database and table:
-                connection_string = f"mysql+mysqlconnector://{dataset.user}:***@{dataset.host}/{database}"
-                logger.debug(f"MySQL connection string: {connection_string}")
-                
-                engine = create_engine(f"mysql+mysqlconnector://{dataset.user}:{dataset.password}@{dataset.host}/{database}")
-                
-                if pagination and pagination.page and pagination.perPage:
-                    offset = (pagination.page - 1) * pagination.perPage
-                    query = f"SELECT * FROM {table} LIMIT {pagination.perPage} OFFSET {offset}"
-                    logger.debug(f"MySQL query with pagination: {query}")
-                else:
-                    query = f"SELECT * FROM {table}"
-                    logger.debug(f"MySQL query: {query}")
-                
-                result_data_frame = pd.read_sql(query, engine)
-                logger.info(f"Successfully retrieved {len(result_data_frame)} records from MySQL")
-                
-                schema = generate_pandas_schema(result_data_frame)    
-                node_data = NodeDataPandasDf(
-                    nodeSchema=schema,
-                    name=dataset.name
-                )
-                if pagination:
-                    node_data.dataExample = result_data_frame
-                else:
-                    node_data.data = result_data_frame
-                return node_data
-            else:
+            if not (database and table):
                 logger.error(f"Database and table must be specified for dataset: {dataset.name}")
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
                                   detail="Database and table must be specified")
-                
+
+            connection_string = f"mysql+mysqlconnector://{dataset.user}:***@{dataset.host}/{database}"
+            logger.debug(f"MySQL connection string: {connection_string}")
+            engine = create_engine(f"mysql+mysqlconnector://{dataset.user}:{dataset.password}@{dataset.host}/{database}")
+
+            result_data_frame = pd.read_sql(self._paginated_query(table, pagination), engine)
+            logger.info(f"Successfully retrieved {len(result_data_frame)} records from MySQL")
+            return self._to_node_data(result_data_frame, dataset.name, pagination)
+
         except HTTPException:
             raise
         except mysql.connector.Error as err:
@@ -672,6 +640,18 @@ class DatasetService(metaclass=SingletonMeta):
             if engine:
                 engine.dispose()
                 logger.debug("MySQL connection disposed")
+
+    @staticmethod
+    def _paginated_query(table: str, pagination: Pagination = None) -> str:
+        """SELECT of the whole table, or of the requested page."""
+        if pagination and pagination.page and pagination.perPage:
+            offset = (pagination.page - 1) * pagination.perPage
+            query = f"SELECT * FROM {table} LIMIT {pagination.perPage} OFFSET {offset}"
+            logger.debug(f"MySQL query with pagination: {query}")
+        else:
+            query = f"SELECT * FROM {table}"
+            logger.debug(f"MySQL query: {query}")
+        return query
 
     def getDfFileContentData(self, dataset: FileDataset, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve file dataset content"""
