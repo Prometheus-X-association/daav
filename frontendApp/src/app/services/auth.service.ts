@@ -56,15 +56,15 @@ export class AuthService {
 
     return this.http.post<Token>(`${this.baseService.urlBack}/auth/login`, loginRequest)
       .pipe(
-        tap(async (token) => {
-          // Save tokens
+        // Emit only once the session is ready: subscribers (e.g. the redirect after login)
+        // must find the tokens saved and the current user loaded
+        switchMap(async (token) => {
           await this.tokenService.saveTokens(token.access_token, token.refresh_token, rememberMe);
 
-          // Load user info
+          // Load user info, then the user's datasets and workflows
           await this.loadCurrentUser();
 
-          // Load user's datasets and workflows after successful login
-          await this.loadUserData();
+          return token;
         }),
         catchError(this.handleError)
       );
