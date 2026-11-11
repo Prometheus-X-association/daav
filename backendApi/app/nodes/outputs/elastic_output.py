@@ -57,23 +57,26 @@ class ElasticOutput(OutputNode):
 
     def _chunks(self, sample: bool) -> Iterator[pd.DataFrame]:
         """Yield the connected input data as DataFrame chunks."""
-        for input in self.inputs.values():
-            if not input.get_connected_node():
-                continue
-            data = input.get_node_data()
-            if isinstance(data, NodeDataPandasDf):
-                df = data.dataExample if sample else data.data
-                if not isinstance(df, pd.DataFrame):
-                    raise ValueError("Input data is not a pandas DataFrame")
-                yield from utils.slice_generator(df, CHUNK_SIZE)
-            elif isinstance(data, NodeDataParquet):
-                parquet_file = pq.ParquetFile(data.data)
-                for batch in parquet_file.iter_batches(batch_size=CHUNK_SIZE):
-                    yield batch.to_pandas()
-                    if sample:
-                        break
-            else:
-                raise TypeError("Unsupported data type: {}".format(type(data)))
+        for data in self._connected_data():
+            yield from self._data_chunks(data, sample)
+
+    def _data_chunks(self, data: Any, sample: bool) -> Iterator[pd.DataFrame]:
+        """Yield the data of one input as DataFrame chunks."""
+        if isinstance(data, NodeDataPandasDf):
+            yield from utils.slice_generator(self._input_dataframe(data, sample), CHUNK_SIZE)
+        elif isinstance(data, NodeDataParquet):
+            yield from self._parquet_chunks(data.data, sample)
+        else:
+            raise TypeError("Unsupported data type: {}".format(type(data)))
+
+    @staticmethod
+    def _parquet_chunks(path: str, sample: bool) -> Iterator[pd.DataFrame]:
+        """Yield a parquet file by batches; a sample only yields the first batch."""
+        parquet_file = pq.ParquetFile(path)
+        for batch in parquet_file.iter_batches(batch_size=CHUNK_SIZE):
+            yield batch.to_pandas()
+            if sample:
+                break
 
     def _write(self, dataset: ElasticDataset, index: str, if_exist: str, id_field: Optional[str], sample: bool) -> int:
         chunks = self._chunks(sample)

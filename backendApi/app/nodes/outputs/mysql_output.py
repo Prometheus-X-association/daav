@@ -1,7 +1,5 @@
-import traceback
 from typing import Literal, Optional, Any
 
-import pandas as pd
 from pydantic import ConfigDict
 from sqlalchemy import create_engine
 from app.enums.status_node import StatusNode
@@ -40,55 +38,51 @@ class MysqlOutput(OutputNode):
         """
         try:
             dataset, database, table, if_exist ,create_index,index_table = await self._retreiveDatabase()
-
-            engine = None
-            try:
-                # pandas only writes through SQLAlchemy: a raw mysql.connector connection is handled as SQLite
-                engine = create_engine(f"mysql+mysqlconnector://{dataset.user}:{dataset.password}@{dataset.host}/{database}")
-                for input in self.inputs.values():
-                    if (input.get_connected_node()):
-                        data = input.get_node_data()
-                        if isinstance(data, NodeDataPandasDf):
-                            if (sample) :
-                                df = data.dataExample
-                            else:
-                                df = data.data
-                            if not isinstance(df, pd.DataFrame):
-                                raise ValueError("Input data is not a pandas DataFrame")
-
-                            # Write the DataFrame to the SQL database
-                            df.to_sql(table, con=engine, if_exists=if_exist, index=create_index, index_label=index_table)
-                        elif isinstance(data, NodeDataParquet):
-                            chunk_size = 1000 
-                            is_first_chunk = True
-                            parquet_file = pq.ParquetFile(data.data)
-
-                            for batch in parquet_file.iter_batches(batch_size=chunk_size):
-                                chunk_df = batch.to_pandas()
-                                if sample and is_first_chunk:
-                                    chunk_df = chunk_df.head(20)
-                                    chunk_df.to_sql(table, con=engine, if_exists=if_exist, index=create_index, index_label=index_table)
-                                    break
-                                if_exists = if_exist if is_first_chunk else 'append'
-                                chunk_df.to_sql(table, con=engine, if_exists=if_exists, index=create_index, index_label=index_table)
-                                is_first_chunk = False
-                        else:
-                            raise TypeError("Unsupported data type: {}".format(type(data)))
-            except Exception as e:
-                traceback.print_exc()
-                self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-                self.statusMessage = e.__str__()
-                return StatusNode.Error
-            finally:
-                if engine is not None:
-                    engine.dispose()
+            index_options = {'index': create_index, 'index_label': index_table}
+            return self._write(dataset, database, table, if_exist, index_options, sample)
         except ValueError as e:
-            traceback.print_exc()
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            self.statusMessage = e.__str__()
-            return StatusNode.Error
+            return self._fail(e)
+
+    def _write(self, dataset: MysqlDataset, database: str, table: str, if_exist: str, index_options: dict,
+               sample: bool) -> StatusNode:
+        """Write the connected input data into the table; the engine is always disposed of."""
+        engine = None
+        try:
+            # pandas only writes through SQLAlchemy: a raw mysql.connector connection is handled as SQLite
+            engine = create_engine(f"mysql+mysqlconnector://{dataset.user}:{dataset.password}@{dataset.host}/{database}")
+            for data in self._connected_data():
+                if isinstance(data, NodeDataPandasDf):
+                    df = self._input_dataframe(data, sample)
+                    # Write the DataFrame to the SQL database
+                    df.to_sql(table, con=engine, if_exists=if_exist, **index_options)
+                elif isinstance(data, NodeDataParquet):
+                    self._write_parquet(data.data, engine, table, if_exist, index_options, sample)
+                else:
+                    raise TypeError("Unsupported data type: {}".format(type(data)))
+        except Exception as e:
+            return self._fail(e)
+        finally:
+            if engine is not None:
+                engine.dispose()
         return StatusNode.Valid
-    
+
+    @staticmethod
+    def _write_parquet(path: str, engine, table: str, if_exist: str, index_options: dict, sample: bool) -> None:
+        """Write a parquet file by batches: ifExist applies to the first batch, the next ones are appended.
+
+        A sample only writes the first 20 rows.
+        """
+        chunk_size = 1000
+        parquet_file = pq.ParquetFile(path)
+        if_exists = if_exist
+        for batch in parquet_file.iter_batches(batch_size=chunk_size):
+            chunk_df = batch.to_pandas()
+            if sample:
+                chunk_df.head(20).to_sql(table, con=engine, if_exists=if_exists, **index_options)
+                break
+            chunk_df.to_sql(table, con=engine, if_exists=if_exists, **index_options)
+            if_exists = 'append'
+
     async def _retreiveDatabase(self) -> tuple[MysqlDataset, str, str, Literal['fail', 'replace', 'append']]:
         """Retrieve the database configuration.
 

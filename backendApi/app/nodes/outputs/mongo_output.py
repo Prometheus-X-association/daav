@@ -1,5 +1,4 @@
 import asyncio
-import traceback
 from typing import Literal, Optional, Any
 
 import pandas as pd
@@ -44,77 +43,64 @@ class MongoOutput(OutputNode):
         """
         try:
             dataset, database, collection, if_exist ,create_index,index_table = await self._retreiveDatabase()
-
-            client = None
-            try:
-                # Connect to the MongoDB database
-                client = MongoClient(dataset.uri)
-                db = client[database]
-
-                # Handle collection existence based on ifExist parameter
-                collection_exists = collection in db.list_collection_names()
-                if collection_exists:
-                    if if_exist == 'fail':
-                        raise ValueError(f"Collection '{collection}' already exists and ifExist is set to 'fail'")
-                    elif if_exist == 'replace':
-                        print(f"Dropping existing collection '{collection}' because ifExist is set to 'replace'")
-                        db.drop_collection(collection)
-                        print(f"Creating new collection '{collection}'")
-                        db.create_collection(collection)
-                    # For 'append', we don't need to do anything special
-                else:
-                    # Collection doesn't exist, create it
-                    print(f"Collection '{collection}' does not exist. Creating it now.")
-                    db.create_collection(collection)
-                    print(f"Collection '{collection}' created successfully.")
-                
-                col = db[collection]
-                
-                for input in self.inputs.values():
-                    if (input.get_connected_node()):
-                        data = input.get_node_data()
-                        if isinstance(data, NodeDataPandasDf):
-                            if (sample) :
-                                df = data.dataExample
-                            else:
-                                df = data.data
-                            if not isinstance(df, pd.DataFrame):
-                                raise ValueError("Input data is not a pandas DataFrame")
-                            for df_chunk in utils.slice_generator(df):
-                                records = df_chunk.to_dict(orient='records')
-                                col.insert_many(records)
-                        elif isinstance(data, NodeDataParquet):
-                            chunk_size = 1000 
-                            is_first_chunk = True
-                            parquet_file = pq.ParquetFile(data.data)
-
-                            for batch in parquet_file.iter_batches(batch_size=chunk_size):
-                                df_chunk = batch.to_pandas()
-                                if sample and is_first_chunk:
-                                    records = df_chunk.to_dict(orient='records')
-                                    col.insert_many(records)
-                                    break
-                                if_exists = if_exist if is_first_chunk else 'append'
-                                records = df_chunk.to_dict(orient='records')
-                                col.insert_many(records)
-                                is_first_chunk = False
-                        else:
-                            raise TypeError("Unsupported data type: {}".format(type(data)))
-            except Exception as e:
-                traceback.print_exc()
-                self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-                self.statusMessage = e.__str__()
-                return StatusNode.Error
-            finally:
-                if client is not None:
-                    client.close()
+            return self._write(dataset, database, collection, if_exist, sample)
         except ValueError as e:
-            traceback.print_exc()
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            self.statusMessage = e.__str__()
-            return StatusNode.Error
+            return self._fail(e)
+
+    def _write(self, dataset: MongoDataset, database: str, collection: str, if_exist: str, sample: bool) -> StatusNode:
+        """Insert the connected input data into the collection; the client is always closed."""
+        client = None
+        try:
+            # Connect to the MongoDB database
+            client = MongoClient(dataset.uri)
+            col = self._prepare_collection(client[database], collection, if_exist)
+            for data in self._connected_data():
+                if isinstance(data, NodeDataPandasDf):
+                    self._insert_dataframe(col, self._input_dataframe(data, sample))
+                elif isinstance(data, NodeDataParquet):
+                    self._insert_parquet(col, data.data, sample)
+                else:
+                    raise TypeError("Unsupported data type: {}".format(type(data)))
+        except Exception as e:
+            return self._fail(e)
+        finally:
+            if client is not None:
+                client.close()
         return StatusNode.Valid
-    
+
+    @staticmethod
+    def _prepare_collection(db, collection: str, if_exist: str):
+        """Create, keep or recreate the collection according to the ifExist parameter, and return it."""
+        if collection not in db.list_collection_names():
+            # Collection doesn't exist, create it
+            print(f"Collection '{collection}' does not exist. Creating it now.")
+            db.create_collection(collection)
+            print(f"Collection '{collection}' created successfully.")
+        elif if_exist == 'fail':
+            raise ValueError(f"Collection '{collection}' already exists and ifExist is set to 'fail'")
+        elif if_exist == 'replace':
+            print(f"Dropping existing collection '{collection}' because ifExist is set to 'replace'")
+            db.drop_collection(collection)
+            print(f"Creating new collection '{collection}'")
+            db.create_collection(collection)
+        # For 'append', we don't need to do anything special
+        return db[collection]
+
+    @staticmethod
+    def _insert_dataframe(col, df: pd.DataFrame) -> None:
+        for df_chunk in utils.slice_generator(df):
+            col.insert_many(df_chunk.to_dict(orient='records'))
+
+    @staticmethod
+    def _insert_parquet(col, path: str, sample: bool) -> None:
+        """Insert a parquet file by batches; a sample only inserts the first batch."""
+        chunk_size = 1000
+        parquet_file = pq.ParquetFile(path)
+        for batch in parquet_file.iter_batches(batch_size=chunk_size):
+            col.insert_many(batch.to_pandas().to_dict(orient='records'))
+            if sample:
+                break
+
     async def _retreiveDatabase(self) -> tuple[MongoDataset, str, str, Literal['fail', 'replace', 'append']]:
         """Retrieve the database configuration.
 
