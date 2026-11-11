@@ -2,7 +2,7 @@
 Tests of the Prometheus-X routes (the HTTP calls to the PDC and the catalog are mocked).
 """
 import threading
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -80,3 +80,116 @@ async def test_pdc_input_with_invalid_json_body_is_kept_as_raw_data():
             await ptx.read_input(request, Mock(), Mock())
 
     assert decoded == [b"not json"]
+
+
+def thread_recorder(threads, return_value=None):
+    """Fake synchronous PDC service method recording the thread it runs in"""
+    def fake(*args, **kwargs):
+        threads.append(threading.current_thread())
+        return return_value
+    return fake
+
+
+def assert_off_event_loop(threads, expected_calls=1):
+    assert len(threads) == expected_calls
+    assert all(thread is not threading.current_thread() for thread in threads)
+
+
+PDC_CONFIG = {"catalogUri": "https://catalog/", "contractUri": "https://contract/", "endpoint": "https://pdc/"}
+
+
+@pytest.mark.asyncio
+async def test_update_data_resource_fetches_the_resource_outside_event_loop_thread():
+    """update_data_resource fetches the data resource from the catalog in a worker thread"""
+    threads = []
+    representation = Mock(id="representation-1")
+    representation.model_dump_json.return_value = "{}"
+    request = Mock()
+    request.json = AsyncMock(return_value={"dataResourceId": "resource-1", "newUrl": "https://new"})
+    client = AsyncMock()
+    client.put.return_value = http_response(json_data={"updated": True})
+    async_client = MagicMock()
+    async_client.return_value.__aenter__.return_value = client
+
+    with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=ptx_connection())), \
+         patch.object(ptx, "get_private_configuration", AsyncMock(return_value=PDC_CONFIG)), \
+         patch.object(ptx.pdc_service, "fetch_dataResource",
+                      side_effect=thread_recorder(threads, Mock(representation=representation))), \
+         patch.object(ptx.httpx, "AsyncClient", async_client):
+        result = await ptx.update_data_resource("connection-id", request, Mock(username="alice"), timeout_seconds=30)
+
+    assert result == {"response": {"updated": True}}
+    assert representation.url == "https://new"
+    assert_off_event_loop(threads)
+
+
+@pytest.mark.asyncio
+async def test_pdc_input_fetches_the_contract_outside_event_loop_thread():
+    """The PDC input endpoint fetches the contract and the provider name in worker threads"""
+    threads = []
+    request = Mock()
+    request.headers = {"Content-Type": "application/json"}
+    request.json = AsyncMock(return_value={"a": 1})
+    contract = Mock(id="contract-1")
+
+    with patch.object(ptx.user_service, "get_all_users", AsyncMock(return_value=[])), \
+         patch.object(ptx, "authenticate_m2m_credentials", return_value=[{"user": Mock(), "matched_credentials": []}]), \
+         patch.object(ptx.pdc_service, "fetch_contract", side_effect=thread_recorder(threads, contract)), \
+         patch.object(ptx.pdc_service, "get_provider_name_from_contract", side_effect=thread_recorder(threads, "provider")), \
+         patch.object(ptx, "serialize_data", side_effect=_StopAfterDecoding()):
+        with pytest.raises(_StopAfterDecoding):
+            await ptx.read_input(request, Mock(), Mock(x_ptx_contracturl="https://contract/contracts/1"))
+
+    assert_off_event_loop(threads, expected_calls=2)
+
+
+@pytest.mark.asyncio
+async def test_service_chain_fetches_the_ecosystem_outside_event_loop_thread():
+    """get_service_chain fetches the ecosystem of each contract in a worker thread"""
+    threads = []
+    ecosystem = Mock(orchestrator="participant-1", serviceChains=["chain-1"])
+
+    with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=ptx_connection())), \
+         patch.object(ptx, "get_private_configuration", AsyncMock(return_value=PDC_CONFIG)), \
+         patch.object(ptx, "get_participants_id_from_connection", AsyncMock(return_value=["participant-1"])), \
+         patch.object(ptx.requests, "get", return_value=http_response(json_data={"contracts": [{}]})), \
+         patch.object(ptx.PdcContract, "model_validate", return_value=Mock(id="contract-1", ecosystem="https://eco")), \
+         patch.object(ptx.pdc_service, "fetch_ecosystem", side_effect=thread_recorder(threads, ecosystem)):
+        result = await ptx.get_service_chain("connection-id", Mock(username="alice"), timeout_seconds=30)
+
+    assert result == [{"contract_id": "contract-1", "service_chains": ["chain-1"]}]
+    assert_off_event_loop(threads)
+
+
+@pytest.mark.asyncio
+async def test_bilateral_contracts_fetch_the_provider_outside_event_loop_thread():
+    """get_billateral_contract fetches the provider name and image of each contract in a worker thread"""
+    threads = []
+    contract = Mock()
+
+    with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=ptx_connection())), \
+         patch.object(ptx, "get_private_configuration", AsyncMock(return_value=PDC_CONFIG)), \
+         patch.object(ptx, "get_participants_id_from_connection", AsyncMock(return_value=["participant-1"])), \
+         patch.object(ptx.requests, "get", return_value=http_response(json_data={"contracts": [{}]})), \
+         patch.object(ptx.PdcContractBilateral, "model_validate", return_value=contract), \
+         patch.object(ptx.pdc_service, "get_provider_name_and_img_from_contract",
+                      side_effect=thread_recorder(threads, {"name": "Provider", "img": "logo.png"})):
+        result = await ptx.get_billateral_contract("connection-id", Mock(username="alice"), timeout_seconds=30)
+
+    assert result["contracts"] == [contract]
+    assert (contract.name, contract.img) == ("Provider", "logo.png")
+    assert_off_event_loop(threads)
+
+
+@pytest.mark.asyncio
+async def test_service_offering_is_fetched_outside_event_loop_thread():
+    threads = []
+    offering = Mock()
+
+    with patch.object(ptx, "get_private_configuration", AsyncMock(return_value=PDC_CONFIG)), \
+         patch.object(ptx.pdc_service, "fetch_service_offering", side_effect=thread_recorder(threads, offering)) as fetch:
+        result = await ptx.get_serviceoffering_by_id("offering-1", ptx_connection())
+
+    assert result is offering
+    fetch.assert_called_once_with("https://catalog/catalog/serviceofferings/offering-1")
+    assert_off_event_loop(threads)

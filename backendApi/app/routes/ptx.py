@@ -133,7 +133,7 @@ async def update_data_resource(
         }
 
         data_resource_url = f"{config.get('catalogUri')}dataresources/{data_resources_id}"
-        data_resources = pdc_service.fetch_dataResource(data_resource_url, headers, timeout=timeout)
+        data_resources = await asyncio.to_thread(pdc_service.fetch_dataResource, data_resource_url, headers, timeout=timeout)
         representation = data_resources.representation
         representation.url = new_url
 
@@ -304,8 +304,8 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
     #print(f"Received data: {data}")
     
     # Fetch PDC Contract and extract provider name using the service
-    pdc_contract = pdc_service.fetch_contract(headers.x_ptx_contracturl)
-    provider_name = pdc_service.get_provider_name_from_contract(pdc_contract)
+    pdc_contract = await asyncio.to_thread(pdc_service.fetch_contract, headers.x_ptx_contracturl)
+    provider_name = await asyncio.to_thread(pdc_service.get_provider_name_from_contract, pdc_contract)
     print(f"Provider name: {provider_name}")
     
     serialized_data = serialize_data(data, file_format)
@@ -572,7 +572,7 @@ async def get_service_chain(
             for contract in contracts_data.get("contracts"):
                 try:
                     contract = PdcContract.model_validate(contract)
-                    ecosystem = pdc_service.fetch_ecosystem(contract.ecosystem, timeout=timeout) if contract.ecosystem else None
+                    ecosystem = await asyncio.to_thread(pdc_service.fetch_ecosystem, contract.ecosystem, timeout=timeout) if contract.ecosystem else None
                     if participant_id == ecosystem.orchestrator	: 
                         result.append({
                             "contract_id": contract.id,
@@ -891,7 +891,7 @@ async def get_billateral_contract(
             for contract in contracts_data.get("contracts"):
                 try:
                     contract = PdcContractBilateral.model_validate(contract)
-                    contract_info = pdc_service.get_provider_name_and_img_from_contract(contract)
+                    contract_info = await asyncio.to_thread(pdc_service.get_provider_name_and_img_from_contract, contract)
                     contract.name = contract_info.get("name") if contract_info.get("name") else "Unknown"
                     contract.img = contract_info.get("img") if contract_info.get("img") else ""
                     all_bilateral_contracts.append(contract)
@@ -1033,7 +1033,7 @@ async def get_private_configuration(connection):
 async def get_serviceoffering_by_id(id: str, connection):
     conf = await get_private_configuration(connection)
     url = conf["catalogUri"] + "catalog/serviceofferings/" + id
-    return pdc_service.fetch_service_offering(url)
+    return await asyncio.to_thread(pdc_service.fetch_service_offering, url)
 
 def serialize_data(data, file_format):
     if file_format == "json":

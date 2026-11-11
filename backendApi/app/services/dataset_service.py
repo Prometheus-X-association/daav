@@ -1,5 +1,6 @@
 # dataset_service.py
 
+import asyncio
 from contextvars import ContextVar
 import os
 import json
@@ -241,7 +242,7 @@ class DatasetService(metaclass=SingletonMeta):
                 connection = self._process_file_dataset(connection)
             elif isinstance(connection, PTXDataset):
                 logger.debug(f"Processing PTX dataset: {connection.name}")
-                connection = self._process_ptx_dataset(connection)
+                connection = await asyncio.to_thread(self._process_ptx_dataset, connection)
             
             # Save dataset first
             await connection.insert()
@@ -461,7 +462,7 @@ class DatasetService(metaclass=SingletonMeta):
 
             if isinstance(dataset, PTXDataset):
                 if dataset.service_key and dataset.secret_key:
-                    dataset = self._process_ptx_dataset(dataset)
+                    dataset = await asyncio.to_thread(self._process_ptx_dataset, dataset)
 
             dataset.updated_at = datetime.now(timezone.utc)
             await dataset.replace()
