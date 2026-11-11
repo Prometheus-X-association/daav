@@ -4,6 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { ToastController, LoadingController, AlertController, IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircle, alertCircleOutline, arrowBackOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, mailOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -36,7 +37,7 @@ export class ResetPasswordPage implements OnInit {
 
     if (!this.token) {
       this.tokenValid = false;
-      this.showInvalidTokenAlert();
+      this.showInvalidTokenAlert().catch(error => console.error('Failed to show the invalid link alert:', error));
       return;
     }
 
@@ -110,51 +111,50 @@ export class ResetPasswordPage implements OnInit {
 
     this.loading = true;
 
-    this.authService.resetPassword(this.token, password).subscribe({
-      next: async (response) => {
-        await loading.dismiss();
-        this.loading = false;
+    const failure = await firstValueFrom(this.authService.resetPassword(this.token, password))
+      .then(() => null, (error: Error) => error);
 
-        const alert = await this.alertController.create({
-          header: 'Success!',
-          message: 'Your password has been reset successfully. You can now log in with your new password.',
-          buttons: [
-            {
-              text: 'Go to Login',
-              handler: () => {
-                this.router.navigate(['/login']);
-              }
-            }
-          ]
-        });
-        await alert.present();
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
+    await loading.dismiss();
+    this.loading = false;
 
-        let message = 'Failed to reset password. Please try again.';
+    if (failure) {
+      let message = 'Failed to reset password. Please try again.';
 
-        if (error.message) {
-          message = error.message;
-        }
-
-        // Check if token is expired or invalid
-        if (error.message?.toLowerCase().includes('expired') ||
-            error.message?.toLowerCase().includes('invalid')) {
-          this.tokenValid = false;
-          message += ' Please request a new password reset link.';
-        }
-
-        const toast = await this.toastController.create({
-          message,
-          duration: 5000,
-          color: 'danger',
-          position: 'top'
-        });
-        await toast.present();
+      if (failure.message) {
+        message = failure.message;
       }
+
+      // Check if token is expired or invalid
+      if (failure.message?.toLowerCase().includes('expired') ||
+          failure.message?.toLowerCase().includes('invalid')) {
+        this.tokenValid = false;
+        message += ' Please request a new password reset link.';
+      }
+
+      const toast = await this.toastController.create({
+        message,
+        duration: 5000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+      return;
+    }
+
+    const alert = await this.alertController.create({
+      header: 'Success!',
+      message: 'Your password has been reset successfully. You can now log in with your new password.',
+      buttons: [
+        {
+          text: 'Go to Login',
+          handler: () => {
+            this.router.navigate(['/login'])
+              .catch(error => console.error('Failed to navigate to the login page:', error));
+          }
+        }
+      ]
     });
+    await alert.present();
   }
 
   /**
@@ -168,7 +168,8 @@ export class ResetPasswordPage implements OnInit {
         {
           text: 'Go to Forgot Password',
           handler: () => {
-            this.router.navigate(['/forgot-password']);
+            this.router.navigate(['/forgot-password'])
+              .catch(error => console.error('Failed to navigate to the forgot password page:', error));
           }
         }
       ]

@@ -4,6 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { ToastController, LoadingController, IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, lockOpenOutline, logOutOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 /**
@@ -114,37 +115,38 @@ export class ChangePasswordPage implements OnInit {
 
     this.loading = true;
 
-    this.authService.changePassword(currentPassword, newPassword).subscribe({
-      next: async () => {
-        // Reload user to clear the pending password change and load user data
-        await this.authService.loadCurrentUser();
+    const failure = await firstValueFrom(this.authService.changePassword(currentPassword, newPassword))
+      .then(() => null, (error: Error) => error);
 
-        await loading.dismiss();
-        this.loading = false;
+    if (failure) {
+      await loading.dismiss();
+      this.loading = false;
 
-        const toast = await this.toastController.create({
-          message: 'Password changed successfully',
-          duration: 3000,
-          color: 'success',
-          position: 'top'
-        });
-        await toast.present();
+      const toast = await this.toastController.create({
+        message: failure.message || 'Failed to change password',
+        duration: 5000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+      return;
+    }
 
-        this.router.navigateByUrl(this.returnUrl, { replaceUrl: true });
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
+    // Reload user to clear the pending password change and load user data
+    await this.authService.loadCurrentUser();
 
-        const toast = await this.toastController.create({
-          message: error.message || 'Failed to change password',
-          duration: 5000,
-          color: 'danger',
-          position: 'top'
-        });
-        await toast.present();
-      }
+    await loading.dismiss();
+    this.loading = false;
+
+    const toast = await this.toastController.create({
+      message: 'Password changed successfully',
+      duration: 3000,
+      color: 'success',
+      position: 'top'
     });
+    await toast.present();
+
+    await this.router.navigateByUrl(this.returnUrl, { replaceUrl: true });
   }
 
   /**

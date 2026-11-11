@@ -4,6 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { ToastController, LoadingController, IonButton, IonCheckbox, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, lockClosed, lockClosedOutline, personOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -58,35 +59,34 @@ export class LoginPage implements OnInit {
 
     this.loading = true;
 
-    this.authService.login(username, password, rememberMe).subscribe({
-      next: async (token) => {
-        await loading.dismiss();
-        this.loading = false;
+    // Settles once the session is saved and the current user loaded
+    const failure = await firstValueFrom(this.authService.login(username, password, rememberMe))
+      .then(() => null, (error: Error) => error);
 
-        const toast = await this.toastController.create({
-          message: 'Login successful!',
-          duration: 2000,
-          color: 'success',
-          position: 'top'
-        });
-        await toast.present();
+    await loading.dismiss();
+    this.loading = false;
 
-        // Redirect to return URL or home
-        this.router.navigateByUrl(this.returnUrl);
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
+    if (failure) {
+      const toast = await this.toastController.create({
+        message: failure.message || 'Invalid username or password',
+        duration: 3000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+      return;
+    }
 
-        const toast = await this.toastController.create({
-          message: error.message || 'Invalid username or password',
-          duration: 3000,
-          color: 'danger',
-          position: 'top'
-        });
-        await toast.present();
-      }
+    const toast = await this.toastController.create({
+      message: 'Login successful!',
+      duration: 2000,
+      color: 'success',
+      position: 'top'
     });
+    await toast.present();
+
+    // Redirect to return URL or home
+    await this.router.navigateByUrl(this.returnUrl);
   }
 
   /**

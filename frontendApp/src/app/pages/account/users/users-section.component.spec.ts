@@ -85,6 +85,50 @@ describe('UsersSectionComponent', () => {
     expect(authServiceSpy.getAllUsers).toHaveBeenCalled();
   }));
 
+  it('should reload the users and log the error when the confirmation toast cannot be shown', fakeAsync(() => {
+    const failure = new Error('No toast');
+    toastControllerSpy.create.and.callFake(() => Promise.reject(failure));
+    const consoleError = spyOn(console, 'error');
+    authServiceSpy.getAllUsers.calls.reset();
+
+    component.deleteUser(users[1]);
+    flush();
+    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    (options.buttons as any[]).find(button => button.role === 'destructive').handler();
+    flush();
+
+    expect(authServiceSpy.getAllUsers).toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith('Failed to show toast:', failure);
+  }));
+
+  it('should keep the password dialog open and warn when the passwords differ', fakeAsync(() => {
+    component.changeUserPassword(users[1]);
+    flush();
+    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const change = (options.buttons as any[]).find(button => button.text === 'Change');
+
+    expect(change.handler({ newPassword: '12345678', confirmPassword: 'other' })).toBeFalse();
+    flush();
+
+    expect(authServiceSpy.updateUser).not.toHaveBeenCalled();
+    expect(toastControllerSpy.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: 'Passwords do not match', color: 'warning' }));
+  }));
+
+  it('should report a failed password change', fakeAsync(() => {
+    authServiceSpy.updateUser.and.returnValue(throwError(() => new Error('forbidden')));
+
+    component.changeUserPassword(users[1]);
+    flush();
+    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const change = (options.buttons as any[]).find(button => button.text === 'Change');
+
+    expect(change.handler({ newPassword: '12345678', confirmPassword: '12345678' })).toBeTrue();
+    flush();
+
+    expect(authServiceSpy.updateUser).toHaveBeenCalledWith('user-2', { password: '12345678' });
+    expect(toastControllerSpy.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: 'Failed to change password: forbidden', color: 'danger' }));
+  }));
+
   it('should navigate to the register page to create a user', () => {
     component.createNewUser();
 

@@ -112,7 +112,7 @@ export class AccountPage implements OnInit {
           text: 'Logout',
           role: 'destructive',
           handler: () => {
-            this.authService.logout();
+            this.authService.logout().catch(error => console.error('Logout failed:', error));
           }
         }
       ]

@@ -17,6 +17,7 @@ describe('AccountPage', () => {
   beforeEach(waitForAsync(() => {
     currentUser$ = new BehaviorSubject<User | null>({ id: 'user-1', username: 'jdoe', full_name: 'John Doe', role: 'user' } as any);
     authServiceSpy = jasmine.createSpyObj('AuthService', ['logout'], { currentUser$ });
+    authServiceSpy.logout.and.returnValue(Promise.resolve());
 
     const alert = { present: jasmine.createSpy('present') } as any;
     alertControllerSpy = jasmine.createSpyObj('AlertController', ['create']);
@@ -62,5 +63,18 @@ describe('AccountPage', () => {
     (options.buttons as any[]).find(button => button.role === 'destructive').handler();
 
     expect(authServiceSpy.logout).toHaveBeenCalled();
+  });
+
+  it('should log a failed logout instead of leaving the rejection unhandled', async () => {
+    const failure = new Error('Storage unavailable');
+    authServiceSpy.logout.and.callFake(() => Promise.reject(failure));
+    const consoleError = spyOn(console, 'error');
+
+    await component.onLogout();
+    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    (options.buttons as any[]).find(button => button.role === 'destructive').handler();
+    await fixture.whenStable();
+
+    expect(consoleError).toHaveBeenCalledWith('Logout failed:', failure);
   });
 });

@@ -7,6 +7,7 @@ import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 import { formatAccountDate } from '../account-utils';
 import { UpperCasePipe } from '@angular/common';
+import { Observable } from 'rxjs';
 
 /**
  * Account page section: user management (Admin only)
@@ -57,9 +58,9 @@ export class UsersSectionComponent implements OnInit {
         this.allUsers = users;
         this.loadingUsers = false;
       },
-      error: async (error) => {
+      error: (error) => {
         this.loadingUsers = false;
-        await this.showToast('Failed to load users: ' + error.message, 'danger');
+        void this.showToast('Failed to load users: ' + error.message, 'danger');
       }
     });
   }
@@ -87,15 +88,11 @@ export class UsersSectionComponent implements OnInit {
           text: 'Deactivate',
           role: 'destructive',
           handler: (data) => {
-            this.authService.deactivateUser(user.id, data.reason).subscribe({
-              next: async () => {
-                await this.showToast(`User ${user.username} deactivated successfully`, 'success');
-                this.loadAllUsers();
-              },
-              error: async (error) => {
-                await this.showToast('Failed to deactivate user: ' + error.message, 'danger');
-              }
-            });
+            this.runUserAction(
+              this.authService.deactivateUser(user.id, data.reason),
+              `User ${user.username} deactivated successfully`,
+              'Failed to deactivate user: '
+            );
           }
         }
       ]
@@ -119,15 +116,11 @@ export class UsersSectionComponent implements OnInit {
         {
           text: 'Activate',
           handler: () => {
-            this.authService.activateUser(user.id).subscribe({
-              next: async () => {
-                await this.showToast(`User ${user.username} activated successfully`, 'success');
-                this.loadAllUsers();
-              },
-              error: async (error) => {
-                await this.showToast('Failed to activate user: ' + error.message, 'danger');
-              }
-            });
+            this.runUserAction(
+              this.authService.activateUser(user.id),
+              `User ${user.username} activated successfully`,
+              'Failed to activate user: '
+            );
           }
         }
       ]
@@ -152,15 +145,11 @@ export class UsersSectionComponent implements OnInit {
           text: 'Delete',
           role: 'destructive',
           handler: () => {
-            this.authService.deleteUser(user.id).subscribe({
-              next: async () => {
-                await this.showToast(`User ${user.username} deleted successfully`, 'success');
-                this.loadAllUsers();
-              },
-              error: async (error) => {
-                await this.showToast('Failed to delete user: ' + error.message, 'danger');
-              }
-            });
+            this.runUserAction(
+              this.authService.deleteUser(user.id),
+              `User ${user.username} deleted successfully`,
+              'Failed to delete user: '
+            );
           }
         }
       ]
@@ -200,23 +189,21 @@ export class UsersSectionComponent implements OnInit {
           text: 'Change',
           handler: (data) => {
             if (!data.newPassword || data.newPassword.length < 8) {
-              this.showToast('Password must be at least 8 characters', 'warning');
+              void this.showToast('Password must be at least 8 characters', 'warning');
               return false;
             }
             if (data.newPassword !== data.confirmPassword) {
-              this.showToast('Passwords do not match', 'warning');
+              void this.showToast('Passwords do not match', 'warning');
               return false;
             }
 
             // Use updateUser to change password via PUT /auth/users/{id}
-            this.authService.updateUser(user.id, { password: data.newPassword }).subscribe({
-              next: async () => {
-                await this.showToast(`Password changed successfully for ${user.username}`, 'success');
-              },
-              error: async (error) => {
-                await this.showToast('Failed to change password: ' + error.message, 'danger');
-              }
-            });
+            this.runUserAction(
+              this.authService.updateUser(user.id, { password: data.newPassword }),
+              `Password changed successfully for ${user.username}`,
+              'Failed to change password: ',
+              false
+            );
             return true;
           }
         }
@@ -227,6 +214,23 @@ export class UsersSectionComponent implements OnInit {
   }
 
   /**
+   * Run an action on a user and report its result, then reload the users if requested
+   */
+  private runUserAction(action: Observable<unknown>, successMessage: string, errorPrefix: string, reloadUsers = true) {
+    action.subscribe({
+      next: () => {
+        void this.showToast(successMessage, 'success');
+        if (reloadUsers) {
+          this.loadAllUsers();
+        }
+      },
+      error: (error) => {
+        void this.showToast(errorPrefix + error.message, 'danger');
+      }
+    });
+  }
+
+  /**
    * Navigate to create user (register page)
    */
   createNewUser() {
@@ -234,15 +238,19 @@ export class UsersSectionComponent implements OnInit {
   }
 
   /**
-   * Show toast message
+   * Show toast message, a failure is only logged (the toasts are not awaited)
    */
   private async showToast(message: string, color: string = 'primary') {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      color,
-      position: 'top'
-    });
-    await toast.present();
+    try {
+      const toast = await this.toastController.create({
+        message,
+        duration: 3000,
+        color,
+        position: 'top'
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('Failed to show toast:', error);
+    }
   }
 }

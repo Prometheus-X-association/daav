@@ -132,7 +132,8 @@ export class AuthService {
     }
 
     // Navigate to login page
-    this.router.navigate(['/login'], { replaceUrl: true });
+    this.router.navigate(['/login'], { replaceUrl: true })
+      .catch(error => console.error('Failed to navigate to the login page:', error));
   }
 
   /**
@@ -309,9 +310,9 @@ export class AuthService {
     }
 
     // Check every minute if token needs refresh
-    this.tokenRefreshIntervalId = setInterval(async () => {
+    this.tokenRefreshIntervalId = setInterval(() => {
       if (this.tokenService.shouldRefreshToken()) {
-        await this.refreshToken();
+        this.refreshToken().catch(error => console.error('Scheduled token refresh failed:', error));
       }
     }, 60000); // 1 minute
   }

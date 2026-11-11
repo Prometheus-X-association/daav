@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } 
 import { AlertController, LoadingController, ToastController, IonButton, IonIcon, IonInput, IonInputPasswordToggle } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { addOutline, checkmarkOutline, closeOutline, createOutline, keyOutline, trashOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 
@@ -185,22 +186,19 @@ export class CredentialsSectionComponent implements OnInit {
     this.loading = true;
 
     // PUT /auth/me updates the current user and refreshes it in the AuthService
-    return new Promise(resolve => {
-      this.authService.updateProfile({ config: { ...this.user!.config, credentials } }).subscribe({
-        next: async () => {
-          await loading.dismiss();
-          this.loading = false;
-          await this.showToast(successMessage, 'success');
-          resolve(true);
-        },
-        error: async (error) => {
-          await loading.dismiss();
-          this.loading = false;
-          await this.showToast(`${errorMessage}: ${error.message}`, 'danger');
-          resolve(false);
-        }
-      });
-    });
+    const failure = await firstValueFrom(this.authService.updateProfile({ config: { ...this.user!.config, credentials } }))
+      .then(() => null, (error: Error) => error);
+
+    await loading.dismiss();
+    this.loading = false;
+
+    if (failure) {
+      await this.showToast(`${errorMessage}: ${failure.message}`, 'danger');
+      return false;
+    }
+
+    await this.showToast(successMessage, 'success');
+    return true;
   }
 
   /**

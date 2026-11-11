@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { ToastController, LoadingController, IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, atOutline, checkmarkCircle, closeCircle, lockClosedOutline, mailOutline, personAdd, personOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -57,9 +58,15 @@ export class RegisterPage implements OnInit {
     });
   }
 
-  async ngOnInit() {
-    // try to restore session this page is not protected by a guard and not try to load user automatically
-    // because some restriction (e.g. .env config) can need admin user to create account we need to restore user.
+  ngOnInit() {
+    this.restoreSession().catch(error => console.error('Failed to restore the session:', error));
+  }
+
+  /**
+   * Try to restore the session: this page is not protected by a guard and does not load the user automatically,
+   * but some restrictions (e.g. .env config) can require an admin user to create an account.
+   */
+  private async restoreSession(): Promise<void> {
     const hasTokens = await this.authService.isAuthenticated();
     if (hasTokens && !this.authService.currentUserValue) {
       await this.authService.loadCurrentUser();
@@ -121,40 +128,37 @@ export class RegisterPage implements OnInit {
 
     this.loading = true;
 
-    this.authService.register({
+    const failure = await firstValueFrom(this.authService.register({
       username,
       email,
       full_name: `${firstName} ${lastName}`,
       password
-    }).subscribe({
-      next: async (response) => {
-        await loading.dismiss();
-        this.loading = false;
+    })).then(() => null, (error: Error) => error);
 
-        const toast = await this.toastController.create({
-          message: 'Account created successfully! Please check your email to activate your account.',
-          duration: 5000,
-          color: 'success',
-          position: 'top'
-        });
-        await toast.present();
+    await loading.dismiss();
+    this.loading = false;
 
-        // Redirect to login page
-        this.router.navigate(['/login']);
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
+    if (failure) {
+      const toast = await this.toastController.create({
+        message: failure.message || 'Registration failed. Please try again.',
+        duration: 3000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+      return;
+    }
 
-        const toast = await this.toastController.create({
-          message: error.message || 'Registration failed. Please try again.',
-          duration: 3000,
-          color: 'danger',
-          position: 'top'
-        });
-        await toast.present();
-      }
+    const toast = await this.toastController.create({
+      message: 'Account created successfully! Please check your email to activate your account.',
+      duration: 5000,
+      color: 'success',
+      position: 'top'
     });
+    await toast.present();
+
+    // Redirect to login page
+    await this.router.navigate(['/login']);
   }
 
   /**

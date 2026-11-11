@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { ToastController, LoadingController, IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, arrowBackOutline, checkmarkCircle, informationCircleOutline, mailOutline, mailUnread, refreshOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -51,33 +52,32 @@ export class ForgotPasswordPage implements OnInit {
 
     this.loading = true;
 
-    this.authService.forgotPassword(email).subscribe({
-      next: async (response) => {
-        await loading.dismiss();
-        this.loading = false;
-        this.emailSent = true;
+    const failure = await firstValueFrom(this.authService.forgotPassword(email))
+      .then(() => null, (error: Error) => error);
 
-        const toast = await this.toastController.create({
-          message: 'Password reset instructions have been sent to your email.',
-          duration: 5000,
-          color: 'success',
-          position: 'top'
-        });
-        await toast.present();
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
+    await loading.dismiss();
+    this.loading = false;
 
-        const toast = await this.toastController.create({
-          message: error.message || 'Failed to send reset email. Please try again.',
-          duration: 3000,
-          color: 'danger',
-          position: 'top'
-        });
-        await toast.present();
-      }
+    if (failure) {
+      const toast = await this.toastController.create({
+        message: failure.message || 'Failed to send reset email. Please try again.',
+        duration: 3000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+      return;
+    }
+
+    this.emailSent = true;
+
+    const toast = await this.toastController.create({
+      message: 'Password reset instructions have been sent to your email.',
+      duration: 5000,
+      color: 'success',
+      position: 'top'
     });
+    await toast.present();
   }
 
   /**
@@ -90,9 +90,9 @@ export class ForgotPasswordPage implements OnInit {
   /**
    * Resend email
    */
-  resendEmail() {
+  async resendEmail() {
     this.emailSent = false;
-    this.onSubmit();
+    await this.onSubmit();
   }
 
   /**

@@ -66,10 +66,10 @@ export class ProfileSectionComponent implements OnInit {
           role: 'destructive',
           handler: (data) => {
             if (data.confirmation === 'DEACTIVATE') {
-              this.deactivateAccount();
+              this.deactivateAccount().catch(error => console.error('Failed to deactivate the account:', error));
               return true;
             } else {
-              this.showToast('Please type "DEACTIVATE" to confirm', 'warning');
+              void this.showToast('Please type "DEACTIVATE" to confirm', 'warning');
               return false;
             }
           }
@@ -90,23 +90,27 @@ export class ProfileSectionComponent implements OnInit {
     await loading.present();
 
     // TODO: Implement deactivation API call
-    setTimeout(async () => {
-      await loading.dismiss();
-      this.showToast('Account deactivated successfully', 'success');
-      this.authService.logout();
-    }, 1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    await loading.dismiss();
+    void this.showToast('Account deactivated successfully', 'success');
+    await this.authService.logout();
   }
 
   /**
-   * Show toast message
+   * Show toast message, a failure is only logged (the toasts are not awaited)
    */
   private async showToast(message: string, color: string = 'primary') {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      color,
-      position: 'top'
-    });
-    await toast.present();
+    try {
+      const toast = await this.toastController.create({
+        message,
+        duration: 3000,
+        color,
+        position: 'top'
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('Failed to show toast:', error);
+    }
   }
 }

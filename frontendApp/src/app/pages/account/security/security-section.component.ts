@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LoadingController, ToastController, IonButton, IonInput, IonInputPasswordToggle, IonSpinner } from '@ionic/angular/standalone';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 
 /**
@@ -55,19 +56,19 @@ export class SecuritySectionComponent implements OnInit {
 
     this.loading = true;
 
-    this.authService.changePassword(currentPassword, newPassword).subscribe({
-      next: async () => {
-        await loading.dismiss();
-        this.loading = false;
-        this.changePasswordForm.reset();
-        await this.showToast('Password changed successfully', 'success');
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
-        await this.showToast(error.message || 'Failed to change password', 'danger');
-      }
-    });
+    const failure = await firstValueFrom(this.authService.changePassword(currentPassword, newPassword))
+      .then(() => null, (error: Error) => error);
+
+    await loading.dismiss();
+    this.loading = false;
+
+    if (failure) {
+      await this.showToast(failure.message || 'Failed to change password', 'danger');
+      return;
+    }
+
+    this.changePasswordForm.reset();
+    await this.showToast('Password changed successfully', 'success');
   }
 
   /**
