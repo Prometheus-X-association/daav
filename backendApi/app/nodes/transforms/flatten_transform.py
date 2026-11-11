@@ -40,7 +40,7 @@ class FlattenTransform(TransformNode):
             parquet_save = self._retreiveColumnsMapping()
             
             if parquet_save:
-                raise ValueError(f"Parquet output no supported actually for flatten transform")
+                raise ValueError("Parquet output no supported actually for flatten transform")
 
             source_df = self.inputs['datasource'].get_node_data()
 
@@ -56,7 +56,7 @@ class FlattenTransform(TransformNode):
                     table = pq.read_table(source_df.data).to_pandas()
                 data_records = table.to_dict(orient='records')
             else:
-                raise ValueError(f"Input data is not a handled format")
+                raise ValueError("Input data is not a handled format")
 
             # Flattend data : remove nested structures with '.' separator for nested keys
             flatten_df = pd.json_normalize(data_records, sep='_')

@@ -54,7 +54,7 @@ class DataMysqlBlock(InputNode):
                 print(f"Connected to MySQL database {database} on {table}")
                 if not parquet_save:
                     if sample:
-                        query += f" LIMIT 20"
+                        query += " LIMIT 20"
                         result_data_frame = pd.read_sql_query(query, mydb)
                     else:
                         result_data_frame = pd.read_sql_query(query, mydb)

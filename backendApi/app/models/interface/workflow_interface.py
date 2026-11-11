@@ -37,7 +37,6 @@ class NodeControl(BaseModel):
     id: str
     readonly: bool
     value: Any
-    __type: Any    
 
 class INode(BaseModel):
     id: str

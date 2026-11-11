@@ -69,7 +69,7 @@ async def migrate_resource_ownership():
         # Save admin user with updated owned resources
         await admin.save()
         
-        logger.info(f"✅ Migration completed successfully!")
+        logger.info("✅ Migration completed successfully!")
         logger.info(f"   - Datasets assigned to admin: {datasets_updated}")
         logger.info(f"   - Workflows assigned to admin: {workflows_updated}")
         

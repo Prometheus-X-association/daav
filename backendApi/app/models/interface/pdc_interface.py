@@ -313,8 +313,8 @@ class Representation(BaseModel):
     method: str
     credential: str
     queryParams: List[Any] = []
-    input: Input = None
-    output: Output = None
+    input: Optional[Input] = None
+    output: Optional[Output] = None
     processingTime: str = ""
     createdAt: datetime
     updatedAt: datetime
@@ -375,9 +375,8 @@ class PdcDataResource(BaseModel):
     entries: int = 0
     subCategories: List[Any] = []
     schema_version: str = ""
-    b2cDescription: Union[str, List[B2CDescription]]  = None
+    b2cDescription: Optional[Union[str, List[B2CDescription]]]  = None
     createdAt: datetime 
     updatedAt: datetime 
-    __v: int = 0
     representation: Optional[Representation] = None
     apiResponseRepresentation: Optional[Representation] = None

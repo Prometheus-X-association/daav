@@ -120,13 +120,13 @@ class ExecutionContext:
         
         return {
             "user": {
-                "id": str(user.id) if user else None,
-                "username": user.username if user else None,
-                "role": user.role.value if user else None
+                "id": str(user.id),
+                "username": user.username,
+                "role": user.role.value
             } if user else None,
             "workflow": {
-                "id": workflow.id if workflow else None,
-                "name": workflow.name if workflow else None,
-                "revision": workflow.revision if workflow else None
+                "id": workflow.id,
+                "name": workflow.name,
+                "revision": workflow.revision
             } if workflow else None
         }

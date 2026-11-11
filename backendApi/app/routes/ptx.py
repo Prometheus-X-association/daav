@@ -8,7 +8,7 @@ import time
 import traceback
 from typing import List
 from fastapi import APIRouter, BackgroundTasks, Header, status, Request, Response , HTTPException, Query
-from app.models.interface.dataset_interface import *
+from app.models.interface.dataset_interface import Dataset, FileDataset, PTXDataset
 import requests
 import logging
 import httpx
@@ -238,10 +238,10 @@ async def execute_chain_service(
     for auth_user_data in authenticated_users:
         user_obj = auth_user_data['user']
         # Check if user owns or has access to the workflow
-        if hasattr(user_obj, 'owned_workflows') and workflow_id in getattr(user_obj, 'owned_workflows', []):
-            background_tasks.add_task(import_and_execute_workflow, workflow_data, current_user=user_obj)
-            executed_users.append(user_obj.username)
-        elif hasattr(user_obj, 'accessible_workflows') and workflow_id in getattr(user_obj, 'accessible_workflows', []):
+        if (
+            (hasattr(user_obj, 'owned_workflows') and workflow_id in getattr(user_obj, 'owned_workflows', []))
+            or (hasattr(user_obj, 'accessible_workflows') and workflow_id in getattr(user_obj, 'accessible_workflows', []))
+        ):
             background_tasks.add_task(import_and_execute_workflow, workflow_data, current_user=user_obj)
             executed_users.append(user_obj.username)
 
@@ -485,14 +485,14 @@ async def get_use_case_contract(
                         contract = PdcContract.model_validate(contract)
                         
                         # Fetch ecosystem
-                        ecosystem = await pdc_service.fetch_ecosystem_async(client, contract.ecosystem, timeout=timeout) if contract.ecosystem else None
+                        ecosystem = await pdc_service.fetch_ecosystem_async(client, contract.ecosystem) if contract.ecosystem else None
                         
                         if participant_id == ecosystem.orchestrator:
                             contract.name = ecosystem.name
                             
                             # Fetch orchestrator
                             if contract.orchestrator:
-                                orchestrator = await pdc_service.fetch_participant_async(client, contract.orchestrator, timeout=timeout)
+                                orchestrator = await pdc_service.fetch_participant_async(client, contract.orchestrator)
                                 contract.logo = orchestrator.get("logo", "") if orchestrator else ""
                             
                             all_use_case_contracts.append(contract)
@@ -516,7 +516,7 @@ async def get_use_case_contract(
                                     has_data_provider_role):
                                     for service in participant.offerings:
                                         url = f"{catalog_uri}catalog/serviceofferings/{service.serviceOffering}"
-                                        data_provider_tasks.append(pdc_service.fetch_service_offering_async(client, url, timeout=timeout))
+                                        data_provider_tasks.append(pdc_service.fetch_service_offering_async(client, url))
 
                             data_provider_services = await asyncio.gather(*data_provider_tasks)
                             contract.dataProviders.extend([
@@ -530,7 +530,7 @@ async def get_use_case_contract(
                                 if participant_id == participant.participant:
                                     for service in participant.offerings:
                                         url = f"{catalog_uri}catalog/serviceofferings/{service.serviceOffering}"
-                                        purpose_tasks.append(pdc_service.fetch_service_offering_async(client, url, timeout=timeout))
+                                        purpose_tasks.append(pdc_service.fetch_service_offering_async(client, url))
 
                             purpose_services = await asyncio.gather(*purpose_tasks)
                             contract.purposes.extend([

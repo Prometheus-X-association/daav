@@ -65,7 +65,7 @@ class ApiOutput(OutputNode):
         Returns:
             StatusNode: The status of the node after processing
         """
-        name, url, token = self._retreiveEndpointConfig()
+        _, url, _ = self._retreiveEndpointConfig()
         file_path: str = self.get_output_file_path()
         
         try:

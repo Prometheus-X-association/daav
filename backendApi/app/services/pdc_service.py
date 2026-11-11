@@ -102,7 +102,7 @@ class PdcService(metaclass=SingletonMeta):
             return ecosystem.name
         return None
     
-    def get_provider_name_and_img_from_contract(self, contract: PdcContractBilateral) -> Optional[str]:
+    def get_provider_name_and_img_from_contract(self, contract: PdcContractBilateral) -> Optional[Dict[str, Any]]:
         """Extract provider name from PDC contract following priority order"""
         if contract.purpose and len(contract.purpose) > 0:
             service_offering = self.fetch_service_offering(contract.purpose[0]['purpose'])
@@ -156,25 +156,25 @@ class PdcService(metaclass=SingletonMeta):
         await document.delete()
         return True
 
-    async def fetch_service_offering_async(self, client: httpx.AsyncClient, url: str, timeout: Optional[int] = None):
-        """Fetch service offering asynchronously"""
-        response = await client.get(url, timeout=timeout if timeout is not None else self.timeout)
+    async def fetch_service_offering_async(self, client: httpx.AsyncClient, url: str):
+        """Fetch service offering asynchronously (with the timeout of the client)"""
+        response = await client.get(url)
         if response.status_code == 200:
             data = response.json()
             return PdcServiceOffering.model_validate(data)
         return None
 
-    async def fetch_ecosystem_async(self, client: httpx.AsyncClient, url: str, timeout: Optional[int] = None):
-        """Fetch ecosystem asynchronously"""
-        response = await client.get(url, timeout=timeout if timeout is not None else self.timeout)
+    async def fetch_ecosystem_async(self, client: httpx.AsyncClient, url: str):
+        """Fetch ecosystem asynchronously (with the timeout of the client)"""
+        response = await client.get(url)
         if response.status_code == 200:
             data = response.json()
             return PdcEcosystem.model_validate(data)
         return None
 
-    async def fetch_participant_async(self, client: httpx.AsyncClient, url: str, timeout: Optional[int] = None):
-        """Fetch participant asynchronously"""
-        response = await client.get(url, timeout=timeout if timeout is not None else self.timeout)
+    async def fetch_participant_async(self, client: httpx.AsyncClient, url: str):
+        """Fetch participant asynchronously (with the timeout of the client)"""
+        response = await client.get(url)
         if response.status_code == 200:
             return response.json()
         return None

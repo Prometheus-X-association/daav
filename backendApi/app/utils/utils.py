@@ -165,7 +165,7 @@ def normalize_dtype_string(dtype) -> str:
     return dtype_str
 
 
-def convert_size(size: str) -> str:
+def convert_size(size: int) -> str:
     import math
 
     if size == 0:
@@ -303,9 +303,9 @@ def folder(folder: str, pagination: Pagination = None) -> FileContentResponse | 
                                     'content': content
                                 }
                                 donnees.append(data)
-                    except (OSError, PermissionError) as e:
+                    except OSError as e:
                         print(f"Access error to {entry.path}: {e}")
-        except (OSError, PermissionError) as e:
+        except OSError as e:
             print(f"Access error to folder {folder_path}: {e}")
     
     # Use the folder (already security validated)
@@ -472,10 +472,10 @@ def slice_generator(df, chunk_size=1000):
 
 
 def decode_dictionary(dictionary):
-    if type(dictionary) == dict:
+    if isinstance(dictionary, dict):
         for key in dictionary.keys():
             dictionary[key] = decode_dictionary(dictionary[key])
-    elif type(dictionary) == bytes:
+    elif isinstance(dictionary, bytes):
         dictionary = dictionary.decode('ISO-8859-1') 
     return dictionary
 
@@ -514,7 +514,7 @@ def resolve_file_name(filename: str, expected_ext: str) -> str:
         
         return final_filename
 
-def filter_data_with_duckdb(filepath: str, select: Optional[str] = None, where: Optional[str] = None, params: Optional[str] = None) -> dict:
+def filter_data_with_duckdb(filepath: str, select: Optional[str] = None, where: Optional[str] = None, params: Optional[str] = None) -> Union[list, dict]:
     """
     Filter JSON data using DuckDB with optional SELECT and WHERE clauses
     

@@ -391,7 +391,7 @@ def serialize_id(document: dict) -> dict:
     data = benedict(document, keypath_separator=None)
     key_list = []
     for key in rem_object_id(document):
-        if not key in key_list:
+        if key not in key_list:
             key_list.append(key)
 
     # get all ObjectId path 
@@ -403,8 +403,8 @@ def serialize_id(document: dict) -> dict:
             path = result[5:].split(' ')
  
             # transform numeric string into int for list index
-            for index, key in enumerate(path):
-                if key.isnumeric():
+            for index, part in enumerate(path):
+                if part.isnumeric():
                     path[index] = int(path[index])
 
             # convert ObjectId into str
@@ -598,7 +598,7 @@ from fastapi.responses import JSONResponse
 
 def to_row (dataset: dict, donnees: list):
     data = dataset
-    first_item = list(data)[0]
+    first_item = next(iter(data))
     item_len = len(data[first_item])
 
     for index, i in enumerate(range(0, item_len)):
@@ -683,7 +683,7 @@ def csv_file(file_path: str, csv_header: str, csv_delimiter: str) -> list:
             fichier.seek(0)
             column_name = []
             counter = 0
-            for x in range(len(column_count[0])):
+            for _ in range(len(column_count[0])):
                 counter += 1
                 column_name.append('None' + str(counter))
         else:
@@ -747,11 +747,11 @@ def get_file_content(connection: FileDataset, pagination: Pagination = None) -> 
 
             if connection.filePath.endswith('.json'):
                 data = json_file(connection.filePath)
-            elif connection.filePath.endswith('.csv') or connection.filePath.endswith('.tsv'):
+            elif connection.filePath.endswith(('.csv', '.tsv')):
                 data = csv_file(connection.filePath, connection.csvHeader, connection.csvDelimiter)
             elif connection.filePath.endswith(columnar_file):
                 data = col_file(connection.filePath)    
-            elif connection.filePath.endswith('.xls') or connection.filePath.endswith('.xlsx'):
+            elif connection.filePath.endswith(('.xls', '.xlsx')):
                 data = xls_file(connection.filePath)    
             elif connection.filePath.endswith('.avro'):
                 data = avro_file(connection.filePath)  

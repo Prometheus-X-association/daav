@@ -141,7 +141,7 @@ class MergeTransform(TransformNode):
                             row_group_sizes[dataset_id] = source_sizes[dataset_id]
 
                     else:
-                        raise Exception("Unkown input type")
+                        raise TypeError("Unkown input type")
         if source_sizes:
             total_rows = max(source_sizes.values())
 
@@ -185,7 +185,7 @@ class MergeTransform(TransformNode):
                             # Read just this batch from the parquet file
                             if current_position < (end_idx - start_idx):
                                 file_path = PathSecurityValidator.validate_file_path(source_data.data)
-                                parquet_file = pq.ParquetFile(source_data.data)
+                                parquet_file = pq.ParquetFile(file_path)
                                 start_row_group = start_idx // row_group_size
                                 end_row_group = (min(end_idx, source_sizes[dataset_id]) + row_group_size - 1) // row_group_size
                                 row_groups_to_read = list(range(start_row_group, end_row_group))
@@ -204,7 +204,7 @@ class MergeTransform(TransformNode):
                                     if end_in_slice > start_in_slice:
                                         column_slice = df_slice.iloc[start_in_slice:end_in_slice][column_name].reset_index(drop=True)
                         else:
-                            raise Exception("Unkown input type")
+                            raise TypeError("Unkown input type")
 
                         if column_slice is not None and len(column_slice) > 0:
                             slice_size = len(column_slice)

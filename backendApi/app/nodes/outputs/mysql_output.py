@@ -59,16 +59,6 @@ class MysqlOutput(OutputNode):
 
                             # Write the DataFrame to the SQL database
                             df.to_sql(table, con=mydb, if_exists=if_exist, index=create_index, index_label=index_table)
-
-                            '''# Export the SQL database to a file
-                            # Create an in-memory SQLite database
-                            df.to_sql(table, con=engine, if_exists=ifExist , index=createIndex, index_label=indexTable)
-                            with open('output.sql', 'w') as f:
-                                print('Exporting SQL database to output.sql')
-                                for line in engine.raw_connection().driver_connection.iterdump():
-                                    print('%s\n' % line)
-                                    f.write('%s\n' % line)
-                            break'''
                         elif isinstance(data, NodeDataParquet):
                             chunk_size = 1000 
                             is_first_chunk = True
@@ -83,12 +73,6 @@ class MysqlOutput(OutputNode):
                                 if_exists = if_exist if is_first_chunk else 'append'
                                 chunk_df.to_sql(table, con=engine, if_exists=if_exists, index=create_index, index_label=index_table)
                                 is_first_chunk = False
-                            '''with open('output.sql', 'w') as f:
-                                print('Exporting SQL database to output.sql')
-                                for line in engine.raw_connection().driver_connection.iterdump():
-                                    print('%s\n' % line)
-                                    f.write('%s\n' % line)
-                            break'''
                         else:
                             raise TypeError("Unsupported data type: {}".format(type(data)))
                 mydb.close()

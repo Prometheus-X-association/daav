@@ -94,11 +94,7 @@ class ServiceChainOutput(OutputNode):
                         headers = {
                             "Content-Type": "application/json"
                         }
-                        response = await asyncio.to_thread(requests.post, url, headers=headers, json=pdc_response.model_dump())
-
-                        # Print the response from the server
-                        #print(response.status_code)
-                        #print(response.json())
+                        await asyncio.to_thread(requests.post, url, headers=headers, json=pdc_response.model_dump())
         except Exception as e:
             traceback.print_exc()
             self.errorStackTrace = traceback.TracebackException.from_exception(e).format()

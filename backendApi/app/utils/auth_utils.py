@@ -201,7 +201,7 @@ def validate_password_strength(password: str) -> bool:
     return True
 
 
-def ensure_utc_aware(dt: datetime) -> datetime:
+def ensure_utc_aware(dt: Optional[datetime]) -> Optional[datetime]:
     """
     Ensure datetime is UTC timezone-aware.
     
@@ -213,7 +213,7 @@ def ensure_utc_aware(dt: datetime) -> datetime:
         dt: The datetime to convert
         
     Returns:
-        datetime: A timezone-aware datetime in UTC
+        datetime: A timezone-aware datetime in UTC (None if dt is None)
         
     Example:
         >>> naive_dt = datetime(2025, 1, 1, 12, 0, 0)

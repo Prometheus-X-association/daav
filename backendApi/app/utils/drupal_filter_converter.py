@@ -282,7 +282,7 @@ class DrupalFilterConverter:
             mapped_field = self.field_mapping[mapped_field]
         
         # Add table prefix if provided
-        if self.table_prefix and not '.' in mapped_field:
+        if self.table_prefix and '.' not in mapped_field:
             mapped_field = f"{self.table_prefix}.{mapped_field}"
 
         # Quote each identifier part: the path comes from the query string

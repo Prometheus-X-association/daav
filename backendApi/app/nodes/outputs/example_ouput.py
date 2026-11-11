@@ -26,7 +26,7 @@ class ExampleOutput(OutputNode):
         for input in self.inputs.values():
 
             if (input.get_connected_node()):
-                print(f"inside input port")
+                print("inside input port")
                 data = input.get_node_data()
                 if isinstance(data, NodeDataPandasDf):
                     df = data.data

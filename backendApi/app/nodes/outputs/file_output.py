@@ -216,7 +216,7 @@ class FileOutput(OutputNode):
         if dataset_id:
             try:  
                 dataset: FileDataset = await self.datasetService.get_dataset(dataset_id)
-            except Exception as e:
+            except Exception:
                 dataset= None
         delimiter = self.data.get('delimiter')['value'] if self.data.get('delimiter') and self.data.get('delimiter').get('value') else ','
         encoding = self.data.get('encoding')['value'] if self.data.get('encoding') and self.data.get('encoding').get('value') else 'utf-8'
