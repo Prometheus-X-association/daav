@@ -14,12 +14,8 @@ ion-list {
     .options-container {
         display: none;
     }
-    // Actions are revealed on hover and on keyboard focus
-    &:hover>.dataset-name,
-    &:focus-within>.dataset-name {
-      width : 70%! important;
-    }
-
+    // Actions are revealed on hover and on keyboard focus: the dataset button gives up only
+    // the width of the action columns (it takes the remaining space, see .dataset-name)
     &:hover>.iconsContainer,
     &:focus-within>.iconsContainer {
         display: flex;
@@ -56,7 +52,8 @@ ion-list {
     font-weight: 650;
     --background-hover: transparent;
     --background-hover-opacity: 1;
-    width: 100%;
+    flex: 1 1 0;
+    min-width: 0;
     margin: 0px;
     height: 100%;
 
@@ -121,17 +118,13 @@ ion-list {
 
 // Change and delete icons ---------------------------------------------------------
 .iconsContainer {
-    margin-left: auto;
+    // Fixed width: a share of the row would spread the icons apart and squeeze the dataset
+    // columns in the full width list
+    flex: 0 0 48px;
     height: 100%;
     display: none;
     cursor: pointer;
     transition: var(--custom-transition);
-    width: 10%;
-    max-width: 80px;
-
-    &:last-of-type {
-        //padding-right: 15px;
-    }
 
     &:hover,
     &:focus-within {

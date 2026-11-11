@@ -61,6 +61,27 @@ describe('DatasetsComponent', () => {
     }
   });
 
+  it('should keep the action icons side by side at the end of the row in the full width list', async () => {
+    component.width = 'large';
+    (component.datasetService as any).datasetsSignal.set([{ id: '1', name: 'Dataset 1', type: 'mysql', host: 'localhost', database: 'db', table: 't' } as unknown as Dataset]);
+    fixture.nativeElement.style.display = 'block';
+    fixture.nativeElement.style.width = '1600px';
+    fixture.detectChanges();
+
+    const containers: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.iconsContainer'));
+    containers.forEach((container) => container.style.display = 'flex');
+    await fixture.whenStable();
+
+    // The dataset button only gives up the width of the action columns, so its columns barely move
+    const datasetButton: HTMLElement = fixture.nativeElement.querySelector('.dataset-name');
+    const [edit, remove] = containers.map((container) => container.getBoundingClientRect());
+    expect(edit.width).toBe(48);
+    expect(remove.width).toBe(48);
+    expect(edit.left).toBe(datasetButton.getBoundingClientRect().right);
+    expect(remove.left).toBe(edit.right);
+    expect(datasetButton.getBoundingClientRect().width).toBe(1600 - 2 * 48);
+  });
+
   it('should open modal and set editDataset', () => {
     component.datasetModal = { modal: { isOpen: false } } as any;
     const dataset = { id: '1', name: 'Dataset 1' } as Dataset;
