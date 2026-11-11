@@ -241,7 +241,18 @@ class TestFolder:
 
 class TestGeneratePandasSchema:
     """Test cases for generate_pandas_schema function"""
-    
+
+    @pytest.mark.parametrize("df, dtypes", [
+        (pd.DataFrame(columns=["a", "b"]), ["str", "str"]),
+        (pd.DataFrame({"a": pd.Series([], dtype="int64"), "b": pd.Series([], dtype="float64")}), ["int", "float"]),
+    ])
+    def test_empty_dataframe_keeps_its_columns(self, df, dtypes):
+        """A table or a file without any row still has a schema (it used to raise an IndexError)"""
+        schema = generate_pandas_schema(df)
+        assert [(c.name, c.dtype, c.count, c.nested) for c in schema.root] == [
+            ("a", dtypes[0], 0, []), ("b", dtypes[1], 0, []),
+        ]
+
     @pytest.fixture
     def sample_dataframe(self):
         """Sample DataFrame for testing"""

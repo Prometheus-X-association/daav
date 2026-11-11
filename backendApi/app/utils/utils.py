@@ -353,7 +353,8 @@ def generate_pandas_schema(data: pd.DataFrame | pd.Series | dict) -> PandasSchem
             if isinstance(data[column], (pd.Series, pd.DataFrame, dict)):
                 nested_schema = generate_pandas_schema(data[column])
                 col_schema.nested = nested_schema.root
-                if isinstance(data[column], pd.Series) and isinstance(data[column].index, pd.RangeIndex) and data.index.start == 0 :
+                # An empty column has no item to take the type from: keep the column dtype
+                if nested_schema.root and isinstance(data[column], pd.Series) and isinstance(data[column].index, pd.RangeIndex) and data.index.start == 0 :
                     col_schema.dtype = nested_schema.root[0].dtype
                     col_schema.count = data[column].size
                     if(nested_schema.root[0].name == "#array_item#"):
