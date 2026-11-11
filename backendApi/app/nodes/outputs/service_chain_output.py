@@ -69,10 +69,14 @@ class ServiceChainOutput(OutputNode):
 
                     elif isinstance(data, NodeDataParquet):
                         # transform parquet file to JSON using duckdb directly
-                        parquet_file_path = data.dataExample if sample else data.data
+                        # A parquet node data only carries its file: a sample is its first 20 rows
+                        parquet_file_path = data.data
                         conn = duckdb.connect()
                         query = f"SELECT * FROM read_parquet('{parquet_file_path}')"
-                        result = conn.sql(query).fetchall()
+                        if sample:
+                            query += " LIMIT 20"
+                        # execute() fills conn.description with the column names, sql() does not
+                        result = conn.execute(query).fetchall()
                         columns = [desc[0] for desc in conn.description]
                         conn.close()
 
