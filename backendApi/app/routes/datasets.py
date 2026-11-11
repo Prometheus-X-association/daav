@@ -669,129 +669,154 @@ def xml_file(file: str) -> list:
         donnees.append(row)
     return donnees
 
+def _detect_delimiter(fichier, file_path: str, csv_delimiter: str) -> str:
+    """Delimiter of a CSV file: detected from the first line when empty, a tab for a .tsv file."""
+    if csv_delimiter == '':
+        from detect_delimiter import detect
+        return detect(fichier.readline(), default=",")
+    if file_path.endswith('.tsv'):
+        return "\t"
+    return csv_delimiter
+
+
+def _default_column_names(fichier, delimiter: str) -> list:
+    """Column names None1, None2... of a CSV file without header, from its first row."""
+    import csv
+    rows = list(csv.reader(fichier, delimiter=delimiter))
+    return ['None' + str(counter) for counter in range(1, len(rows[0]) + 1)]
+
+
+def _parse_scalar(value):
+    """Convert a CSV value to an int, then a float, then a boolean; otherwise keep the string."""
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        pass
+    # Booleans (true, false, True, False, etc.)
+    if value.lower() == 'true':
+        return True
+    if value.lower() == 'false':
+        return False
+    return value
+
+
 #lecture du fichier csv
 def csv_file(file_path: str, csv_header: str, csv_delimiter: str) -> list:
     import csv
-    from detect_delimiter import detect
     with open(file_path, mode='r', encoding='utf-8') as fichier:
-        # detect csv delimiter
-        if csv_delimiter == '':                                                
-            delimiter = detect(fichier.readline(), default=",")
-        elif file_path.endswith('.tsv'):
-            delimiter = "\t"
-        else:
-            delimiter = csv_delimiter                
+        delimiter = _detect_delimiter(fichier, file_path, csv_delimiter)
         fichier.seek(0)
 
-        if csv_header == "false":
-            column_count = list(csv.reader(fichier, delimiter=delimiter))
-            fichier.seek(0)
-            column_name = []
-            counter = 0
-            for _ in range(len(column_count[0])):
-                counter += 1
-                column_name.append('None' + str(counter))
-        else:
-            column_name = None
-
         # add header if not present
+        column_name = None
+        if csv_header == "false":
+            column_name = _default_column_names(fichier, delimiter)
+            fichier.seek(0)
+
         donnees = []
-        line_count = 0
-        reader = csv.DictReader(fichier, delimiter=delimiter, fieldnames=column_name, restval=(0))    
-        for row in reader:
+        reader = csv.DictReader(fichier, delimiter=delimiter, fieldnames=column_name, restval=(0))
+        for line_count, row in enumerate(reader):
             if line_count >= 100:
                 break
-            parsed_row = {}
-            for key, value in row.items():
-                try:
-                    # Essayer de convertir en int, puis en float, sinon garder la chaîne                                       
-                    parsed_row[key] = int(value)
-                except ValueError:
-                    try:
-                        parsed_row[key] = float(value)
-                    except ValueError:
-                        # Gérer les booléens (true, false, True, False, etc.)
-                        if value.lower() == 'true':
-                            parsed_row[key] = True
-                        elif value.lower() == 'false':
-                            parsed_row[key] = False
-                        else:
-                            # Si ce n'est pas un nombre, un float ou un booléen, gardez la chaîne
-                            parsed_row[key] = value
-            donnees.append(parsed_row)
-            line_count += 1
+            donnees.append({key: _parse_scalar(value) for key, value in row.items()})
     return donnees
+
+
+def _read_text_rows(file_path: str) -> list:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return [{"text": f.read()}]
+
+
+# Readers of get_file_content by file extension, checked in order
+# (lambdas, so that the readers are looked up when they are called)
+FILE_READERS = (
+    ('.json', lambda connection: json_file(connection.filePath)),
+    (('.csv', '.tsv'), lambda connection: csv_file(connection.filePath, connection.csvHeader, connection.csvDelimiter)),
+    (('.parquet', '.feather', '.orc'), lambda connection: col_file(connection.filePath)),
+    (('.xls', '.xlsx'), lambda connection: xls_file(connection.filePath)),
+    ('.avro', lambda connection: avro_file(connection.filePath)),
+    ('.xml', lambda connection: xml_file(connection.filePath)),
+    ('.txt', lambda connection: _read_text_rows(connection.filePath)),
+)
+
+# Media files returned in base64 by get_file_content (extension in any case)
+MEDIA_EXTENSIONS = (
+    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg',
+    '.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma',
+    '.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v'
+)
+
+
+def _read_media(file_path: str) -> list:
+    """A media file in base64 with its metadata; 413 above the maximum file size."""
+    import mimetypes
+    stats = os.stat(file_path)
+    max_size = settings.max_file_size
+    if stats.st_size > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Media file too large: {stats.st_size} bytes (max: {max_size})"
+        )
+    with open(file_path, "rb") as media_file:
+        encoded = base64.b64encode(media_file.read()).decode('utf-8')
+    mime_type, _ = mimetypes.guess_type(file_path)
+    return [{
+        "media": encoded,
+        "file": os.path.basename(file_path),
+        "mime_type": mime_type or "application/octet-stream",
+        "size": stats.st_size,
+        "path": file_path
+    }]
+
+
+def _check_folder(folder_path: str) -> None:
+    if not os.path.exists(folder_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Folder not found: {folder_path}")
+    if not os.path.isdir(folder_path):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a directory: {folder_path}")
+
+
+def _check_file(connection: FileDataset) -> None:
+    """Check that the file path is allowed and is an existing file."""
+    validated_file_path = PathSecurityValidator.validate_file_path(connection.filePath)
+    # Get allowed directories list (including dynamic upload_dir)
+    allowed_base_dirs = SecurityConfig.get_allowed_base_directories()
+    if not FileAccessController.can_read_file(validated_file_path, allowed_base_dirs):
+        raise PermissionError(f"Access denied to directory: {validated_file_path}")
+    if not connection.filePath:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File path is required")
+    if not os.path.exists(connection.filePath):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {connection.filePath}")
+    if not os.path.isfile(connection.filePath):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a file: {connection.filePath}")
+
+
+def _read_file_rows(connection: FileDataset) -> list:
+    """Rows of a file, read according to its extension; 422 for an unsupported format."""
+    file_path = connection.filePath
+    for extensions, reader in FILE_READERS:
+        if file_path.endswith(extensions):
+            return reader(connection)
+    if file_path.lower().endswith(MEDIA_EXTENSIONS):
+        return _read_media(file_path)
+    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"File format not supported: {os.path.splitext(file_path)[1]}")
 
 
 def get_file_content(connection: FileDataset, pagination: Pagination = None) -> FileContentResponse:
     try:
-        data = []
-        columnar_file = ('.parquet', '.feather', '.orc')
-
-        if connection.folder and connection.folder != None:
-            if not os.path.exists(connection.folder):
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Folder not found: {connection.folder}")
-            if not os.path.isdir(connection.folder):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a directory: {connection.folder}")
-            data = folder(connection.folder,pagination)
+        if connection.folder:
+            _check_folder(connection.folder)
+            data = folder(connection.folder, pagination)
             if isinstance(data, FileContentResponse):
                 return data
         else:
-            validated_file_path = PathSecurityValidator.validate_file_path(connection.filePath)
-             # Get allowed directories list (including dynamic upload_dir)
-            allowed_base_dirs = SecurityConfig.get_allowed_base_directories()
-            if not FileAccessController.can_read_file(validated_file_path, allowed_base_dirs):
-                raise PermissionError(f"Access denied to directory: {validated_file_path}")
-            if not connection.filePath:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File path is required")
-            if not os.path.exists(connection.filePath):
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {connection.filePath}")
-            
-            if not os.path.isfile(connection.filePath):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a file: {connection.filePath}")
+            _check_file(connection)
+            data = _read_file_rows(connection)
 
-            if connection.filePath.endswith('.json'):
-                data = json_file(connection.filePath)
-            elif connection.filePath.endswith(('.csv', '.tsv')):
-                data = csv_file(connection.filePath, connection.csvHeader, connection.csvDelimiter)
-            elif connection.filePath.endswith(columnar_file):
-                data = col_file(connection.filePath)    
-            elif connection.filePath.endswith(('.xls', '.xlsx')):
-                data = xls_file(connection.filePath)    
-            elif connection.filePath.endswith('.avro'):
-                data = avro_file(connection.filePath)  
-            elif connection.filePath.endswith('.xml'):
-                data = xml_file(connection.filePath)
-            elif connection.filePath.endswith('.txt'):
-                with open(connection.filePath, 'r', encoding='utf-8') as f:
-                    data = [{"text": f.read()}]    
-            elif any(connection.filePath.lower().endswith(ext) for ext in [
-                '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg',
-                '.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma',
-                '.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v'
-            ]):
-                import mimetypes
-                import base64
-                stats = os.stat(connection.filePath)
-                max_size = settings.max_file_size
-                if stats.st_size > max_size:
-                    raise HTTPException(
-                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                        detail=f"Media file too large: {stats.st_size} bytes (max: {max_size})"
-                    )
-                with open(connection.filePath, "rb") as media_file:
-                    encoded = base64.b64encode(media_file.read()).decode('utf-8')
-                mime_type, _ = mimetypes.guess_type(connection.filePath)
-                data = [{
-                    "media": encoded,
-                    "file": os.path.basename(connection.filePath),
-                    "mime_type": mime_type or "application/octet-stream",
-                    "size": stats.st_size,
-                    "path": connection.filePath
-                }]
-            else:
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"File format not supported: {os.path.splitext(connection.filePath)[1]}")
-        
         return FileContentResponse(
             data=data,
             total_rows=len(data),
@@ -799,9 +824,8 @@ def get_file_content(connection: FileDataset, pagination: Pagination = None) -> 
             current_page=(pagination.page * pagination.perPage) - pagination.perPage
         )
     except HTTPException:
-        import traceback
         traceback.print_exc()
-        raise    
+        raise
     except FileNotFoundError as err:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {err}")
     except NotADirectoryError as err:
@@ -811,7 +835,6 @@ def get_file_content(connection: FileDataset, pagination: Pagination = None) -> 
     except json.JSONDecodeError as err:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Can't read JSON file: {err}")
     except Exception as err:
-        import traceback
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {err}")
 

@@ -327,77 +327,75 @@ class DatasetService(metaclass=SingletonMeta):
     def _process_file_dataset(self, connection: FileDataset) -> FileDataset:
         """Process a file dataset to extract metadata"""
         try:
-            if connection.filePath:
-                # SECURITY: Validate file path before processing
-                try:
-                    validated_path = PathSecurityValidator.validate_file_path(connection.filePath)
-                    allowed_dirs = SecurityConfig.get_allowed_base_directories()
-                    if not FileAccessController.can_read_file(validated_path, allowed_dirs):
-                        logger.error(f"Access denied to file path: {connection.filePath}")
-                        raise HTTPException(status_code=403, detail="Access denied to file path")
-                    connection.filePath = validated_path
-                except Exception as e:
-                    logger.error(f"Security validation failed for file path {connection.filePath}: {e}")
-                    raise HTTPException(status_code=403, detail="Invalid or dangerous file path")
-                
-                if not os.path.exists(connection.filePath):
-                    logger.warning(f"File not found for dataset: {connection.name}")
-                    return connection
-
-                logger.debug(f"Processing file metadata for: {connection.filePath}")
-                stats = os.stat(connection.filePath)
-                file_size = stats.st_size
-                
-                logger.debug(f"File size: {file_size} bytes for {connection.filePath}")
-                
-                # Calculate column and row count by file type
-                column_count = "0"
-                row_count = "0"
-                
-                try:
-                    if connection.filePath.endswith('.csv'):
-                        df = pd.read_csv(connection.filePath, 
-                                       header=int(connection.csvHeader), 
-                                       delimiter=connection.csvDelimiter or ',')
-                        column_count = str(len(df.columns))
-                        row_count = str(len(df))
-                    elif connection.filePath.endswith('.json'):
-                        df = pd.read_json(connection.filePath)
-                        column_count = str(df.shape[1])
-                        row_count = str(df.shape[0])
-                    elif connection.filePath.endswith(('.xlsx', '.xls')):
-                        df = pd.read_excel(connection.filePath)
-                        column_count = str(df.shape[1])
-                        row_count = str(df.shape[0])
-                    elif connection.filePath.endswith('.parquet'):
-                        df = pd.read_parquet(connection.filePath)
-                        column_count = str(df.shape[1])
-                        row_count = str(df.shape[0])
-                    # Add more file types as needed
-                            
-                except Exception as e:
-                    logger.warning(f"Error processing file metadata: {e}")
-                
-                from app.models.interface.dataset_interface import DatasetMetadata
-                connection.metadata = DatasetMetadata(
-                    fileSize=str(convert_size(stats.st_size)),
-                    fileType=connection.filePath.rsplit('.', 1)[1] if '.' in connection.filePath else 'unknown',
-                    modifTime=str(datetime.fromtimestamp(stats.st_mtime, tz=timezone.utc)).rsplit('.', 1)[0],
-                    accessTime=str(datetime.fromtimestamp(stats.st_atime, tz=timezone.utc)).rsplit('.', 1)[0],
-                    columnCount=column_count,
-                    rowCount=row_count
-                )
-                
-                logger.info(f"Successfully processed file dataset metadata for: {connection.filePath}")
-            else:
+            if not connection.filePath:
                 logger.warning(f"File not found or path not specified for dataset: {connection.name}")
-                
+                return connection
+
+            # SECURITY: Validate file path before processing
+            connection.filePath = self._validated_readable_path(connection.filePath, "Invalid or dangerous file path")
+
+            if not os.path.exists(connection.filePath):
+                logger.warning(f"File not found for dataset: {connection.name}")
+                return connection
+
+            logger.debug(f"Processing file metadata for: {connection.filePath}")
+            stats = os.stat(connection.filePath)
+            logger.debug(f"File size: {stats.st_size} bytes for {connection.filePath}")
+
+            column_count, row_count = self._count_columns_rows(connection)
+
+            from app.models.interface.dataset_interface import DatasetMetadata
+            connection.metadata = DatasetMetadata(
+                fileSize=str(convert_size(stats.st_size)),
+                fileType=connection.filePath.rsplit('.', 1)[1] if '.' in connection.filePath else 'unknown',
+                modifTime=str(datetime.fromtimestamp(stats.st_mtime, tz=timezone.utc)).rsplit('.', 1)[0],
+                accessTime=str(datetime.fromtimestamp(stats.st_atime, tz=timezone.utc)).rsplit('.', 1)[0],
+                columnCount=column_count,
+                rowCount=row_count
+            )
+
+            logger.info(f"Successfully processed file dataset metadata for: {connection.filePath}")
+
         except HTTPException:
             raise
         except Exception as e:
             logger.error(f"Error processing file dataset {connection.name}: {e}", exc_info=True)
-        
+
         return connection
+
+    @staticmethod
+    def _validated_readable_path(path: str, error_detail: str) -> str:
+        """Validate a path and check that it is in an allowed directory; 403 with error_detail otherwise."""
+        try:
+            validated_path = PathSecurityValidator.validate_file_path(path)
+            allowed_dirs = SecurityConfig.get_allowed_base_directories()
+            if not FileAccessController.can_read_file(validated_path, allowed_dirs):
+                raise PermissionError(f"Access denied to path: {path}")
+            return validated_path
+        except Exception as e:
+            logger.error(f"Security validation failed for path {path}: {e}")
+            raise HTTPException(status_code=403, detail=error_detail)
+
+    # Readers of the file formats whose columns and rows are counted in the dataset metadata
+    _METADATA_READERS = (
+        ('.csv', lambda connection: pd.read_csv(connection.filePath,
+                                                header=int(connection.csvHeader),
+                                                delimiter=connection.csvDelimiter or ',')),
+        ('.json', lambda connection: pd.read_json(connection.filePath)),
+        (('.xlsx', '.xls'), lambda connection: pd.read_excel(connection.filePath)),
+        ('.parquet', lambda connection: pd.read_parquet(connection.filePath)),
+    )
+
+    def _count_columns_rows(self, connection: FileDataset) -> tuple:
+        """(column count, row count) of a file as strings; ("0", "0") for other formats or if it cannot be read."""
+        try:
+            for extensions, read in self._METADATA_READERS:
+                if connection.filePath.endswith(extensions):
+                    df = read(connection)
+                    return str(df.shape[1]), str(df.shape[0])
+        except Exception as e:
+            logger.warning(f"Error processing file metadata: {e}")
+        return "0", "0"
 
     def _process_ptx_dataset(self, connection: PTXDataset) -> PTXDataset:
         """Process a PTX dataset to get tokens"""
@@ -679,103 +677,22 @@ class DatasetService(metaclass=SingletonMeta):
         """Retrieve file dataset content"""
         try:
             logger.info(f"Reading file dataset: {dataset.name}")
-        
+
             path = dataset.folder if dataset.folder else dataset.filePath
             logger.debug(f"Path: {path}")
-            
+
             # SECURITY: Validate file path to prevent path traversal attacks
             if not path:
                 raise HTTPException(status_code=400, detail="File path is required")
-            
-            try:
-                validated_path = PathSecurityValidator.validate_file_path(path)
-                # Additional check: verify path is within allowed directories
-                allowed_dirs = SecurityConfig.get_allowed_base_directories()
-                if not FileAccessController.can_read_file(validated_path, allowed_dirs):
-                    raise HTTPException(status_code=403, detail=f"Access denied to path: {path}")
-                path = validated_path
-            except Exception as e:
-                logger.error(f"Security validation failed for path {path}: {e}")
-                raise HTTPException(status_code=403, detail="Access denied: Invalid or dangerous file path")
-                            
-            # Handle folder case
-            if dataset.folder and dataset.folder != None:
-                logger.debug("Processing folder dataset")
-                if not os.path.exists(dataset.folder):
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Folder not found: {dataset.folder}")
-                if not os.path.isdir(dataset.folder):
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a directory: {dataset.folder}")
-                data = folder(path, pagination)
-                if isinstance(data, list):
-                    df = pd.DataFrame(data)
-                else:
-                    df = pd.DataFrame(data.data)
+            path = self._validated_readable_path(path, "Access denied: Invalid or dangerous file path")
+
+            if dataset.folder:
+                df = self._read_folder_df(dataset.folder, path, pagination)
             else:
-                if not path or not os.path.exists(path):
-                    logger.error(f"File not found: {path}")
-                    raise HTTPException(status_code=404, detail="File not found")
-                # Handle file case
-                file_size = os.path.getsize(path)
-                logger.debug(f"File size: {file_size} bytes")
-                
-                # CSV has special pagination handling (read-time optimization)
-                if path.endswith('.csv'):
-                    logger.debug("Reading CSV file")
-                    if pagination and pagination.page and pagination.perPage:
-                        skiprows = (pagination.page - 1) * pagination.perPage
-                        logger.debug(f"CSV pagination: skiprows={skiprows}, nrows={pagination.perPage}")
-                        df = pd.read_csv(path, 
-                                        header=int(dataset.csvHeader) if dataset.csvHeader is not None else 0,
-                                        delimiter=dataset.csvDelimiter or ',',
-                                        skiprows=range(1, skiprows + 1) if skiprows > 0 else None,
-                                        nrows=pagination.perPage)
-                    else:
-                        df = pd.read_csv(path, 
-                                        header=int(dataset.csvHeader) if dataset.csvHeader is not None else 0,
-                                        delimiter=dataset.csvDelimiter or ',')
-                
-                # All other formats: read first, then paginate
-                elif path.endswith('.json'):
-                    logger.debug("Reading JSON file")
-                    df = pd.read_json(path)
-                elif path.endswith(('.xlsx', '.xls')):
-                    logger.debug("Reading Excel file")
-                    df = pd.read_excel(path)
-                elif path.endswith('.tsv'):
-                    logger.debug("Reading TSV file")
-                    df = pd.read_csv(path, header=int(dataset.csvHeader), sep='\t')
-                elif path.endswith('.parquet'):
-                    logger.debug("Reading Parquet file")
-                    df = pd.read_parquet(path)
-                elif path.endswith('.avro'):
-                    logger.debug("Reading Avro file")
-                    with open(path, 'rb') as fichier:
-                        df = pd.DataFrame(reader(fichier))
-                else:
-                    logger.error(f"Unsupported file format: {path}")
-                    raise HTTPException(status_code=400, detail="Unsupported file format")
-                
-                # Apply pagination for all non-CSV formats (post-read pagination)
-                if not path.endswith('.csv') and pagination:
-                    start_idx = (pagination.page - 1) * pagination.perPage
-                    end_idx = start_idx + pagination.perPage
-                    logger.debug(f"Post-read pagination: start={start_idx}, end={end_idx}")
-                    df = df.iloc[start_idx:end_idx]
-            
+                df = self._read_file_df(dataset, path, pagination)
+
             logger.info(f"Successfully read {len(df)} records from file: {path}")
-            
-            schema = generate_pandas_schema(df)
-            node_data = NodeDataPandasDf(
-                nodeSchema=schema,
-                name=dataset.name or os.path.basename(path)
-            )
-            
-            if pagination:
-                node_data.dataExample = df
-            else:
-                node_data.data = df
-                
-            return node_data
+            return self._to_node_data(df, dataset.name or os.path.basename(path), pagination)
         except HTTPException:
             raise
 
@@ -786,6 +703,85 @@ class DatasetService(metaclass=SingletonMeta):
         except Exception as e:
             logger.error(f"Unexpected error reading file dataset {dataset.name}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail="Internal server error")
+
+    @staticmethod
+    def _to_node_data(df: pd.DataFrame, name: str, pagination: Pagination = None,
+                      example: pd.DataFrame = None) -> NodeDataPandasDf:
+        """Node data of a DataFrame: its sample (example, by default the DataFrame) when paginated, else its data."""
+        node_data = NodeDataPandasDf(
+            nodeSchema=generate_pandas_schema(df),
+            name=name
+        )
+        if pagination:
+            node_data.dataExample = df if example is None else example
+        else:
+            node_data.data = df
+        return node_data
+
+    @staticmethod
+    def _read_folder_df(folder_path: str, validated_path: str, pagination: Pagination = None) -> pd.DataFrame:
+        logger.debug("Processing folder dataset")
+        if not os.path.exists(folder_path):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Folder not found: {folder_path}")
+        if not os.path.isdir(folder_path):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a directory: {folder_path}")
+        data = folder(validated_path, pagination)
+        return pd.DataFrame(data if isinstance(data, list) else data.data)
+
+    # Readers of the non-CSV file formats, read entirely then paginated
+    _DF_READERS = (
+        ('.json', lambda dataset, path: pd.read_json(path)),
+        (('.xlsx', '.xls'), lambda dataset, path: pd.read_excel(path)),
+        ('.tsv', lambda dataset, path: pd.read_csv(path, header=int(dataset.csvHeader), sep='\t')),
+        ('.parquet', lambda dataset, path: pd.read_parquet(path)),
+        ('.avro', lambda dataset, path: DatasetService._read_avro_df(path)),
+    )
+
+    @staticmethod
+    def _read_avro_df(path: str) -> pd.DataFrame:
+        with open(path, 'rb') as fichier:
+            return pd.DataFrame(reader(fichier))
+
+    def _read_file_df(self, dataset: FileDataset, path: str, pagination: Pagination = None) -> pd.DataFrame:
+        if not os.path.exists(path):
+            logger.error(f"File not found: {path}")
+            raise HTTPException(status_code=404, detail="File not found")
+        logger.debug(f"File size: {os.path.getsize(path)} bytes")
+
+        # CSV has special pagination handling (read-time optimization)
+        if path.endswith('.csv'):
+            return self._read_csv_df(dataset, path, pagination)
+
+        # All other formats: read first, then paginate
+        for extensions, read in self._DF_READERS:
+            if path.endswith(extensions):
+                return self._paginate_df(read(dataset, path), pagination)
+        logger.error(f"Unsupported file format: {path}")
+        raise HTTPException(status_code=400, detail="Unsupported file format")
+
+    @staticmethod
+    def _read_csv_df(dataset: FileDataset, path: str, pagination: Pagination = None) -> pd.DataFrame:
+        header = int(dataset.csvHeader) if dataset.csvHeader is not None else 0
+        delimiter = dataset.csvDelimiter or ','
+        if pagination and pagination.page and pagination.perPage:
+            skiprows = (pagination.page - 1) * pagination.perPage
+            logger.debug(f"CSV pagination: skiprows={skiprows}, nrows={pagination.perPage}")
+            return pd.read_csv(path,
+                               header=header,
+                               delimiter=delimiter,
+                               skiprows=range(1, skiprows + 1) if skiprows > 0 else None,
+                               nrows=pagination.perPage)
+        return pd.read_csv(path, header=header, delimiter=delimiter)
+
+    @staticmethod
+    def _paginate_df(df: pd.DataFrame, pagination: Pagination = None) -> pd.DataFrame:
+        """The rows of the requested page (all rows without pagination)."""
+        if not pagination:
+            return df
+        start_idx = (pagination.page - 1) * pagination.perPage
+        end_idx = start_idx + pagination.perPage
+        logger.debug(f"Post-read pagination: start={start_idx}, end={end_idx}")
+        return df.iloc[start_idx:end_idx]
 
     async def debug_database_connection(self):
         """Debug method to check database connection and collection"""
