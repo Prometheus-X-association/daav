@@ -84,14 +84,14 @@ describe('TransformationComponent', () => {
     expect(component.loadWorkflow.emit).toHaveBeenCalledWith(project);
   });
 
-  it('should copy text to clipboard and prevent default', async () => {
+  it('should copy text to clipboard and prevent default', () => {
     const writeSpy = spyOn(navigator.clipboard, 'writeText').and.returnValue(Promise.resolve());
     const event = {
       preventDefault: jasmine.createSpy('preventDefault'),
       stopPropagation: jasmine.createSpy('stopPropagation')
     } as any;
 
-    await component.copyToClipboard('text', event);
+    component.copyToClipboard('text', event);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(event.stopPropagation).toHaveBeenCalled();

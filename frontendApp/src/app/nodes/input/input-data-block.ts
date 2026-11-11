@@ -105,7 +105,7 @@ export class InputDataBlock<
     }
     this.selectControl = new SelectControl(
       selectDataSource,
-      this.dataSourceChange.bind(this)
+      this.onDataSourceSelected.bind(this)
     );
     this.addControl('dataSource', this.selectControl);
     this.area.update('control', this.selectControl.id);
@@ -168,8 +168,21 @@ export class InputDataBlock<
     return result.role === 'cancel' ? false : true;
   }
 
-  dataSourceChange(event: MatSelectChange): void {
+  /**
+   * Select callback: the select widget ignores the returned value, so a failure of an
+   * asynchronous dataSourceChange is logged here instead of being left unhandled.
+   */
+  private onDataSourceSelected(event: MatSelectChange): void {
+    Promise.resolve(this.dataSourceChange(event)).catch((error) => {
+      console.error('Data source change failed:', error);
+    });
+  }
 
+  /**
+   * Handles a data source selection. Subclasses override it, possibly asynchronously.
+   */
+  dataSourceChange(event: MatSelectChange): void | Promise<void> {
+    // No data source handling in the base block: implemented by the subclasses.
   }
 
   async confirmChangeSource(event: MatSelectChange): Promise<boolean> {

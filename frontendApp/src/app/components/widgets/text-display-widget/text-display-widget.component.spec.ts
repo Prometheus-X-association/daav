@@ -42,7 +42,7 @@ describe('TextDisplayWidgetComponent', () => {
     expect(component.data.copyToClipboard).not.toHaveBeenCalled();
   });
 
-  it('should use navigator.clipboard when copying text', async () => {
+  it('should use navigator.clipboard when copying text', () => {
     const event = jasmine.createSpyObj('event', ['preventDefault', 'stopPropagation']);
     const clipboard = { writeText: jasmine.createSpy('writeText').and.returnValue(Promise.resolve()) };
 
@@ -53,7 +53,7 @@ describe('TextDisplayWidgetComponent', () => {
     }
 
     component.data.copyable = true;
-    await component.data.copyToClipboard('abc', event as any);
+    component.data.copyToClipboard('abc', event as any);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(event.stopPropagation).toHaveBeenCalled();

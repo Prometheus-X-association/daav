@@ -100,4 +100,27 @@ describe('InputDataBlock', () => {
     expect(event.source.writeValue).toHaveBeenCalledWith('dataset-old');
     expect(block.selectControl.value).toBe('dataset-old');
   });
+
+  it('should call dataSourceChange from the select control callback', () => {
+    const block = new InputDataBlock('label', area);
+    const changeSpy = spyOn(block, 'dataSourceChange');
+    const event = { value: 'dataset-1' } as MatSelectChange;
+
+    block.selectControl.callback(event);
+
+    expect(changeSpy).toHaveBeenCalledWith(event);
+  });
+
+  it('should log an asynchronous dataSourceChange failure from the select control callback', async () => {
+    const block = new InputDataBlock('label', area);
+    const error = new Error('change failed');
+    spyOn(block, 'dataSourceChange').and.returnValue(Promise.reject(error));
+    const consoleSpy = spyOn(console, 'error');
+
+    block.selectControl.callback({ value: 'dataset-1' } as MatSelectChange);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleSpy).toHaveBeenCalledWith('Data source change failed:', error);
+  });
 });

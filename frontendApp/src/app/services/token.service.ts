@@ -16,20 +16,22 @@ export class TokenService {
   private accessToken: string | null = null;
   private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly REMEMBER_ME_KEY = 'remember_me';
-  private storageInitialized = false;
-
-  constructor() {
-    this.initStorage();
-  }
+  private storageReady: Promise<void> | null = null;
 
   /**
-   * Initialize Ionic Storage
+   * Initialize Ionic Storage on first use.
+   * The pending creation is shared, so concurrent callers create the storage only once,
+   * and a failed creation is retried on the next call.
    */
-  private async initStorage(): Promise<void> {
-    if (!this.storageInitialized) {
-      await this.storage.create();
-      this.storageInitialized = true;
-    }
+  private initStorage(): Promise<void> {
+    this.storageReady ??= this.storage.create().then(
+      () => undefined,
+      (error) => {
+        this.storageReady = null;
+        throw error;
+      }
+    );
+    return this.storageReady;
   }
 
   /**

@@ -139,7 +139,7 @@ export class AuthService {
    * Refresh access token
    */
   async refreshToken(): Promise<string | null> {
-    if (this.refreshTokenPromise) {
+    if (this.refreshTokenPromise !== null) {
       return this.refreshTokenPromise;
     }
 
