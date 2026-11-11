@@ -28,10 +28,11 @@ from app.models.interface.pdc_chain_interface import ServiceChainData
 from app.services.migration_service import MigrationService
 from app.services.reencryption_service import reencrypt_sensitive_fields
 from app.services.elastic_service import ElasticServiceError
+from app.services.mysql_service import MysqlServiceError
 from app.config.secret_keys import log_temporary_secrets
 from app.services.user_service import UserService
 
-from app.routes import datasets, elastic, workflows, ptx, output, api, auth
+from app.routes import datasets, elastic, mysql, workflows, ptx, output, api, auth
 from app.middleware.security import SecurityMiddleware
 
 @asynccontextmanager
@@ -183,10 +184,17 @@ async def elastic_exception_handler(request: Request, exc: ElasticServiceError) 
     logger.warning(f"Elasticsearch error on {request.url}: {exc}")
     return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
 
+@app.exception_handler(MysqlServiceError)
+async def mysql_exception_handler(request: Request, exc: MysqlServiceError) -> JSONResponse:
+    """MySQL dashboard errors (connection, credentials, unknown table...)"""
+    logger.warning(f"MySQL error on {request.url}: {exc}")
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
+
 # Include ALL routers
 app.include_router(auth.router)
 app.include_router(datasets.router)
 app.include_router(elastic.router)
+app.include_router(mysql.router)
 app.include_router(workflows.router)
 app.include_router(ptx.router)
 app.include_router(output.router)

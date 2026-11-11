@@ -1,0 +1,162 @@
+.mysql-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 16px 24px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 3px solid var(--darkPtx);
+  margin-bottom: 12px;
+
+  h3 {
+    margin: 8px 0;
+    color: var(--darkPtx);
+    font-size: 1.3em;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+}
+
+h4 {
+  margin: 20px 0 8px;
+  color: var(--darkPtx);
+  font-weight: 600;
+}
+
+.section-title .badge {
+  margin-right: auto;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  span:last-child {
+    overflow-wrap: anywhere;
+  }
+
+  .label {
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--grayText);
+  }
+}
+
+.subtitle {
+  margin: 12px 0 0;
+  color: var(--grayText);
+}
+
+.table-wrapper {
+  overflow: auto;
+  max-height: 420px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+
+  th {
+    position: sticky;
+    top: 0;
+    background: #f4f5f8;
+    text-align: left;
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 6px 8px;
+    border-top: 1px solid #eceef2;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .num {
+    text-align: right;
+  }
+
+  .mono {
+    font-family: monospace;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--grayText);
+  }
+}
+
+table.selectable tbody tr {
+  cursor: pointer;
+
+  .row-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &:hover { background: #f4f5f8; }
+  &.selected { background: #e3e8f4; }
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: #eceef2;
+  color: var(--darkPtx);
+  font-size: 0.8em;
+  font-weight: 600;
+
+  &.primary {
+    margin-left: 0;
+    background: var(--darkPtx);
+    color: #fff;
+  }
+}
+
+td > .badge:first-child {
+  margin-left: 0;
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 0.85em;
+  color: #555;
+}
+
+.error {
+  color: #d33c3c;
+  white-space: pre-wrap;
+}
