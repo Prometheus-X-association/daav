@@ -140,7 +140,7 @@ class PathSecurityValidator:
             resolved_full = resolved_path.resolve()
 
             # Verify the final path is within allowed directory
-            if not str(resolved_full).startswith(str(resolved_base)):
+            if not resolved_full.is_relative_to(resolved_base):
                 raise HTTPException(
                     status_code=403,
                     detail="Access outside base directory not allowed"
@@ -225,7 +225,7 @@ class FileAccessController:
             
             for allowed_dir in allowed_dirs:
                 allowed_resolved = Path(allowed_dir).resolve()
-                if str(resolved_path).startswith(str(allowed_resolved)):
+                if resolved_path.is_relative_to(allowed_resolved):
                     return True
                     
             return False

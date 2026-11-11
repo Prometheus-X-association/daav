@@ -149,11 +149,13 @@ class DrupalFilterConverter:
         conditions_by_group = {}
         root_conditions = []
         for label, filter_data in filters.items():
-            if 'group' in filter_data:
+            # Only a dict can declare a group or a condition: a shortcut value is a plain string
+            is_dict = isinstance(filter_data, dict)
+            if is_dict and 'group' in filter_data:
                 groups[label] = filter_data['group']
                 # Keep the conditions already collected: a group may be declared after its members
                 conditions_by_group.setdefault(label, [])
-            elif 'condition' in filter_data:
+            elif is_dict and 'condition' in filter_data:
                 condition_data = filter_data['condition']
                 member_of = condition_data.get('memberOf')
                 if member_of:

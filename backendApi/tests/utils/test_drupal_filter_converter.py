@@ -236,3 +236,13 @@ class TestConvertFiltersToWhere:
         assert where == ('"age" > ? AND "r2" = ? AND ("name" = ? OR "name" IN (?, ?))'
                          ' AND ("age" BETWEEN ? AND ?)')
         assert params == [5, "zz", "a", "b", "c", "1", "9"]
+
+
+class TestShortcutValues:
+    """A shortcut value is plain text: the words 'group' and 'condition' in it mean nothing."""
+
+    @pytest.mark.parametrize("value", ["conditional", "group", "condition", "my group name"])
+    def test_shortcut_value_containing_a_keyword(self, converter, value):
+        where, params = converter.convert_query_string_to_where(f"filter[status]={value.replace(' ', '%20')}")
+        assert where == '"status" = ?'
+        assert params == [value]
