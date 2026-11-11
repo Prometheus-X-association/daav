@@ -37,6 +37,30 @@ def _duckdb_literal(value: Any) -> str:
         return str(value)
     return f"'{_escape_duckdb_string(value)}'"
 
+def _in_list(value: Any) -> str:
+    """Items of an IN list: one literal per item of a list, a single string literal otherwise."""
+    if isinstance(value, (list, tuple)):
+        return ', '.join(_duckdb_literal(item) for item in value)
+    return f"'{_escape_duckdb_string(value)}'"
+
+
+def _string_condition(quoted_field: str, operator: str, value: Any) -> str:
+    """SQL condition of a rule on a text value, which is escaped so that it stays inside its string literal."""
+    escaped = _escape_duckdb_string(value)
+    literal = f"'{escaped}'"
+    string_operators = {
+        'contains': lambda: f"CONTAINS(LOWER({quoted_field}), LOWER({literal}))",
+        '=': lambda: f"LOWER({quoted_field}) = LOWER({literal})",
+        '!=': lambda: f"LOWER({quoted_field}) != LOWER({literal})",
+        'like': lambda: f"LOWER({quoted_field}) LIKE LOWER('%{escaped}%')",
+        'in': lambda: f"{quoted_field} IN ({_in_list(value)})",
+        'not in': lambda: f"{quoted_field} NOT IN ({_in_list(value)})",
+    }
+    if operator not in string_operators:
+        raise ValueError(f"Unsupported string operator: {operator!r}")
+    return string_operators[operator]()
+
+
 class Source(BaseModel):
     id: str
     name: str
@@ -185,28 +209,7 @@ class FilterTransform(TransformNode):
             if operator not in _NUMERIC_OPERATORS:
                 raise ValueError(f"Unsupported numeric operator: {operator!r}")
             return f"{quoted_field} {operator} {value}"
-        else:
-            # The value comes from the workflow: escape it so that it stays inside its string literal
-            escaped = _escape_duckdb_string(value)
-            if isinstance(value, (list, tuple)):
-                in_list = ', '.join(_duckdb_literal(item) for item in value)
-            else:
-                in_list = f"'{escaped}'"
-            value = f"'{escaped}'"
-
-            string_operators = {
-                'contains': lambda f, v: f"CONTAINS(LOWER({f}), LOWER({v}))",
-                '=': lambda f, v: f"LOWER({f}) = LOWER({v})",
-                '!=': lambda f, v: f"LOWER({f}) != LOWER({v})",
-                'like': lambda f, v: f"LOWER({f}) LIKE LOWER('%{escaped}%')",
-                'in': lambda f, v: f"{f} IN ({in_list})",
-                'not in': lambda f, v: f"{f} NOT IN ({in_list})",
-            }
-
-            if operator in string_operators:
-                return string_operators[operator](quoted_field, value)
-            else:
-                raise ValueError(f"Unsupported string operator: {operator!r}")
+        return _string_condition(quoted_field, operator, value)
     
     def process_condition(self, condition):
         """Recursively processes filter conditions to build a SQL WHERE clause.
