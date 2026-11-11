@@ -130,7 +130,8 @@ class DrupalFilterConverter:
         for label, filter_data in filters.items():
             if 'group' in filter_data:
                 groups[label] = filter_data['group']
-                conditions_by_group[label] = []  # Initialize empty list for this group
+                # Keep the conditions already collected: a group may be declared after its members
+                conditions_by_group.setdefault(label, [])
             elif 'condition' in filter_data:
                 condition_data = filter_data['condition']
                 member_of = condition_data.get('memberOf')
