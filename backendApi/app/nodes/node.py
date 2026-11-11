@@ -3,11 +3,18 @@ from typing import ForwardRef, List, Optional, Any, Dict
 from pydantic import BaseModel, ConfigDict
 import asyncio
 import inspect
+import traceback
 
 from app.core.input_node import NodeInput
 from app.core.output_node import NodeOutput
 
 from app.enums.status_node import StatusNode
+
+# Error message of the child node, by status of a parent node that is not executed
+_PARENT_ERROR_MESSAGES = {
+    StatusNode.Incomplete: "A parent node did not fulfill all minimal parameters to be executed",
+    StatusNode.Error: "A parent node has an error status",
+}
 
 class Node(BaseModel):
     """Base class representing a node in a workflow.
@@ -51,55 +58,47 @@ class Node(BaseModel):
         """
         if self.status in [StatusNode.Complete, StatusNode.Valid]:
             for input in self.inputs.values():
-                if (input.get_connected_node()):
-                    match input.get_connected_node().status:
-                        case StatusNode.Valid:
-                            if input.get_node_data():
-                                continue
-                            else:
-                                parent = input.get_connected_node()
-                                print(f"Executing parent node {parent.id} of class {parent.__class__.__name__}...")
-                                result = await parent.execute(sample)
-                                if result == StatusNode.Valid:
-                                    continue
-                                else:
-                                    self.status = StatusNode.Error
-                                    self.statusMessage = "A parent node has an error status"
-                                    return self.status
+                error_message = await self._ensure_parent_ready(input, sample)
+                if error_message:
+                    self.status = StatusNode.Error
+                    self.statusMessage = error_message
+                    return self.status
 
-                        case StatusNode.Complete:
-                            parent = input.get_connected_node()
-                            print(f"Executing parent node {parent.id} of class {parent.__class__.__name__}...")
-                            result = await parent.execute(sample)
-                            if result == StatusNode.Valid:
-                                continue
-                            else:
-                                self.status = StatusNode.Error
-                                self.statusMessage = "A parent node has an error status"
-                                return self.status
-                        case StatusNode.Incomplete:
-                            self.status = StatusNode.Error
-                            self.statusMessage = "A parent node did not fulfill all minimal parameters to be executed"
-                            return self.status
-                        case StatusNode.Error:
-                            self.status = StatusNode.Error
-                            self.statusMessage = "A parent node has an error status"
-                            return self.status
-                        case _:
-                            self.status = StatusNode.Error
-                            self.statusMessage = "Unknown parent node status encountered"
-                            return self.status
-            
             # Appeler process de manière async ou sync selon sa nature
             self.status = await self._execute_process(sample)
             return self.status
-            
-        elif self.status == StatusNode.Incomplete:
+
+        if self.status == StatusNode.Incomplete:
             self.status = StatusNode.Error
             self.statusMessage = "This node did not fulfill all minimal parameters to be executed"
-            return self.status
-        else:
-            return self.status
+        return self.status
+
+    async def _ensure_parent_ready(self, input: NodeInput, sample: bool) -> Optional[str]:
+        """Execute the parent node of an input when needed.
+
+        Returns:
+            Optional[str]: The error message if the parent cannot provide its data, else None
+        """
+        parent = input.get_connected_node()
+        if not parent:
+            return None
+        parent_status = parent.status
+        if parent_status == StatusNode.Valid and input.get_node_data():
+            return None
+        if parent_status in (StatusNode.Valid, StatusNode.Complete):
+            # A valid parent without data, or a complete parent, is executed first
+            print(f"Executing parent node {parent.id} of class {parent.__class__.__name__}...")
+            result = await parent.execute(sample)
+            return None if result == StatusNode.Valid else _PARENT_ERROR_MESSAGES[StatusNode.Error]
+        return _PARENT_ERROR_MESSAGES.get(parent_status, "Unknown parent node status encountered")
+
+    def _fail(self, exc: Exception, print_traceback: bool = True) -> StatusNode:
+        """Record an exception raised while processing the node and return the Error status."""
+        if print_traceback:
+            traceback.print_exc()
+        self.errorStackTrace = traceback.TracebackException.from_exception(exc).format()
+        self.statusMessage = str(exc)
+        return StatusNode.Error
 
     async def _execute_process(self, sample: bool) -> StatusNode:
         """Execute the process method, handling both async and sync implementations."""

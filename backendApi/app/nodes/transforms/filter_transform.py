@@ -73,138 +73,80 @@ class FilterTransform(TransformNode):
             if not filter_rules:
                 self.statusMessage = "WARNING: No filter rules"
                 return StatusNode.Error
-            
-            else:
-                try:
-                    where_clause = self.process_condition(filter_rules)
-                    if not where_clause:
-                        where_clause = "1=1" 
 
-                except Exception as e:
-                    self.statusMessage = f"Error in filter conditions: {str(e)}"
-                    return StatusNode.Error
-            
+            try:
+                where_clause = self._where_clause(filter_rules)
+            except Exception as e:
+                self.statusMessage = f"Error in filter conditions: {str(e)}"
+                return StatusNode.Error
+
             source_data = self.inputs[data_source].get_node_data()
-
-            if not parquet_save:
-                if(isinstance(source_data, NodeDataPandasDf)):
-                    data = source_data.dataExample if sample else source_data.data
-
-                    conn = duckdb.connect()
-                    conn.register('source_table', data)
-
-                    query = f"SELECT * FROM source_table WHERE {where_clause}"
-                    logger.info(f"Executing query: {query}")
-                    result_df = conn.execute(query).fetchdf()
-                    conn.close()
-
-                    # A filter that matches no row is a valid, empty result
-
-                    # Create node data output
-                    if sample:
-                        self.outputs.get('out').set_node_data(
-                            NodeDataPandasDf(
-                                nodeSchema=generate_pandas_schema(result_df),
-                                dataExample=result_df, 
-                                name="Filtered Data"
-                            ),
-                            self
-                        )
-                    else:
-                        self.outputs.get('out').set_node_data(
-                            NodeDataPandasDf(
-                                nodeSchema=generate_pandas_schema(result_df),
-                                data=result_df,
-                                dataExample=result_df.head(20), 
-                                name="Filtered Data"
-                            ),
-                            self
-                        )
-                    return StatusNode.Valid
-
-                elif(isinstance(source_data, NodeDataParquet)):
-                    """ Process treatement using duckDB if source node is parquet """
-                    file_path = PathSecurityValidator.validate_file_path(source_data.data)
-                    data = pq.read_table(file_path).to_pandas()
-
-                    conn = duckdb.connect()
-                    conn.register('source_table', data)
-
-                    query = f"SELECT * FROM source_table WHERE {where_clause}"
-                    print(query)
-                    result_df = conn.execute(query).fetchdf()
-                    conn.close()
-
-                else:
-                    raise ValueError("Unkown data input")
-                
-                if result_df is None:
-                    raise ValueError("No data after filter")
-                
-                if sample:
-                    self.outputs.get('out').set_node_data(NodeDataPandasDf(
-                        nodeSchema=generate_pandas_schema(result_df),
-                        dataExample=result_df, 
-                        name="Filtered Data"),
-                        self)
-                else:
-                    self.outputs.get('out').set_node_data(NodeDataPandasDf(
-                        nodeSchema = generate_pandas_schema(result_df) ,
-                        data=result_df,
-                        dataExample=result_df.head(20), 
-                        name="Filtered Data"),
-                        self)
-                return StatusNode.Valid
-                
-            else:
-                if(isinstance(source_data, NodeDataPandasDf)):
-                    temp_dir = tempfile.gettempdir()
-                    file_name = PathSecurityValidator.validate_filename(f"filtered_data_{self.id}.parquet")
-                    result_parquet = os.path.join(temp_dir, file_name)
-                    
-                    data = source_data.dataExample if sample else source_data.data
-                    
-                    conn = duckdb.connect()
-                    conn.register('data', data)
-                    
-                    query = f"COPY (SELECT * FROM data WHERE {where_clause}) TO '{result_parquet}' (FORMAT PARQUET)"
-                    print(query)
-                    conn.execute(query)
-                    conn.close()
-
-                elif(isinstance(source_data, NodeDataParquet)):
-                    temp_dir = tempfile.gettempdir()
-                    file_name = PathSecurityValidator.validate_filename(f"filtered_data_{self.id}.parquet")
-                    result_parquet = os.path.join(temp_dir, file_name)
-                    
-                    conn = duckdb.connect()
-                    
-                    parquet_path = PathSecurityValidator.validate_file_path(source_data.data)
-                    
-                    query = f"COPY (SELECT * FROM read_parquet('{parquet_path}') WHERE {where_clause}) TO '{result_parquet}' (FORMAT PARQUET)"
-                    print(query)
-                    conn.execute(query)
-                    conn.close()
-                
-                else:
-                    raise ValueError("Unkown data input")
-                
-                # Create the node data output (a filter that matches no row gives an empty file)
-                parquet_file = pq.ParquetFile(result_parquet)
-                schema = parquet_file.schema
-                node_data = NodeDataParquet(
-                    data=result_parquet,
-                    nodeSchema=schema,
-                    name="filtered_data",
-                )
-                self.outputs.get('out').set_node_data(node_data, self)
-                return StatusNode.Valid
+            # A filter that matches no row is a valid, empty result
+            if parquet_save:
+                return self._filter_to_parquet(source_data, where_clause, sample)
+            return self._filter_to_dataframe(source_data, where_clause, sample)
 
         except Exception as e:
-            self.statusMessage = str(e)
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            return StatusNode.Error  
-    
+            return self._fail(e, print_traceback=False)
+
+    def _where_clause(self, filter_rules) -> str:
+        """SQL condition of the filter rules; every row matches when the rules give no condition."""
+        return self.process_condition(filter_rules) or "1=1"
+
+    def _filter_to_dataframe(self, source_data, where_clause: str, sample: bool) -> StatusNode:
+        """Filter the source in memory and publish the result as a DataFrame."""
+        if isinstance(source_data, NodeDataPandasDf):
+            data = source_data.dataExample if sample else source_data.data
+        elif isinstance(source_data, NodeDataParquet):
+            # Process treatement using duckDB if source node is parquet
+            file_path = PathSecurityValidator.validate_file_path(source_data.data)
+            data = pq.read_table(file_path).to_pandas()
+        else:
+            raise ValueError("Unkown data input")
+
+        conn = duckdb.connect()
+        conn.register('source_table', data)
+        query = f"SELECT * FROM source_table WHERE {where_clause}"
+        logger.info(f"Executing query: {query}")
+        result_df = conn.execute(query).fetchdf()
+        conn.close()
+
+        if result_df is None:
+            raise ValueError("No data after filter")
+        return self._publish_dataframe(result_df, "Filtered Data", sample)
+
+    def _filter_to_parquet(self, source_data, where_clause: str, sample: bool) -> StatusNode:
+        """Filter the source with DuckDB into a Parquet file and publish it."""
+        if isinstance(source_data, NodeDataPandasDf):
+            result_parquet = self._result_parquet_path()
+            conn = duckdb.connect()
+            conn.register('data', source_data.dataExample if sample else source_data.data)
+            query = f"COPY (SELECT * FROM data WHERE {where_clause}) TO '{result_parquet}' (FORMAT PARQUET)"
+        elif isinstance(source_data, NodeDataParquet):
+            result_parquet = self._result_parquet_path()
+            conn = duckdb.connect()
+            parquet_path = PathSecurityValidator.validate_file_path(source_data.data)
+            query = f"COPY (SELECT * FROM read_parquet('{parquet_path}') WHERE {where_clause}) TO '{result_parquet}' (FORMAT PARQUET)"
+        else:
+            raise ValueError("Unkown data input")
+
+        print(query)
+        conn.execute(query)
+        conn.close()
+
+        # Create the node data output (a filter that matches no row gives an empty file)
+        node_data = NodeDataParquet(
+            data=result_parquet,
+            nodeSchema=pq.ParquetFile(result_parquet).schema,
+            name="filtered_data",
+        )
+        self.outputs.get('out').set_node_data(node_data, self)
+        return StatusNode.Valid
+
+    def _result_parquet_path(self) -> str:
+        file_name = PathSecurityValidator.validate_filename(f"filtered_data_{self.id}.parquet")
+        return os.path.join(tempfile.gettempdir(), file_name)
+
     def _retreiveFilterData(self):
         if self.data.get('dataSource') and self.data.get('filterRules') and self.data.get('parquetSave'):
             data_source = self.data.get('dataSource')

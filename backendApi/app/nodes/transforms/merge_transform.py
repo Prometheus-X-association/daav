@@ -57,54 +57,44 @@ class MergeTransform(TransformNode):
         try:
             # Retrieve the data mapping
             data_mapping, parquet_save = self._retreiveColumnsMapping()
-            
+
             if parquet_save:
                 return self.process_if_parquet(data_mapping, sample)
 
-            combined_df = pd.DataFrame()
-            for mapping_item in data_mapping:
-                target_name = mapping_item.targetName
-                column_data = []
-
-                # Sort sources by their order in the mapping item to ensure to keep the same order for all columns
-                sorted_sources = sorted(mapping_item.sources, key=lambda x: x.id)
-
-                # Iterate over each source in the mapping item
-                for source in sorted_sources:
-                    dataset_id = source.datasetId
-                    column_name = source.name
-
-                    if dataset_id in self.inputs:
-                        source_df = self.inputs[dataset_id].get_node_data()
-                        if isinstance(source_df, NodeDataPandasDf):
-                            # Append the column data to the list
-                            if sample:
-                                column_data.append(source_df.dataExample[column_name])
-                            else:
-                                column_data.append(source_df.data[column_name])
-                            
-                        elif isinstance(source_df, NodeDataParquet):
-                            # Read the Parquet file and extract the specified column and append it to the list
-                            file_path = PathSecurityValidator.validate_file_path(source_df.data)
-                            table = pq.read_table(file_path, columns=[column_name]).to_pandas()
-                            column_data.append(table[column_name])
-                        else:
-                            raise ValueError(f"Input data {dataset_id} is not a handled format")
-
-                # Concatenate all the column data
-                if column_data:
-                    combined_df[target_name] = pd.concat(column_data, ignore_index=True)
+            combined_df = self._merge_in_memory(data_mapping, sample)
         except Exception as e:
-            traceback.print_exc()
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            self.statusMessage = e.__str__()
-            return StatusNode.Error      
-        
-        if sample:
-            self.outputs.get('out').set_node_data(NodeDataPandasDf(nodeSchema=generate_pandas_schema(combined_df),dataExample=combined_df, name="Merged Data"),self)
-        else:
-            self.outputs.get('out').set_node_data(NodeDataPandasDf(nodeSchema = generate_pandas_schema(combined_df) ,data=combined_df,dataExample=combined_df.head(20), name="Merged Data"),self)
-        return StatusNode.Valid
+            return self._fail(e)
+
+        return self._publish_dataframe(combined_df, "Merged Data", sample)
+
+    def _merge_in_memory(self, data_mapping, sample: bool) -> pd.DataFrame:
+        """One column per mapping item, concatenating the columns of its sources."""
+        combined_df = pd.DataFrame()
+        for mapping_item in data_mapping:
+            # Sort sources by their order in the mapping item to ensure to keep the same order for all columns
+            sorted_sources = sorted(mapping_item.sources, key=lambda x: x.id)
+            column_data = [column for column in (self._source_column(source, sample) for source in sorted_sources)
+                           if column is not None]
+            # Concatenate all the column data
+            if column_data:
+                combined_df[mapping_item.targetName] = pd.concat(column_data, ignore_index=True)
+        return combined_df
+
+    def _source_column(self, source: Source, sample: bool) -> Optional[pd.Series]:
+        """The column of a source, or None if its dataset is not an input of the node."""
+        dataset_id = source.datasetId
+        column_name = source.name
+        if dataset_id not in self.inputs:
+            return None
+        source_df = self.inputs[dataset_id].get_node_data()
+        if isinstance(source_df, NodeDataPandasDf):
+            frame = source_df.dataExample if sample else source_df.data
+            return frame[column_name]
+        if isinstance(source_df, NodeDataParquet):
+            # Read the Parquet file and extract the specified column
+            file_path = PathSecurityValidator.validate_file_path(source_df.data)
+            return pq.read_table(file_path, columns=[column_name]).to_pandas()[column_name]
+        raise ValueError(f"Input data {dataset_id} is not a handled format")
     
     def process_if_parquet(self, data_mapping, sample = False) -> StatusNode:
         """
