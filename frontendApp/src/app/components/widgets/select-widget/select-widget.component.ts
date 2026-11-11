@@ -27,7 +27,7 @@ export class SelectControl
     if (data){
       this.label = data.label ? data.label : null;
       this.none = data.none ? data.none : false;
-      this.none = data.new ? data.new : false;
+      this.new = data.new ? data.new : false;
       this.value = data.value;
       this.list = data.list;
       this.callback = onChange;
