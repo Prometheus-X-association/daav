@@ -19,6 +19,19 @@ ion-title {
     font-family: 'poppins' !important;
 }
 
+ion-toolbar {
+    --padding-bottom: 0;
+}
+
+// The page content fills the toolbar height and sits on its bottom edge,
+// so the active tab indicator touches the bottom of the toolbar
+ion-toolbar::part(content) {
+    align-self: stretch;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
 .toolbar-end {
     display: flex;
     justify-content: flex-end;
