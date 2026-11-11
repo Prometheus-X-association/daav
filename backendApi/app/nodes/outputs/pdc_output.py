@@ -21,6 +21,19 @@ from app.services.workflow_service import WorkflowService
 from app.utils.security import PathSecurityValidator
 from app.config.settings import settings
 
+
+def _read_json_file(path: str) -> Any:
+    """Read a JSON file (run in a worker thread so that it does not block the event loop)"""
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def _write_json_file(path: str, data: Any) -> None:
+    """Write a JSON file (run in a worker thread so that it does not block the event loop)"""
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f)
+
+
 class PdcOutput(OutputNode):
     datasetService: Optional[DatasetService] = None
     workflowService: Optional[WorkflowService] = None
@@ -126,8 +139,7 @@ class PdcOutput(OutputNode):
                         conn.sql(query)
                         conn.close()
 
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            parquet_data = json.load(f)
+                        parquet_data = await asyncio.to_thread(_read_json_file, file_path)
 
                         pdc_response = PdcChainResponse(
                             chainId=chain_id,
@@ -139,15 +151,14 @@ class PdcOutput(OutputNode):
                     
                     #cache
                     if pdc_response is not None:
-                        with open(file_path, 'w', encoding='utf-8') as f:
-                            json.dump(pdc_response.model_dump(), f)
+                        await asyncio.to_thread(_write_json_file, file_path, pdc_response.model_dump())
 
                     if pdc_response and self.datasetService.pdcChainHeaders is not None:
                         url = f"{dataset.url}/service-chain/resume"
                         headers = {
                             "Content-Type": "application/json"
                         }
-                        response = requests.post(url, headers=headers, json=pdc_response.model_dump())
+                        response = await asyncio.to_thread(requests.post, url, headers=headers, json=pdc_response.model_dump())
 
                         # Print the response from the server
                         #print(response.status_code)

@@ -94,7 +94,7 @@ class ServiceChainOutput(OutputNode):
                         headers = {
                             "Content-Type": "application/json"
                         }
-                        response = requests.post(url, headers=headers, json=pdc_response.model_dump())
+                        response = await asyncio.to_thread(requests.post, url, headers=headers, json=pdc_response.model_dump())
 
                         # Print the response from the server
                         #print(response.status_code)

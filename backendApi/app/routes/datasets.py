@@ -175,8 +175,8 @@ async def _save_upload_file(file: UploadFile, current_user: CurrentUser, folder:
             detail=f"File too large: {len(content)} bytes (max: {max_file_size})"
         )
 
-    with open(validated_path, 'wb') as f:
-        f.write(content)
+    # The file is written in the thread pool so that a large upload does not block the event loop
+    await run_in_threadpool(Path(validated_path).write_bytes, content)
 
     logger.info(f"User {current_user.username} uploaded file successfully: {validated_path}")
     result = {"filepath": str(validated_path), "user_dir": str(user_dir)}

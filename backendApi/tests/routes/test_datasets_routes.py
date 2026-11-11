@@ -2,7 +2,7 @@
 Tests of POST /datasets/getContentDataset (the readers are mocked).
 """
 import threading
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import HTTPException, status
@@ -66,3 +66,24 @@ async def test_file_access_denied_is_logged_and_returned():
 
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
     log_file_access.assert_called_with("10.0.0.1", "/forbidden.csv", "read_failed")
+
+
+@pytest.mark.asyncio
+async def test_uploaded_file_is_written_outside_event_loop_thread(tmp_path):
+    """The uploaded file is written to disk in the thread pool, with the uploaded content"""
+    upload = Mock(filename="data.csv")
+    upload.read = AsyncMock(return_value=b"a,b\n1,2\n")
+    writer_threads = []
+    original_write_bytes = datasets.Path.write_bytes
+
+    def tracking_write_bytes(path, content):
+        writer_threads.append(threading.current_thread())
+        return original_write_bytes(path, content)
+
+    with patch.object(datasets, "UPLOAD_DIR", tmp_path), \
+         patch.object(datasets.Path, "write_bytes", tracking_write_bytes):
+        result = await datasets._save_upload_file(upload, Mock(id="user-1", username="alice"))
+
+    assert (tmp_path / "user-1" / "data.csv").read_bytes() == b"a,b\n1,2\n"
+    assert result["filepath"].endswith("data.csv")
+    assert writer_threads and writer_threads[0] is not threading.current_thread()

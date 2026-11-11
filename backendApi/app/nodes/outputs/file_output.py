@@ -144,24 +144,14 @@ class FileOutput(OutputNode):
                     elif isinstance(data, NodeDataParquet):
                         # Process in chunks to handle large files
                         chunk_size = 100
-                        first_chunk = True
                         parquet_file_path = PathSecurityValidator.validate_file_path(data.data)
                         parquet_file = pq.ParquetFile(parquet_file_path)
                         
                         if file_type == 'csv':
-                            mode = 'w' if file_exist == 'replace' or not os.path.exists(output_file) else 'a'
-                            with open(output_file, mode, encoding=encoding) as csvfile:
-                                for batch in parquet_file.iter_batches(batch_size=chunk_size):
-                                    chunk_df = batch.to_pandas()
-                                    
-                                    if sample and first_chunk:
-                                        chunk_df = chunk_df.head(20)
-                                        chunk_df.to_csv(csvfile, sep=delimiter, index=False)
-                                        break
-                                    
-                                    write_header = first_chunk and (file_exist == 'replace' or not os.path.exists(output_file))
-                                    chunk_df.to_csv(csvfile, sep=delimiter, index=False, header=write_header)
-                                    first_chunk = False
+                            # The file is written in a worker thread so that it does not block the event loop
+                            await asyncio.to_thread(
+                                self._write_csv_parquet_data, parquet_file, output_file, delimiter, encoding, sample, chunk_size, file_exist
+                            )
                         
                         elif file_type == 'json':
                             self._write_json_parquet_data(parquet_file, output_file, sample, chunk_size, file_exist)
@@ -296,6 +286,23 @@ class FileOutput(OutputNode):
         else:
             # Replace or create new file
             df.to_xml(output_file, index=False, encoding=encoding)
+
+    def _write_csv_parquet_data(self, parquet_file, output_file: str, delimiter: str, encoding: str, sample: bool, chunk_size: int, file_exist: str):
+        """Write parquet data to CSV file in chunks."""
+        first_chunk = True
+        mode = 'w' if file_exist == 'replace' or not os.path.exists(output_file) else 'a'
+        with open(output_file, mode, encoding=encoding) as csvfile:
+            for batch in parquet_file.iter_batches(batch_size=chunk_size):
+                chunk_df = batch.to_pandas()
+                
+                if sample and first_chunk:
+                    chunk_df = chunk_df.head(20)
+                    chunk_df.to_csv(csvfile, sep=delimiter, index=False)
+                    break
+                
+                write_header = first_chunk and (file_exist == 'replace' or not os.path.exists(output_file))
+                chunk_df.to_csv(csvfile, sep=delimiter, index=False, header=write_header)
+                first_chunk = False
 
     def _write_json_parquet_data(self, parquet_file, output_file: str, sample: bool, chunk_size: int, file_exist: str):
         """Write parquet data to JSON file in chunks with proper array handling."""

@@ -174,7 +174,7 @@ async def get_data_resources(
         if "content" in pdc_data and "ptx:catalog" in pdc_data["content"]:
             for content in pdc_data["content"]["ptx:catalog"]:
                 if content["@type"] == "ptx:dataresources":
-                    res = requests.get(content["@id"], timeout=timeout).json()
+                    res = (await asyncio.to_thread(requests.get, content["@id"], timeout=timeout)).json()
                     data = PdcDataResource.model_validate(res)
                     data_resources.append(data)
         
@@ -285,8 +285,8 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
         try:
             data = await request.json()
             file_format ="json"
-        except : 
-            form  = await request.body()
+        except Exception:
+            data = await request.body()
     elif (request.headers.get("Content-Type") == "application/x-www-form-urlencoded"):
         try:
             #data = await request.form() 
@@ -294,7 +294,7 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
             form  = await request.body()
             data = form.decode()
             file_format ="xml"
-        except : 
+        except Exception:
             data = await request.body()
     else:
         #byte with encode or raw text
@@ -343,7 +343,7 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
                         os.path.normpath(existing.folder) == os.path.normpath(user_folder)):
                         existing_dataset = existing
                         break
-                except:
+                except Exception:
                     continue
             
             if existing_dataset and existing_dataset.ifExist == "append" and existing_dataset.filePath and os.path.exists(existing_dataset.filePath):
@@ -565,7 +565,7 @@ async def get_service_chain(
         encoded_url = b64_encode(participant_url)
         contract_url = f"{contract_uri}contracts/for/{encoded_url}"
 
-        response = requests.get(contract_url, timeout=timeout)
+        response = await asyncio.to_thread(requests.get, contract_url, timeout=timeout)
 
         if response.status_code == 200:
             contracts_data = response.json()
@@ -643,7 +643,7 @@ async def get_data_exchanges(
         data_exchanges_url = f"{pdc_endpoint}dataexchanges"
         participant_url = f"{config.get('catalogUri')}participants/"
         
-        response = requests.get(data_exchanges_url, timeout=timeout)
+        response = await asyncio.to_thread(requests.get, data_exchanges_url, timeout=timeout)
         if response.status_code != 200:
             raise HTTPException(
                 status_code=response.status_code,
@@ -702,7 +702,7 @@ async def get_data_exchanges(
             detailed_resources = []
             for res in resources:
                 resource_url = res.get("resource", "")
-                resource_details = get_resource_details(resource_url)
+                resource_details = await asyncio.to_thread(get_resource_details, resource_url)
                 
                 if resource_details:
                     detailed_resources.append(resource_details)
@@ -883,7 +883,7 @@ async def get_billateral_contract(
         encoded_url = b64_encode(participant_url)
         bilateral_url = f"{contract_uri}/bilaterals/for/{encoded_url}"
 
-        response = requests.get(bilateral_url, timeout=timeout)
+        response = await asyncio.to_thread(requests.get, bilateral_url, timeout=timeout)
 
         if response.status_code == 200:
             contracts_data = response.json()
@@ -920,12 +920,12 @@ async def pdc_get_request(connection: Dataset, url, timeout_seconds: Optional[in
             timeout=timeout,
         )
 
-    r = _request_with_token()
+    r = await asyncio.to_thread(_request_with_token)
 
     if r.status_code in (401, 403) and isinstance(connection, PTXDataset):
         renewed = await dataset_service.ensure_runtime_ptx_tokens(connection)
         if renewed and connection.token:
-            r = _request_with_token()
+            r = await asyncio.to_thread(_request_with_token)
 
     if r.status_code in (401, 403):
         raise HTTPException(
