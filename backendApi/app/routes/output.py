@@ -66,14 +66,22 @@ async def get_output_from_custom_path(custom_path: str, request: Request,):
 
 
 def _check_owner_credentials(request: Request, user) -> None:
-    """401 unless the request headers carry M2M credentials of the workflow owner (when there is one)."""
-    if user:
-        authenticated_users: List[AuthenticatedUser] = authenticate_m2m_credentials(request.headers, [user])
-        if not authenticated_users:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="No valid credentials found in headers"
-            )
+    """401 unless the request headers carry M2M credentials of the workflow owner.
+
+    A workflow without owner has no credentials to check against: it is refused, not served to anyone.
+    """
+    if not user:
+        logger.warning("Output refused: the workflow has no owner to check the credentials against")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No valid credentials found in headers"
+        )
+    authenticated_users: List[AuthenticatedUser] = authenticate_m2m_credentials(request.headers, [user])
+    if not authenticated_users:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No valid credentials found in headers"
+        )
 
 
 async def _workflow_output_response(request: Request, workflow, node, user) -> JSONResponse:

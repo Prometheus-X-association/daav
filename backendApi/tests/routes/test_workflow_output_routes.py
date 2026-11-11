@@ -203,6 +203,21 @@ def test_credentials_of_another_user_are_refused(client, env):
     assert response.json()["detail"] == "No valid credentials found in headers"
 
 
+def test_output_of_a_workflow_without_owner_is_refused(client, env):
+    """Without owner there are no credentials to check: the output routes refuse instead of serving anyone."""
+    if env.module is api:
+        pytest.skip("the API routes check the token of the node, not the users")
+    env.write_output()
+    env.get_user.return_value = None
+
+    response = env.get(client)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "No valid credentials found in headers"
+    env.output_path.assert_not_called()
+    env.execute.assert_not_called()
+
+
 def test_access_check_position(client, env):
     """The API routes check the token before resolving the owner, the output routes after."""
     env.get_user.side_effect = RuntimeError("db down")
