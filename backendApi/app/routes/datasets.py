@@ -521,12 +521,16 @@ def get_ptx_content(dataset: PTXDataset, pagination: Pagination, dataset_params:
     return dataset
 
 def api_content(response: str) -> list:
-    if 'json' in response.headers['Content-Type']:
+    if 'json' in response.headers.get('Content-Type', ''):
         data = response.json()  
         donnees = list(data.items())
     else:
         content = response.content
-        tree = ET.fromstring(content)
+        try:
+            tree = ET.fromstring(content)
+        except ET.ParseError as err:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"Unsupported API response format: {err}")
 
         donnees = []
         for child in tree:
@@ -634,8 +638,14 @@ def _parse_custom_api(data, pagination: Pagination) -> Optional[ApiContentRespon
         limit=len(items),
         current_page=pagination.page,
         next_url=data.get("next", {}).get("href") if data.get("next") else None,
-        prev_url=data.get("previous", {}).get("href") if data.get("previous") else None
+        prev_url=_custom_api_previous_url(data)
     )
+
+
+def _custom_api_previous_url(data: dict) -> Optional[str]:
+    """Link to the previous page: "prev" in the custom API schema, "previous" kept for the APIs that use it."""
+    previous = data.get("prev") or data.get("previous")
+    return previous.get("href") if previous else None
 
 import pandas as pd
 from fastapi.responses import JSONResponse
@@ -727,6 +737,11 @@ def _default_column_names(fichier, delimiter: str) -> list:
 
 def _parse_scalar(value):
     """Convert a CSV value to an int, then a float, then a boolean; otherwise keep the string."""
+    if isinstance(value, list):
+        # Values beyond the header columns: csv.DictReader gathers them in a list
+        return [_parse_scalar(item) for item in value]
+    if not isinstance(value, str):
+        return value
     try:
         return int(value)
     except ValueError:
@@ -743,6 +758,10 @@ def _parse_scalar(value):
     return value
 
 
+# Column that receives the values of a CSV row that has more values than the header
+CSV_EXTRA_VALUES_KEY = "_extra"
+
+
 #lecture du fichier csv
 def csv_file(file_path: str, csv_header: str, csv_delimiter: str) -> list:
     import csv
@@ -757,7 +776,7 @@ def csv_file(file_path: str, csv_header: str, csv_delimiter: str) -> list:
             fichier.seek(0)
 
         donnees = []
-        reader = csv.DictReader(fichier, delimiter=delimiter, fieldnames=column_name, restval=(0))
+        reader = csv.DictReader(fichier, delimiter=delimiter, fieldnames=column_name, restval=(0), restkey=CSV_EXTRA_VALUES_KEY)
         for line_count, row in enumerate(reader):
             if line_count >= 100:
                 break

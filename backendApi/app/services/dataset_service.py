@@ -712,7 +712,8 @@ class DatasetService(metaclass=SingletonMeta):
     _DF_READERS = (
         ('.json', lambda dataset, path: pd.read_json(path)),
         (('.xlsx', '.xls'), lambda dataset, path: pd.read_excel(path)),
-        ('.tsv', lambda dataset, path: pd.read_csv(path, header=int(dataset.csvHeader), sep='\t')),
+        ('.tsv', lambda dataset, path: pd.read_csv(
+            path, header=int(dataset.csvHeader) if dataset.csvHeader is not None else 0, sep='\t')),
         ('.parquet', lambda dataset, path: pd.read_parquet(path)),
         ('.avro', lambda dataset, path: DatasetService._read_avro_df(path)),
     )
