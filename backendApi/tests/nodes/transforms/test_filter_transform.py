@@ -254,3 +254,33 @@ def test_filter_transform_parquet_empty_result(filter_transform, sample_datafram
     os.remove(node_data.data)
     assert len(filtered) == 0
     assert list(filtered.columns) == list(sample_dataframe.columns)
+
+
+@pytest.mark.parametrize("value, expected_names", [
+    ("O'Brien", ["O'Brien"]),                    # a quote in the value stays in the value
+    ("x' OR '1'='1", []),                        # and cannot widen the filter
+    ("Alice", ["Alice"]),
+])
+def test_filter_value_cannot_change_the_query(filter_transform, sample_dataframe, value, expected_names):
+    df = pd.concat([sample_dataframe, pd.DataFrame([{'id': 6, 'name': "O'Brien", 'age': 50, 'city': 'Cork', 'salary': 1}])],
+                   ignore_index=True)
+    filter_transform.inputs['datasource'].get_node_data.return_value = NodeDataPandasDf(
+        data=df, dataExample=df.head(), nodeSchema=[], name='test_data')
+    filter_transform.data['filterRules'] = {'condition': 'AND', 'rules': [{'field': 'name', 'operator': '=', 'value': value}]}
+
+    assert filter_transform.process(sample=False) == StatusNode.Valid
+    node_data = filter_transform.outputs['out'].set_node_data.call_args.args[0]
+    assert node_data.data['name'].tolist() == expected_names
+
+
+@pytest.mark.parametrize("operator, value, sql", [
+    ("=", "it's", """LOWER("name") = LOWER('it''s')"""),
+    ("contains", "it's", """CONTAINS(LOWER("name"), LOWER('it''s'))"""),
+    ("like", "it's", """LOWER("name") LIKE LOWER('%it''s%')"""),
+    ("in", "a') OR 1=1 --", """"name" IN ('a'') OR 1=1 --')"""),
+    ("in", ["a'b", 3], """"name" IN ('a''b', 3)"""),
+    ("not in", ["x"], """"name" NOT IN ('x')"""),
+])
+def test_filter_string_values_are_escaped(filter_transform, operator, value, sql):
+    assert filter_transform.translateRule({'field': 'name', 'operator': operator, 'value': value}) == sql
+

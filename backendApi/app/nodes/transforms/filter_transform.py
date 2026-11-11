@@ -25,6 +25,18 @@ def _quote_duckdb_identifier(name: str) -> str:
     """Double-quote a DuckDB column/table identifier, escaping inner double-quotes."""
     return '"' + name.replace('"', '""') + '"'
 
+
+def _escape_duckdb_string(value: Any) -> str:
+    """Content of a DuckDB string literal: inner single quotes are doubled, so the value cannot end the literal."""
+    return str(value).replace("'", "''")
+
+
+def _duckdb_literal(value: Any) -> str:
+    """DuckDB literal of an item of an IN list: a number as it is, anything else as an escaped string."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    return f"'{_escape_duckdb_string(value)}'"
+
 class Source(BaseModel):
     id: str
     name: str
@@ -86,11 +98,8 @@ class FilterTransform(TransformNode):
                     result_df = conn.execute(query).fetchdf()
                     conn.close()
 
-                    # Check if result is empty
-                    if result_df.empty:
-                        self.statusMessage = "No data matches the filter conditions"
-                        return StatusNode.Error
-                    
+                    # A filter that matches no row is a valid, empty result
+
                     # Create node data output
                     if sample:
                         self.outputs.get('out').set_node_data(
@@ -125,11 +134,6 @@ class FilterTransform(TransformNode):
                     print(query)
                     result_df = conn.execute(query).fetchdf()
                     conn.close()
-
-                    # Add empty result check here too
-                    if result_df.empty:
-                        self.statusMessage = "No data matches the filter conditions"
-                        return StatusNode.Error
 
                 else:
                     raise ValueError("Unkown data input")
@@ -185,12 +189,7 @@ class FilterTransform(TransformNode):
                 else:
                     raise ValueError("Unkown data input")
                 
-                # Add check for empty result in parquet case
-                if not os.path.getsize(result_parquet):
-                    self.statusMessage = "No data matches the filter conditions"
-                    return StatusNode.Error
-                
-                # Create the node data output
+                # Create the node data output (a filter that matches no row gives an empty file)
                 parquet_file = pq.ParquetFile(result_parquet)
                 schema = parquet_file.schema
                 node_data = NodeDataParquet(
@@ -245,15 +244,21 @@ class FilterTransform(TransformNode):
                 raise ValueError(f"Unsupported numeric operator: {operator!r}")
             return f"{quoted_field} {operator} {value}"
         else:
-            value = f"'{value}'"
+            # The value comes from the workflow: escape it so that it stays inside its string literal
+            escaped = _escape_duckdb_string(value)
+            if isinstance(value, (list, tuple)):
+                in_list = ', '.join(_duckdb_literal(item) for item in value)
+            else:
+                in_list = f"'{escaped}'"
+            value = f"'{escaped}'"
 
             string_operators = {
                 'contains': lambda f, v: f"CONTAINS(LOWER({f}), LOWER({v}))",
                 '=': lambda f, v: f"LOWER({f}) = LOWER({v})",
                 '!=': lambda f, v: f"LOWER({f}) != LOWER({v})",
-                'like': lambda f, v: f"LOWER({f}) LIKE LOWER('%" + v.strip("'") + "%')",
-                'in': lambda f, v: f"{f} IN ({v})",
-                'not in': lambda f, v: f"{f} NOT IN ({v})",
+                'like': lambda f, v: f"LOWER({f}) LIKE LOWER('%{escaped}%')",
+                'in': lambda f, v: f"{f} IN ({in_list})",
+                'not in': lambda f, v: f"{f} NOT IN ({in_list})",
             }
 
             if operator in string_operators:
