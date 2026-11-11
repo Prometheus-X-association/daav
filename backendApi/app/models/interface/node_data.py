@@ -11,6 +11,14 @@ from app.models.interface.dataset_schema import MysqlSchema, PandasSchema
 T = TypeVar('T')
 D = TypeVar('D')
 
+# Python constructor of numpy scalars, by dtype family, checked in order
+_NUMPY_SCALAR_CONVERTERS = (
+    (numpy.integer, int),
+    (numpy.floating, float),
+    (numpy.bool_, bool),
+    (numpy.str_, str),
+)
+
 # Pydantic cannot describe these types in the OpenAPI schema: describe what their serializers return
 JsonDataFrame = Annotated[DataFrame, WithJsonSchema({
     "type": "object",
@@ -78,18 +86,7 @@ class NodeDataPandasDf(NodeData[PandasSchema, JsonDataFrame]):
         elif isinstance(value, numpy.ndarray):
             return value.tolist() if value is not None else None
         elif hasattr(value, 'dtype') and 'numpy' in str(type(value)):
-            # Handle numpy scalars explicitly
-            if numpy.issubdtype(value.dtype, numpy.integer):
-                return int(value)
-            elif numpy.issubdtype(value.dtype, numpy.floating):
-                return float(value)
-            elif numpy.issubdtype(value.dtype, numpy.bool_):
-                return bool(value)
-            elif numpy.issubdtype(value.dtype, numpy.str_):
-                return str(value)
-            else:
-                # For other numpy types, convert to Python type
-                return value.item() if hasattr(value, 'item') else value
+            return self._numpy_scalar_to_python(value)
         elif isinstance(value, dict):
             # Handle nested dictionaries
             return {k: self._convert_objectid(v) for k, v in value.items()}
@@ -99,6 +96,15 @@ class NodeDataPandasDf(NodeData[PandasSchema, JsonDataFrame]):
         else:
             # Return unchanged for other types
             return value
+
+    @staticmethod
+    def _numpy_scalar_to_python(value):
+        """Convert a numpy scalar to the matching Python value."""
+        for dtype_family, convert in _NUMPY_SCALAR_CONVERTERS:
+            if numpy.issubdtype(value.dtype, dtype_family):
+                return convert(value)
+        # For other numpy types, convert to Python type
+        return value.item() if hasattr(value, 'item') else value
 
 class NodeDataParquet(NodeData[JsonParquetSchema, str]):
     type: Literal['parquet'] = 'parquet'

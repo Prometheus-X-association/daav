@@ -1,4 +1,5 @@
 import os
+import sys
 import importlib.util
 import inspect
 import logging
@@ -33,41 +34,50 @@ class NodeFactory:
         """
         path = Path(nodes_dir)
         logger.debug(f"Scanning for node classes in {path}")
-        
+
         if not hasattr(cls, '_node_types'):
-            cls._node_types = {}        
+            cls._node_types = {}
             for file in path.rglob("*.py"):
                 if file.name.startswith("__"):
                     continue
-                
-                # Construct absolute module pat
-                rel_path = file.relative_to(path.parent.parent.parent)  # Get path relative to src directory
+                module = cls._import_module(file, path)
+                if module is not None:
+                    cls._register_node_classes(module)
 
-                module_path = str(rel_path).replace(os.sep, ".")[:-3]  # Convert to dot notation and remove .py
-                logger.debug(f"Module path: {module_path}")
-        
-                spec = importlib.util.spec_from_file_location(module_path, str(file))
-                if spec and spec.loader:
-                    module = importlib.util.module_from_spec(spec)
-                    # Add module to sys.modules to support imports within the module
-                    import sys
-                    sys.modules[module_path] = module
-                    spec.loader.exec_module(module)
-                    
-                    # Find and register node classes
-                    for name, obj in inspect.getmembers(module):
-                        if (inspect.isclass(obj) and 
-                            issubclass(obj, Node) and 
-                            obj not in (Node, InputNode, TransformNode, OutputNode)):
-                                cls._node_types[name] = obj
-                                logger.debug(f"Registered node class: {name} from {obj.__module__}")
-        
         logger.debug(f"Node scanning completed. Total registered types: {len(cls._node_types)}")
         logger.debug("Registered node types:")
         for name, node_class in cls._node_types.items():
             logger.debug(f"  - {name}: {node_class.__module__}")
-        
+
         return cls._node_types
+
+    @staticmethod
+    def _import_module(file: Path, path: Path):
+        """Import a node file as a module registered in sys.modules; None if it cannot be loaded."""
+        # Construct absolute module path
+        rel_path = file.relative_to(path.parent.parent.parent)  # Get path relative to src directory
+
+        module_path = str(rel_path).replace(os.sep, ".")[:-3]  # Convert to dot notation and remove .py
+        logger.debug(f"Module path: {module_path}")
+
+        spec = importlib.util.spec_from_file_location(module_path, str(file))
+        if not (spec and spec.loader):
+            return None
+        module = importlib.util.module_from_spec(spec)
+        # Add module to sys.modules to support imports within the module
+        sys.modules[module_path] = module
+        spec.loader.exec_module(module)
+        return module
+
+    @classmethod
+    def _register_node_classes(cls, module) -> None:
+        """Register the concrete node classes found in a module."""
+        for name, obj in inspect.getmembers(module):
+            if (inspect.isclass(obj) and
+                    issubclass(obj, Node) and
+                    obj not in (Node, InputNode, TransformNode, OutputNode)):
+                cls._node_types[name] = obj
+                logger.debug(f"Registered node class: {name} from {obj.__module__}")
 
     @classmethod
     def create_node(cls, node_data: INode) -> Node:

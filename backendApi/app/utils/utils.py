@@ -98,37 +98,46 @@ custom_api_schema = {
     "required": ["data", "count", "self"]
 }
 
+# Python type name of numpy scalars, checked in order
+_NUMPY_SCALAR_TYPE_NAMES = (
+    ((np.bool_, bool), "bool"),
+    ((np.int8, np.int16, np.int32, np.int64), "int"),
+    ((np.uint8, np.uint16, np.uint32, np.uint64), "int"),
+    ((np.float16, np.float32, np.float64), "float"),
+    ((np.complex64, np.complex128), "complex"),
+    (np.str_, "str"),
+    (np.bytes_, "bytes"),
+)
+
+# Python type name of a dtype, by substring of its name, checked in order
+_DTYPE_NAME_PATTERNS = (
+    (("int",), "int"),
+    (("float",), "float"),
+    (("bool",), "bool"),
+    (("str", "object"), "str"),
+)
+
+
+def _dtype_name(dtype_str: str) -> Optional[str]:
+    """Python type name of a numpy dtype string, or None if it is not recognized."""
+    for patterns, name in _DTYPE_NAME_PATTERNS:
+        if any(pattern in dtype_str for pattern in patterns):
+            return name
+    return None
+
+
 def convert_numpy_type_to_python(value) -> str:
     """Convert numpy types to standard Python type names to avoid deprecation warnings."""
-    if isinstance(value, (np.bool_, bool)):
-        return "bool"
-    elif isinstance(value, (np.int8, np.int16, np.int32, np.int64)):
-        return "int"
-    elif isinstance(value, (np.uint8, np.uint16, np.uint32, np.uint64)):
-        return "int"
-    elif isinstance(value, (np.float16, np.float32, np.float64)):
-        return "float"
-    elif isinstance(value, (np.complex64, np.complex128)):
-        return "complex"
-    elif isinstance(value, np.str_):
-        return "str"
-    elif isinstance(value, np.bytes_):
-        return "bytes"
-    else:
-        # For other types, use the standard type name
-        type_name = type(value).__name__
-        # Handle some common numpy array dtypes
-        if hasattr(value, 'dtype'):
-            dtype_str = str(value.dtype)
-            if 'int' in dtype_str:
-                return "int"
-            elif 'float' in dtype_str:
-                return "float"
-            elif 'bool' in dtype_str:
-                return "bool"
-            elif 'str' in dtype_str or 'object' in dtype_str:
-                return "str"
-        return type_name
+    for types, name in _NUMPY_SCALAR_TYPE_NAMES:
+        if isinstance(value, types):
+            return name
+    # Handle some common numpy array dtypes
+    if hasattr(value, 'dtype'):
+        dtype_name = _dtype_name(str(value.dtype))
+        if dtype_name:
+            return dtype_name
+    # For other types, use the standard type name
+    return type(value).__name__
 
 
 def normalize_dtype_string(dtype) -> str:

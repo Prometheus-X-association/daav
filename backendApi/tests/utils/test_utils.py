@@ -817,6 +817,24 @@ class TestConvertNumpyTypeToPython:
         result = convert_numpy_type_to_python("regular_string")
         assert result == "str"
 
+    def test_array_with_object_or_string_dtype(self):
+        assert convert_numpy_type_to_python(np.array(["a", None], dtype=object)) == "str"
+        assert convert_numpy_type_to_python(np.array(["a", "b"])) == "ndarray"  # dtype '<U1'
+        assert convert_numpy_type_to_python(np.array([1], dtype=np.uint16)) == "int"
+
+    def test_array_with_unmapped_dtype_keeps_type_name(self):
+        assert convert_numpy_type_to_python(np.array([1 + 2j])) == "ndarray"
+        assert convert_numpy_type_to_python(pd.Series([1.5])) == "float"
+        assert convert_numpy_type_to_python(np.datetime64("2024-01-01")) == "datetime64"
+
+    def test_unknown_type(self):
+        class Custom:
+            pass
+        assert convert_numpy_type_to_python(Custom()) == "Custom"
+        assert convert_numpy_type_to_python(None) == "NoneType"
+        assert convert_numpy_type_to_python(3) == "int"
+        assert convert_numpy_type_to_python(2.5) == "float"
+
 
 class TestNormalizeDtypeString:
     """Test cases for normalize_dtype_string function"""
