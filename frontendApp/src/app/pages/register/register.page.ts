@@ -7,6 +7,18 @@ import { alertCircleOutline, atOutline, checkmarkCircle, closeCircle, lockClosed
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
+/**
+ * Message of each field error, checked in this order: the first error found is displayed
+ */
+const FIELD_ERROR_MESSAGES: ReadonlyArray<[string, (label: string, error: any) => string]> = [
+  ['required', (label) => `${label} is required`],
+  ['minlength', (label, error) => `${label} must be at least ${error.requiredLength} characters`],
+  ['maxlength', (label, error) => `${label} must not exceed ${error.requiredLength} characters`],
+  ['email', () => 'Please enter a valid email address'],
+  ['pattern', () => 'Username can only contain letters, numbers, hyphens, and underscores'],
+  ['passwordStrength', () => 'Password must meet strength requirements'],
+];
+
 @Component({
     selector: 'app-register',
     templateUrl: './register.page.html',
@@ -189,25 +201,9 @@ export class RegisterPage implements OnInit {
     const field = this.registerForm.get(fieldName);
 
     if (field?.touched && field?.errors) {
-      if (field.errors['required']) {
-        return `${this.getFieldLabel(fieldName)} is required`;
-      }
-      if (field.errors['minlength']) {
-        const minLength = field.errors['minlength'].requiredLength;
-        return `${this.getFieldLabel(fieldName)} must be at least ${minLength} characters`;
-      }
-      if (field.errors['maxlength']) {
-        const maxLength = field.errors['maxlength'].requiredLength;
-        return `${this.getFieldLabel(fieldName)} must not exceed ${maxLength} characters`;
-      }
-      if (field.errors['email']) {
-        return 'Please enter a valid email address';
-      }
-      if (field.errors['pattern']) {
-        return 'Username can only contain letters, numbers, hyphens, and underscores';
-      }
-      if (field.errors['passwordStrength']) {
-        return 'Password must meet strength requirements';
+      const message = this.getControlErrorMessage(fieldName, field.errors);
+      if (message) {
+        return message;
       }
     }
 
@@ -217,6 +213,14 @@ export class RegisterPage implements OnInit {
     }
 
     return null;
+  }
+
+  /**
+   * Message of the first error of a field, in the order of FIELD_ERROR_MESSAGES
+   */
+  private getControlErrorMessage(fieldName: string, errors: ValidationErrors): string | null {
+    const entry = FIELD_ERROR_MESSAGES.find(([errorKey]) => errors[errorKey]);
+    return entry ? entry[1](this.getFieldLabel(fieldName), errors[entry[0]]) : null;
   }
 
   /**

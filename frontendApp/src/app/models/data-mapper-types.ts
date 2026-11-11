@@ -49,6 +49,17 @@ export class HasDatasetsPipe implements PipeTransform {
   }
 }
 
+const ID_FIELD_PATTERN = /(_id|Id|id)$/i;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_PATTERN = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/;
+const MYSQL_NUMBER_TYPES = ['int', 'decimal', 'float', 'double'];
+const MYSQL_TEXT_TYPES = ['varchar', 'text', 'char', 'blob'];
+const MYSQL_DATE_TYPES = ['date', 'timestamp', 'datetime'];
+const PANDAS_SIMPLE_TYPES = new Map<string, DataType>([
+  ['datetime64[ns]', 'date'],
+  ['bool', 'boolean'],
+]);
+
 export class DataMapperUtils {
   /**
    * Transform a NodeData into a dataset useable by MapperComponent
@@ -165,56 +176,22 @@ export class DataMapperUtils {
     value: string,
     fieldName: string
   ): DataType {
-    if (/(_id|Id|id)$/i.test(fieldName)) {
+    if (ID_FIELD_PATTERN.test(fieldName)) {
       return 'id';
     }
-    if (
-      type.includes('int') ||
-      type.includes('decimal') ||
-      type.includes('float') ||
-      type.includes('double')
-    ) {
-      if (fieldName === 'price' || fieldName === 'cost') {
-        return 'currency';
-      } else {
-        return 'number';
-      }
-    } else if (
-      type.includes('varchar') ||
-      type.includes('text') ||
-      type.includes('char') ||
-      type.includes('blob')
-    ) {
-      if (value) {
-        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          return 'email';
-        } else if (/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(value)) {
-          return 'url';
-        } else if (fieldName.includes('phone') || fieldName.includes('tel')) {
-          return 'phone';
-        } else if (
-          fieldName.includes('percentage') ||
-          fieldName.includes('percent') ||
-          value.includes('%')
-        ) {
-          return 'percentage';
-        } else {
-          return 'string';
-        }
-      } else {
-        return 'string';
-      }
-    } else if (
-      type.includes('date') ||
-      type.includes('timestamp') ||
-      type.includes('datetime')
-    ) {
-      return 'date';
-    } else if (type.includes('boolean') || type.includes('tinyint(1)')) {
-      return 'boolean';
-    } else {
-      return 'string';
+    if (MYSQL_NUMBER_TYPES.some((mysqlType) => type.includes(mysqlType))) {
+      return DataMapperUtils.numberOrCurrency(fieldName);
     }
+    if (MYSQL_TEXT_TYPES.some((mysqlType) => type.includes(mysqlType))) {
+      return value ? DataMapperUtils.detectStringSubtype(value, fieldName) : 'string';
+    }
+    if (MYSQL_DATE_TYPES.some((mysqlType) => type.includes(mysqlType))) {
+      return 'date';
+    }
+    if (type.includes('boolean') || type.includes('tinyint(1)')) {
+      return 'boolean';
+    }
+    return 'string';
   }
 
   static detectTypeFieldPandas(
@@ -222,80 +199,69 @@ export class DataMapperUtils {
     value: string,
     fieldName: string
   ): DataType {
-    if (/(_id|Id|id)$/i.test(fieldName)) {
+    if (ID_FIELD_PATTERN.test(fieldName)) {
       return 'id';
     }
     if (type === 'int' || type === 'float') {
-      if (fieldName === 'price' || fieldName === 'cost') {
-        return 'currency';
-      } else {
-        return 'number';
-      }
-    } else if (type === 'object') {
-      if (value) {
-        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          return 'email';
-        } else if (/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(value)) {
-          return 'url';
-        } else if (fieldName.includes('phone') || fieldName.includes('tel')) {
-          return 'phone';
-        } else if (
-          fieldName.includes('percentage') ||
-          fieldName.includes('percent') ||
-          (typeof value === 'string') && value?.includes('%')
-        ) {
-          return 'percentage';
-        } else {
-          return 'string';
-        }
-      } else {
-        return 'string';
-      }
-    } else if (type === 'datetime64[ns]') {
-      return 'date';
-    } else if (type === 'bool') {
-      return 'boolean';
-    } else {
-      return 'string';
+      return DataMapperUtils.numberOrCurrency(fieldName);
     }
+    if (type === 'object') {
+      // The sample of an object column is not always a string
+      return value
+        ? DataMapperUtils.detectStringSubtype(value, fieldName, (sample) => typeof sample === 'string' && sample.includes('%'))
+        : 'string';
+    }
+    return PANDAS_SIMPLE_TYPES.get(type) ?? 'string';
   }
 
   static detectTypeFieldFromValueType(
     value: any,
     fieldName: string
   ): DataType {
-    if (/(_id|Id|id)$/i.test(fieldName)) {
+    if (ID_FIELD_PATTERN.test(fieldName)) {
       return 'id';
     }
 
     const valueType = typeof value;
 
     if (valueType === 'number') {
-      if (fieldName === 'price' || fieldName === 'cost') {
-        return 'currency';
-      }
-      return 'number';
+      return DataMapperUtils.numberOrCurrency(fieldName);
     } else if (valueType === 'string') {
-      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        return 'email';
-      } else if (/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(value)) {
-        return 'url';
-      } else if (fieldName.includes('phone') || fieldName.includes('tel')) {
-        return 'phone';
-      } else if (
-        fieldName.includes('percentage') ||
-        fieldName.includes('percent') ||
-        value.includes('%')
-      ) {
-        return 'percentage';
-      }
-      return 'string';
+      return DataMapperUtils.detectStringSubtype(value, fieldName);
     } else if (valueType === 'boolean') {
       return 'boolean';
     } else if (value instanceof Date) {
       return 'date';
     }
 
+    return 'string';
+  }
+
+  private static numberOrCurrency(fieldName: string): DataType {
+    return fieldName === 'price' || fieldName === 'cost' ? 'currency' : 'number';
+  }
+
+  /**
+   * Detect the subtype of a text value: email, URL, phone, percentage or plain string.
+   * The percent sign check is only called when the other checks do not match.
+   */
+  private static detectStringSubtype(
+    value: any,
+    fieldName: string,
+    hasPercentSign: (value: any) => boolean = (sample) => sample.includes('%')
+  ): DataType {
+    if (EMAIL_PATTERN.test(value)) {
+      return 'email';
+    }
+    if (URL_PATTERN.test(value)) {
+      return 'url';
+    }
+    if (fieldName.includes('phone') || fieldName.includes('tel')) {
+      return 'phone';
+    }
+    if (fieldName.includes('percentage') || fieldName.includes('percent') || hasPercentSign(value)) {
+      return 'percentage';
+    }
     return 'string';
   }
 }
