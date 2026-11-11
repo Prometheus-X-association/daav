@@ -5,7 +5,7 @@ import { LoadingService } from 'src/app/services/loading.service';
 import { DataRenderTypes } from 'src/app/models/data-render-types';
 import { Dataset } from 'src/app/models/dataset'
 import { DatasetType } from 'src/app/enums/dataset-type';
-import { isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
+import { DatasetContentResponse, isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
 import { MatTabGroup, MatTab } from '@angular/material/tabs';
 import { IonAccordion, IonAccordionGroup, IonButton, IonIcon, IonItem, IonLabel, IonList } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -168,97 +168,94 @@ export class RenderComponent implements OnInit, OnChanges {
         : { database, table };
       this.datasetService.getContentDataset(this.data.selectedDataset,this.data.pagination, params).subscribe((res) => {
         this.data.pagination.nextUrl = null;
-        if (res) {
-          if (res.data) {
-            this.data.fiche = {
-              items: res.data,
-              limit: res.limit,
-              total: res.total_rows,
-              current_page: res.current_page
-            }
-          }
-
-          if (this.selectedDatasetId !== this.data.selectedDataset.id) {
-            if (!res.data) {
-              this.data.displayedColumns = [];
-              this.data.fiche = {
-                items: null,
-                limit: null,
-                total: null,
-                current_page: null,
-              };
-              this.data.renderTabIndex = 0;
-            }
-            if (isMySQLContentResponse(res) || isMongoContentResponse(res)) {
-              this.data.dbNames = res.databases;
-            }
-            else{
-              this.data.dbNames = null;
-            }
-
-            if (isMongoContentResponse(res)) {
-              this.data.tableNames = res.collections;
-            }
-            else if (isMySQLContentResponse(res)) {
-              this.data.tableNames = res.tables;
-            }
-            else if (isElasticSearchContentResponse(res)) {
-              this.data.tableNames = res.indices;
-            }
-            else{
-              this.data.tableNames = null;
-            }
-
-          }
-          if(isApiContentResponse(res)){
-            this.data.fiche.nextUrl = res.next_url;
-            this.data.fiche.prevUrl = res.prev_url;
-            this.data.pagination.perPage  = res.limit ? res.limit : this.data.pagination.perPage;
-          }
-
-          if (this.data.dbNames !== null || this.data.tableNames !== null) {
-            // When db and/or table are not specified
-            let items = this.data.fiche.items;
-            const keys: string[] = items.length !== 0 ? Object.keys(items[0]) : [" "];
-            this.data.displayedColumns = keys;
-          }
-          else if (this.data.fiche.items?.length > 0){
-            // For a single table
-            this.data.displayedColumns = Object.keys(this.data.fiche.items[0]);
-          }
-
-          resolve();
-        }
-        // Connection work but the user don't have access to this dataset
-        else{
-          this.data.displayedColumns = [];
-          this.data.fiche = {
-            items: null,
-            limit: null,
-            total: null,
-            current_page: null,
-          };
-          this.data.renderTabIndex = 0;
+        if (!res) {
+          // Connection work but the user don't have access to this dataset
+          this.resetFiche();
           alert("Connection successful but unable to get data.")
           reject(new Error("Connection successful but unable to get data."));
+          return;
         }
+        if (res.data) {
+          this.data.fiche = {
+            items: res.data,
+            limit: res.limit,
+            total: res.total_rows,
+            current_page: res.current_page
+          }
+        }
+        if (this.selectedDatasetId !== this.data.selectedDataset.id) {
+          if (!res.data) {
+            this.resetFiche();
+          }
+          this.updateNames(res);
+        }
+        this.applyApiPagination(res);
+        this.updateDisplayedColumns();
+        resolve();
       },error => {
         // Connection don't work
         console.log("error",error)
-        this.data.displayedColumns = [];
-        this.data.fiche = {
-          items: null,
-          limit: null,
-          total: null,
-          current_page: null,
-        };
-        this.data.renderTabIndex = 0;
+        this.resetFiche();
         alert("Connection error.")
         this.data.pagination.nextUrl = null;
         reject(new Error("Connection error.", { cause: error }));
       });
     })
   }
+
+  /**
+   * Empty the displayed content and come back to the first tab
+   */
+  private resetFiche() {
+    this.data.displayedColumns = [];
+    this.data.fiche = {
+      items: null,
+      limit: null,
+      total: null,
+      current_page: null,
+    };
+    this.data.renderTabIndex = 0;
+  }
+
+  /**
+   * Database and table (collection, index) names of a newly selected dataset
+   */
+  private updateNames(res: DatasetContentResponse) {
+    this.data.dbNames = isMySQLContentResponse(res) || isMongoContentResponse(res) ? res.databases : null;
+    if (isMongoContentResponse(res)) {
+      this.data.tableNames = res.collections;
+    } else if (isMySQLContentResponse(res)) {
+      this.data.tableNames = res.tables;
+    } else if (isElasticSearchContentResponse(res)) {
+      this.data.tableNames = res.indices;
+    } else {
+      this.data.tableNames = null;
+    }
+  }
+
+  /**
+   * Previous and next pages, and page size, given by an API response
+   */
+  private applyApiPagination(res: DatasetContentResponse) {
+    if (isApiContentResponse(res)) {
+      this.data.fiche.nextUrl = res.next_url;
+      this.data.fiche.prevUrl = res.prev_url;
+      this.data.pagination.perPage = res.limit ? res.limit : this.data.pagination.perPage;
+    }
+  }
+
+  private updateDisplayedColumns() {
+    if (this.data.dbNames !== null || this.data.tableNames !== null) {
+      // When db and/or table are not specified
+      const items = this.data.fiche.items;
+      this.data.displayedColumns = items.length !== 0 ? Object.keys(items[0]) : [" "];
+    }
+    else if (this.data.fiche.items?.length > 0){
+      // For a single table
+      this.data.displayedColumns = Object.keys(this.data.fiche.items[0]);
+    }
+  }
+
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
     this.filterTables = filterValue.trim().toLowerCase();

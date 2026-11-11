@@ -92,77 +92,96 @@ export class MergeTransform extends TransformBlock {
     const worflowEditor = this.area.parent as WorkflowNodeEditor<Schemes>;
     if (connection.targetInput === "datasource" ){
       if (type === 'connectioncreated'){
-        const newInputKey = "datasource_1";
-        const sourceNode = worflowEditor.getNode(connection.source);
-        if (sourceNode){
-          const sourceOutputSocket = sourceNode.outputs[connection.sourceOutput].socket;
-          this.addInput(
-            newInputKey,
-            new ClassicPreset.Input(sourceOutputSocket, "DataSource 1")
-          );
-          this.addOutput(
-            "out",
-            new ClassicPreset.Output(sourceOutputSocket, "Out")
-          );
-        }
+        this.onPrimaryConnected(worflowEditor, connection);
       } else {
-        //delete all other inputs with her connections they have to have the same socket as primary datasource
-        Object.entries(this.inputs).forEach(([key, input]) => {
-          if (key !== "datasource") {
-            const connection = worflowEditor.getConnections().find(conn => conn.target === this.id && conn.targetInput === key);
-            if (connection){
-              worflowEditor.removeConnection(connection.id);
-            }
-            this.removeInput(key);
-          }
-          const connectionOuput = worflowEditor.getConnections().find(conn => conn.source === this.id && conn.sourceOutput === "out");
-          if (connectionOuput){
-            worflowEditor.removeConnection(connectionOuput.id);
-          }
-          this.removeOutput("out");
-        });
-
+        this.onPrimaryRemoved(worflowEditor);
       }
-
     }
+    // datasource (index 0) or datasource_x (index x)
     const match = connection.targetInput.match(/^datasource(_(\d+))?$/);
-    //when a input like datasource_x is connected  we create a new input if increment not exist
     if (match) {
+      const index = match[2] ? parseInt(match[2], 10) : 0;
       if (type === 'connectioncreated'){
-        const index = match[2] ? parseInt(match[2], 10) + 1 : 1;
-        const existingKeys = Object.keys(this.inputs);
-        const newInputKey = `datasource_${index}`;
-        if (!existingKeys.includes(newInputKey)) {
-
-          const sourceOutputSocket = this.inputs[connection.targetInput].socket;
-          this.addInput(
-            newInputKey,
-            new ClassicPreset.Input(sourceOutputSocket, `DataSource ${index}`)
-          );
-        }
-      }else {
-        const index = match[2] ? parseInt(match[2], 10) : 0;
-        const nextInputKey = `datasource_${index + 1}`;
-        //remove +1 input if not connected when remove connection of the current input
-        if (this.inputs[nextInputKey]) {
-          const hasConnection = worflowEditor.getConnections().some(conn => conn.target === this.id && conn.targetInput === nextInputKey);
-          if (!hasConnection) {
-            this.removeInput(nextInputKey);
-          }
-        }
-        //remove -1  input too if it's not connected
-        if (index >1){
-          const prevInputKey = `datasource_${index-1}`;
-          if (this.inputs[prevInputKey]) {
-            const hasPrevConnection = worflowEditor.getConnections().some(conn => conn.target === this.id && conn.targetInput === prevInputKey);
-            if (!hasPrevConnection) {
-              this.removeInput(connection.targetInput);
-            }
-          }
-        }
+        this.onIndexedConnected(connection.targetInput, index + 1);
+      } else {
+        this.onIndexedRemoved(worflowEditor, connection.targetInput, index);
       }
     }
     this.buildDataset(type);
+  }
+
+  /**
+   * The primary datasource is connected: add the first indexed input and the output, with the socket of the source
+   */
+  private onPrimaryConnected(worflowEditor: WorkflowNodeEditor<Schemes>, connection: Connection<NodeBlock, NodeBlock>) {
+    const sourceNode = worflowEditor.getNode(connection.source);
+    if (!sourceNode){
+      return;
+    }
+    const sourceOutputSocket = sourceNode.outputs[connection.sourceOutput].socket;
+    this.addInput(
+      "datasource_1",
+      new ClassicPreset.Input(sourceOutputSocket, "DataSource 1")
+    );
+    this.addOutput(
+      "out",
+      new ClassicPreset.Output(sourceOutputSocket, "Out")
+    );
+  }
+
+  /**
+   * The primary datasource is disconnected: delete all other inputs with their connections
+   * (they have to have the same socket as the primary datasource), and the output
+   */
+  private onPrimaryRemoved(worflowEditor: WorkflowNodeEditor<Schemes>) {
+    Object.keys(this.inputs).forEach((key) => {
+      if (key !== "datasource") {
+        const connection = worflowEditor.getConnections().find(conn => conn.target === this.id && conn.targetInput === key);
+        if (connection){
+          worflowEditor.removeConnection(connection.id);
+        }
+        this.removeInput(key);
+      }
+      const connectionOuput = worflowEditor.getConnections().find(conn => conn.source === this.id && conn.sourceOutput === "out");
+      if (connectionOuput){
+        worflowEditor.removeConnection(connectionOuput.id);
+      }
+      this.removeOutput("out");
+    });
+  }
+
+  /**
+   * A data source input is connected: create the input datasource_{index} if it does not exist
+   */
+  private onIndexedConnected(targetInput: string, index: number) {
+    const newInputKey = `datasource_${index}`;
+    if (Object.keys(this.inputs).includes(newInputKey)) {
+      return;
+    }
+    const sourceOutputSocket = this.inputs[targetInput].socket;
+    this.addInput(
+      newInputKey,
+      new ClassicPreset.Input(sourceOutputSocket, `DataSource ${index}`)
+    );
+  }
+
+  /**
+   * The data source input of this index is disconnected: remove the next input if it is not connected,
+   * and remove this input too if the previous one (above datasource_1) is not connected
+   */
+  private onIndexedRemoved(worflowEditor: WorkflowNodeEditor<Schemes>, targetInput: string, index: number) {
+    const nextInputKey = `datasource_${index + 1}`;
+    if (this.inputs[nextInputKey] && !this.isInputConnected(worflowEditor, nextInputKey)) {
+      this.removeInput(nextInputKey);
+    }
+    const prevInputKey = `datasource_${index - 1}`;
+    if (index > 1 && this.inputs[prevInputKey] && !this.isInputConnected(worflowEditor, prevInputKey)) {
+      this.removeInput(targetInput);
+    }
+  }
+
+  private isInputConnected(worflowEditor: WorkflowNodeEditor<Schemes>, inputKey: string): boolean {
+    return worflowEditor.getConnections().some(conn => conn.target === this.id && conn.targetInput === inputKey);
   }
 
   onMapperClose(){

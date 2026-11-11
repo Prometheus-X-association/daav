@@ -4,6 +4,8 @@ import { Node } from 'src/app/models/interfaces/node';
 import { StatusNode } from 'src/app/enums/status-node';
 import { DataMapperControl } from 'src/app/components/widgets/data-mapper-widget/data-mapper-widget.component';
 import { Schemes } from 'src/app/core/workflow-editor';
+import { ClassicPreset } from 'rete';
+import { AllSocket } from 'src/app/core/sockets/sockets';
 
 
 describe('MergeTransform', () => {
@@ -152,5 +154,123 @@ describe('MergeTransform', () => {
     instance['buildDataset']('connectionremoved');
     expect(instance.dataMapperControl.datasets).toEqual([]);
     expect(instance.dataMapperControl.mappings).toEqual([]);
+  });
+  describe('onConnectionChange', () => {
+    let instance: MergeTransform;
+    let connections: any[];
+
+    function addInputs(...indexes: number[]) {
+      indexes.forEach(index => instance.addInput(`datasource_${index}`, new ClassicPreset.Input(new AllSocket(), `DataSource ${index}`)));
+    }
+
+    function change(targetInput: string, type: 'connectioncreated' | 'connectionremoved') {
+      instance['onConnectionChange']({ id: `c-${targetInput}`, source: 'sourceNode', sourceOutput: 'output1', target: instance.id, targetInput } as any, type);
+    }
+
+    beforeEach(() => {
+      connections = [];
+      area.parent.getConnections = jasmine.createSpy('getConnections').and.callFake(() => connections);
+      area.parent.removeConnection = jasmine.createSpy('removeConnection');
+      instance = new MergeTransform('Test Label', area);
+      spyOn<any>(instance, 'buildDataset');
+    });
+
+    it('should create the next input when an indexed input is connected', () => {
+      addInputs(1, 2);
+      const socket = instance.inputs['datasource_2']!.socket;
+
+      change('datasource_2', 'connectioncreated');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1', 'datasource_2', 'datasource_3']);
+      expect(instance.inputs['datasource_3']!.socket).toBe(socket);
+      expect(instance.inputs['datasource_3']!.label).toBe('DataSource 3');
+      expect(instance['buildDataset']).toHaveBeenCalledWith('connectioncreated');
+    });
+
+    it('should not create the next input twice', () => {
+      addInputs(1, 2);
+      const existing = instance.inputs['datasource_2'];
+
+      change('datasource_1', 'connectioncreated');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1', 'datasource_2']);
+      expect(instance.inputs['datasource_2']).toBe(existing);
+    });
+
+    it('should create the first indexed input with the primary socket when the source node is unknown', () => {
+      (area.parent.getNode as jasmine.Spy).and.returnValue(undefined);
+      const socket = instance.inputs['datasource']!.socket;
+
+      change('datasource', 'connectioncreated');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1']);
+      expect(instance.inputs['datasource_1']!.socket).toBe(socket);
+      expect(instance.inputs['datasource_1']!.label).toBe('DataSource 1');
+      expect(Object.keys(instance.outputs)).toEqual([]);
+    });
+
+    it('should remove the next input when it is not connected', () => {
+      addInputs(1, 2);
+
+      change('datasource_1', 'connectionremoved');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1']);
+      expect(instance['buildDataset']).toHaveBeenCalledWith('connectionremoved');
+    });
+
+    it('should keep the next input when it is connected', () => {
+      addInputs(1, 2);
+      connections = [{ id: 'c2', target: instance.id, targetInput: 'datasource_2' }];
+
+      change('datasource_1', 'connectionremoved');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1', 'datasource_2']);
+    });
+
+    it('should remove the disconnected input above 1 when the previous input is free', () => {
+      addInputs(1, 2, 3);
+
+      change('datasource_2', 'connectionremoved');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1']);
+    });
+
+    it('should keep the disconnected input above 1 when the previous input is connected', () => {
+      addInputs(1, 2, 3);
+      connections = [
+        { id: 'c1', target: instance.id, targetInput: 'datasource_1' },
+        { id: 'c3', target: instance.id, targetInput: 'datasource_3' }
+      ];
+
+      change('datasource_2', 'connectionremoved');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1', 'datasource_2', 'datasource_3']);
+    });
+
+    it('should remove the other inputs, their connections and the output when the primary input is disconnected', () => {
+      addInputs(1, 2);
+      instance.addOutput('out', new ClassicPreset.Output(new AllSocket(), 'Out'));
+      connections = [
+        { id: 'c1', target: instance.id, targetInput: 'datasource_1' },
+        { id: 'c-out', source: instance.id, sourceOutput: 'out', target: 'next' }
+      ];
+
+      change('datasource', 'connectionremoved');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource']);
+      expect(Object.keys(instance.outputs)).toEqual([]);
+      expect(area.parent.removeConnection).toHaveBeenCalledWith('c1');
+      expect(area.parent.removeConnection).toHaveBeenCalledWith('c-out');
+      expect(instance['buildDataset']).toHaveBeenCalledWith('connectionremoved');
+    });
+
+    it('should ignore inputs that are not data sources', () => {
+      instance.addInput('other', new ClassicPreset.Input(new AllSocket(), 'Other'));
+
+      change('other', 'connectioncreated');
+
+      expect(Object.keys(instance.inputs)).toEqual(['datasource', 'other']);
+      expect(instance['buildDataset']).toHaveBeenCalledWith('connectioncreated');
+    });
   });
 });
