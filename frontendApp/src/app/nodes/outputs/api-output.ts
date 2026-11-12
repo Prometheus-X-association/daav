@@ -51,11 +51,17 @@ export class ApiOutput extends OutputDataBlock{
   }
 
   private generateRandomToken(length: number = 64): string {
+    // The token is the access key of the published route: it must come from the cryptographic generator
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    // Bytes above this limit are drawn again, otherwise the first characters would come out more often
+    const limit = 256 - (256 % characters.length);
     let result = '';
-    const charactersLength = characters.length;
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    while (result.length < length) {
+      for (const byte of crypto.getRandomValues(new Uint8Array(length))) {
+        if (byte < limit && result.length < length) {
+          result += characters.charAt(byte % characters.length);
+        }
+      }
     }
     return result;
   }
