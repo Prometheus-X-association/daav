@@ -50,6 +50,7 @@ export class ElasticDashboardComponent extends DashboardComponent implements OnI
   newIndexName = '';
   newIndexMappings = '';
   createError: string;
+  copyFailed = false;
   createMessage: string;
   creating = false;
 
@@ -215,8 +216,17 @@ export class ElasticDashboardComponent extends DashboardComponent implements OnI
     return `curl -X DELETE${auth} "${url}"`;
   }
 
-  copy(text: string) {
-    navigator.clipboard?.writeText(text);
+  /** Copy a text to the clipboard; the browser can refuse (permission, page not served over HTTPS) */
+  async copy(text: string): Promise<void> {
+    try {
+      if (!navigator.clipboard) {
+        throw new Error('Clipboard not available');
+      }
+      await navigator.clipboard.writeText(text);
+      this.copyFailed = false;
+    } catch {
+      this.copyFailed = true;
+    }
   }
 
   formatSize(bytes: number): string {

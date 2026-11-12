@@ -71,6 +71,19 @@ describe('WorkflowPage', () => {
     expect(component.workflow.importProject).toHaveBeenCalledWith(project);
   });
 
+  it('should report a project that cannot be loaded and empty the editor', async () => {
+    const project = { id: 'broken', name: 'Broken Project' } as any;
+    (component.workflow.importProject as jasmine.Spy).and.rejectWith(new Error('unknown block'));
+    spyOn(window, 'alert');
+    spyOn(console, 'error');
+
+    await component.loadProject(project);
+
+    expect(window.alert).toHaveBeenCalledWith('Error loading project');
+    // A partly loaded project must not stay in the editor: saving it would overwrite the real one
+    expect(component.workflow.resetWorkflow).toHaveBeenCalledWith('New Workflow');
+  });
+
   it('should load project object directly', () => {
     const project = { id: 'direct-id', name: 'Direct Project' } as any;
 

@@ -129,7 +129,7 @@ export class MainPage {
 
   loadWorkflow(project: Project) {
     if (this.workflowEditor) {
-      this.workflowEditor.loadProject(project);
+      void this.workflowEditor.loadProject(project);
     }
     else{
       this.loadProjectId = project.id;

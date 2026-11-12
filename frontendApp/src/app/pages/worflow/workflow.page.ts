@@ -52,7 +52,7 @@ export class WorkflowPage implements AfterViewInit {
         (window as any).workflow = this.workflow;
       }
       if (this.projectId) {
-        this.loadProject(this.projectId);
+        void this.loadProject(this.projectId);
       }
     }, 0);
   }
@@ -62,14 +62,28 @@ export class WorkflowPage implements AfterViewInit {
    *Load a Project in the workflow
    * @param project : Project | string (id of a project)
    */
-  public loadProject(project : Project | string){
+  public async loadProject(project : Project | string): Promise<void> {
     if (this.workflow && project){
       if ( typeof project === 'string'){
         project = this.workflowService.workflows().find(w => w.id == project);
       }
       if (project){
-        this.workflow.importProject(project);
+        await this.importIntoEditor(project);
       }
+    }
+  }
+
+  /**
+   * Import a project in the editor. On failure the user is told and the editor is emptied:
+   * a partly loaded project must not stay, saving it would overwrite the real one.
+   */
+  private async importIntoEditor(project: Project): Promise<void> {
+    try {
+      await this.workflow.importProject(project);
+    } catch (error) {
+      console.error(error);
+      alert("Error loading project");
+      await this.workflow.resetWorkflow(this.getDefaultName());
     }
   }
 
@@ -80,7 +94,7 @@ export class WorkflowPage implements AfterViewInit {
    */
   public newProject(){
       if (this.workflow ){
-        this.workflow.resetWorkflow(this.getDefaultName());
+        void this.workflow.resetWorkflow(this.getDefaultName());
       }
     }
 
@@ -92,7 +106,7 @@ export class WorkflowPage implements AfterViewInit {
   }
 
   protected import(){
-    this.workflow.importProject(this.exported);
+    void this.importIntoEditor(this.exported);
   }
 
 

@@ -108,4 +108,26 @@ describe('ElasticDashboardComponent', () => {
     expect(elastic.createIndex).not.toHaveBeenCalled();
     expect(component.createError).toContain('not valid JSON');
   });
+
+  it('should copy the command to the clipboard', async () => {
+    create();
+    const writeText = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+
+    await component.copy('curl -X DELETE');
+
+    expect(writeText).toHaveBeenCalledWith('curl -X DELETE');
+    expect(component.copyFailed).toBeFalse();
+  });
+
+  it('should tell the user when the command cannot be copied', async () => {
+    create();
+    component.selectIndex(indices[0]);
+    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
+
+    await component.copy('curl -X DELETE');
+    fixture.detectChanges();
+
+    expect(component.copyFailed).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.command + .error').textContent).toContain('could not be copied');
+  });
 });

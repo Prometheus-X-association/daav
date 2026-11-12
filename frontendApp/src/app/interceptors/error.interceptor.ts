@@ -84,12 +84,12 @@ export class ErrorInterceptor implements HttpInterceptor {
           );
         } else {
           // Refresh failed, redirect to login
-          this.redirectToLogin();
+          void this.redirectToLogin();
           observer.error(new Error('Session expired'));
         }
       }).catch(error => {
         this.isRefreshing = false;
-        this.redirectToLogin();
+        void this.redirectToLogin();
         observer.error(error);
       });
     });
@@ -124,21 +124,32 @@ export class ErrorInterceptor implements HttpInterceptor {
   }
 
   /**
-   * Redirect to login page
+   * Redirect to login page. A failing logout or message must not prevent the redirection.
    */
   private async redirectToLogin(): Promise<void> {
-    await this.authService.logout();
+    const returnUrl = this.router.url;
+    try {
+      await this.authService.logout();
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
 
-    const toast = await this.toastController.create({
-      message: 'Your session has expired. Please login again.',
-      duration: 3000,
-      color: 'warning',
-      position: 'top'
-    });
-    await toast.present();
+    try {
+      const toast = await this.toastController.create({
+        message: 'Your session has expired. Please login again.',
+        duration: 3000,
+        color: 'warning',
+        position: 'top'
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('Failed to show the session expired message:', error);
+    }
 
-    this.router.navigate(['/login'], {
-      queryParams: { returnUrl: this.router.url }
-    });
+    try {
+      await this.router.navigate(['/login'], { queryParams: { returnUrl } });
+    } catch (error) {
+      console.error('Failed to navigate to the login page:', error);
+    }
   }
 }

@@ -338,7 +338,7 @@ export class WorkflowEditor {
         node.preventNodeEvent = true;
         console.log("activate prevent default", node);
       } else {
-        throw new Error("this type : {nodeI.type} of block can't be found ");
+        throw new Error(`this type : ${nodeI.type} of block can't be found `);
       }
       //if NodeBlock recreation of node content can be delegate at the object constructor or handle here if rebuild Locally is false or it's a classic preset
       if (buildContent) {
