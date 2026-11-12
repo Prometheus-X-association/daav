@@ -68,8 +68,11 @@ class MergeTransform(TransformNode):
         return self._publish_dataframe(combined_df, "Merged Data", sample)
 
     def _merge_in_memory(self, data_mapping, sample: bool) -> pd.DataFrame:
-        """One column per mapping item, concatenating the columns of its sources."""
-        combined_df = pd.DataFrame()
+        """One column per mapping item, concatenating the columns of its sources.
+
+        A column shorter than the longest one is completed with missing values.
+        """
+        columns = {}
         for mapping_item in data_mapping:
             # Sort sources by their order in the mapping item to ensure to keep the same order for all columns
             sorted_sources = sorted(mapping_item.sources, key=lambda x: x.id)
@@ -77,8 +80,11 @@ class MergeTransform(TransformNode):
                            if column is not None]
             # Concatenate all the column data
             if column_data:
-                combined_df[mapping_item.targetName] = pd.concat(column_data, ignore_index=True)
-        return combined_df
+                columns[mapping_item.targetName] = pd.concat(column_data, ignore_index=True)
+        if not columns:
+            return pd.DataFrame()
+        # The columns are aligned on their row numbers: no row of the longest one is lost
+        return pd.concat(columns, axis=1)
 
     def _source_column(self, source: Source, sample: bool) -> Optional[pd.Series]:
         """The column of a source, or None if its dataset is not an input of the node."""
