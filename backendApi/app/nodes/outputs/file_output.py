@@ -1,7 +1,13 @@
 import asyncio
+import datetime
+import itertools
+import json
+import re
 import traceback
-from typing import Optional, Any
+import xml.etree.ElementTree as ET
+from typing import Any, Iterator, List, Optional
 import pandas as pd
+import pyarrow as pa
 import pyarrow.parquet as pq
 from fastapi import HTTPException
 from pydantic import ConfigDict
@@ -21,12 +27,40 @@ from app.core.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 
+# Number of rows written for a sample of a parquet input
+SAMPLE_ROWS = 20
+
+# Characters that an XML element name cannot hold
+_XML_INVALID_NAME_CHARS = re.compile(r'[^\w.\-]')
+
 
 def _plain_file_name(file_name: str) -> str:
     """The file name if it is a bare name; 400 if it carries a directory, so that the output stays in the upload folder."""
     if file_name in ('.', '..') or '/' in file_name or '\\' in file_name or os.path.isabs(file_name):
         raise HTTPException(status_code=400, detail="Invalid file name: a file name without directory is expected")
     return file_name
+
+
+def _is_missing(value: Any) -> bool:
+    """True for None, NaN and NaT."""
+    return bool(pd.api.types.is_scalar(value) and pd.isna(value))
+
+
+def _xml_name(column: Any) -> str:
+    """Element name of a column: the characters that an XML name cannot hold are replaced by '_'."""
+    name = _XML_INVALID_NAME_CHARS.sub('_', str(column))
+    if not name or not (name[0].isalpha() or name[0] == '_'):
+        name = '_' + name
+    return name
+
+
+def _json_value(value: Any) -> Any:
+    """Value of a JSON record: null for a missing value, ISO 8601 text for a date."""
+    if _is_missing(value):
+        return None
+    if isinstance(value, (datetime.datetime, datetime.date)):
+        return value.isoformat()
+    return value
 
 
 class FileOutput(OutputNode):
@@ -63,8 +97,7 @@ class FileOutput(OutputNode):
             if dataset is not None and dataset.filePath:
                 data_file_type = dataset.metadata.fileType
                 if data_file_type != file_type:
-                    self.statusMessage = f"Output type '{file_type}' does not match dataset type '{data_file_type}'"
-                    raise ValueError("File type mismatch between dataset and output node")
+                    raise ValueError(f"Output type '{file_type}' does not match dataset type '{data_file_type}'")
                 
             # Determine output file path
             if dataset is not None:
@@ -110,8 +143,7 @@ class FileOutput(OutputNode):
                         elif file_type == 'xml':
                             self._write_xml_data(df, output_file, encoding, file_exist)
                         elif file_type == 'parquet':
-                            if file_exist == 'append':
-                                # fileType == "append"
+                            if file_exist == 'append' and os.path.exists(output_file):
                                 old_data = pd.read_parquet(output_file)
                                 df = pd.concat([old_data, df], ignore_index=True)
                                 df.to_parquet(output_file)
@@ -167,14 +199,9 @@ class FileOutput(OutputNode):
                         elif file_type == 'xml':
                             self._write_xml_parquet_data(parquet_file, output_file, encoding, sample, chunk_size, file_exist)
                         elif file_type == 'parquet':
-                            if file_exist == 'append':
-                                # fileType == "append"
-                                old_data = pd.read_parquet(output_file)
-                                new_data = parquet_file.read().to_pandas()
-                                combined_data = pd.concat([old_data, new_data], ignore_index=True)
-                                combined_data.to_parquet(output_file)
-                            else:
-                                parquet_file.write(output_file)
+                            self._write_parquet_parquet_data(parquet_file, output_file, sample, file_exist)
+                        else:
+                            raise ValueError(f"Unsupported file type: {file_type}")
                         print(f"Successfully exported to {output_file}")
                         
                         # Create and save new dataset AFTER the file has been created successfully
@@ -241,145 +268,131 @@ class FileOutput(OutputNode):
 
     def _write_json_data(self, df: pd.DataFrame, output_file: str, file_exist: str):
         """Write DataFrame to JSON file with proper array handling."""
-        import json
-        import os
-        
         if file_exist == 'append' and os.path.exists(output_file):
-            # Load existing data and append
-            records = df.to_dict(orient='records')
-            existing_records = []
-            with open(output_file, 'r', encoding='utf-8') as f:
-                try:
-                    existing_data = json.load(f)
-                    if isinstance(existing_data, list):
-                        existing_records = existing_data
-                except json.JSONDecodeError:
-                    pass
-        
             # Combine existing and new records
-            all_records = existing_records + records
-            
+            all_records = self._existing_json_records(output_file) + self._json_records(df)
+
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(all_records, f, ensure_ascii=False, indent=2)
         else:
             # Replace or create new file using pandas to_json
-            df.to_json(output_file, orient='records', force_ascii=False, indent=2)
+            self._with_iso_dates(df).to_json(output_file, orient='records', force_ascii=False, indent=2)
+
+    @staticmethod
+    def _with_iso_dates(df: pd.DataFrame) -> pd.DataFrame:
+        """Copy of the DataFrame whose dates are ISO 8601 text."""
+        def iso_dates(column: pd.Series) -> pd.Series:
+            if column.dtype == object or pd.api.types.is_datetime64_any_dtype(column):
+                return column.map(_json_value).astype(object)
+            return column
+        return df.apply(iso_dates)
+
+    @staticmethod
+    def _json_records(df: pd.DataFrame) -> List[dict]:
+        """Rows of the DataFrame as JSON records: null for a missing value, ISO 8601 text for a date."""
+        return [{key: _json_value(value) for key, value in record.items()}
+                for record in df.to_dict(orient='records')]
+
+    @staticmethod
+    def _existing_json_records(output_file: str) -> list:
+        """Records of the JSON file to complete; nothing if it does not hold a list."""
+        with open(output_file, 'r', encoding='utf-8') as f:
+            try:
+                existing_data = json.load(f)
+            except json.JSONDecodeError:
+                return []
+        return existing_data if isinstance(existing_data, list) else []
 
     def _write_xml_data(self, df: pd.DataFrame, output_file: str, encoding: str, file_exist: str):
-        """Write DataFrame to XML file with proper array handling."""
-        import xml.etree.ElementTree as ET
-        import os
-        
+        """Write DataFrame to XML file: one row element per row, under the data root."""
+        root = self._xml_root(output_file, file_exist)
+        self._append_xml_rows(root, df)
+        self._write_xml_root(root, output_file, encoding)
+
+    @staticmethod
+    def _xml_root(output_file: str, file_exist: str) -> ET.Element:
+        """Root of the XML file to complete when appending to a readable file, else a new root."""
         if file_exist == 'append' and os.path.exists(output_file):
-            # Parse existing XML and append
             try:
-                tree = ET.parse(output_file)
-                root = tree.getroot()
+                return ET.parse(output_file).getroot()
             except ET.ParseError:
-                root = ET.Element("data")
-                tree = ET.ElementTree(root)
-            
-            # Convert DataFrame to XML elements and append
-            for _, row in df.iterrows():
-                item = ET.SubElement(root, "item")
-                for col, value in row.items():
-                    elem = ET.SubElement(item, str(col))
+                pass
+        return ET.Element("data")
+
+    @staticmethod
+    def _append_xml_rows(root: ET.Element, df: pd.DataFrame) -> None:
+        """Add one row element per row of the DataFrame; a missing value is an empty element."""
+        names = [_xml_name(column) for column in df.columns]
+        for values in df.itertuples(index=False, name=None):
+            row = ET.SubElement(root, "row")
+            for name, value in zip(names, values):
+                elem = ET.SubElement(row, name)
+                if not _is_missing(value):
                     elem.text = str(value)
-            
-            tree.write(output_file, encoding=encoding, xml_declaration=True)
-        else:
-            # Replace or create new file
-            df.to_xml(output_file, index=False, encoding=encoding)
+
+    @staticmethod
+    def _write_xml_root(root: ET.Element, output_file: str, encoding: str) -> None:
+        tree = ET.ElementTree(root)
+        ET.indent(tree)
+        tree.write(output_file, encoding=encoding, xml_declaration=True)
+
+    @staticmethod
+    def _parquet_chunks(parquet_file, chunk_size: int, sample: bool) -> Iterator[pd.DataFrame]:
+        """Yield the parquet file by chunks; a sample is the first rows of the first chunk."""
+        for batch in parquet_file.iter_batches(batch_size=chunk_size):
+            chunk_df = batch.to_pandas()
+            if sample:
+                yield chunk_df.head(SAMPLE_ROWS)
+                return
+            yield chunk_df
 
     def _write_csv_parquet_data(self, parquet_file, output_file: str, delimiter: str, encoding: str, sample: bool, chunk_size: int, file_exist: str):
-        """Write parquet data to CSV file in chunks."""
-        first_chunk = True
-        mode = 'w' if file_exist == 'replace' or not os.path.exists(output_file) else 'a'
-        with open(output_file, mode, encoding=encoding) as csvfile:
-            for batch in parquet_file.iter_batches(batch_size=chunk_size):
-                chunk_df = batch.to_pandas()
-                
-                if sample and first_chunk:
-                    chunk_df = chunk_df.head(20)
-                    chunk_df.to_csv(csvfile, sep=delimiter, index=False)
-                    break
-                
-                write_header = first_chunk and (file_exist == 'replace' or not os.path.exists(output_file))
+        """Write parquet data to CSV file in chunks: the header is written unless the rows are appended."""
+        append = file_exist == 'append' and os.path.exists(output_file)
+        with open(output_file, 'a' if append else 'w', encoding=encoding) as csvfile:
+            write_header = not append
+            for chunk_df in self._parquet_chunks(parquet_file, chunk_size, sample):
                 chunk_df.to_csv(csvfile, sep=delimiter, index=False, header=write_header)
-                first_chunk = False
+                write_header = False
 
     def _write_json_parquet_data(self, parquet_file, output_file: str, sample: bool, chunk_size: int, file_exist: str):
         """Write parquet data to JSON file in chunks with proper array handling."""
-        import json
-        import os
-        
         all_records = []
-        first_chunk = True
-        
+
         # Read existing data if appending
         if file_exist == 'append' and os.path.exists(output_file):
-            with open(output_file, 'r', encoding='utf-8') as f:
-                try:
-                    existing_data = json.load(f)
-                    if isinstance(existing_data, list):
-                        all_records.extend(existing_data)
-                except json.JSONDecodeError:
-                    pass
-        
+            all_records.extend(self._existing_json_records(output_file))
+
         # Process chunks
-        for batch in parquet_file.iter_batches(batch_size=chunk_size):
-            chunk_df = batch.to_pandas()
-            
-            if sample and first_chunk:
-                chunk_df = chunk_df.head(20)
-            
-            records = chunk_df.to_dict(orient='records')
-            all_records.extend(records)
-            
-            if sample and first_chunk:
-                break
-            first_chunk = False
-        
+        for chunk_df in self._parquet_chunks(parquet_file, chunk_size, sample):
+            all_records.extend(self._json_records(chunk_df))
+
         # Write all data as JSON array
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(all_records, f, ensure_ascii=False, indent=2)
 
     def _write_xml_parquet_data(self, parquet_file, output_file: str, encoding: str, sample: bool, chunk_size: int, file_exist: str):
-        """Write parquet data to XML file in chunks with proper array handling."""
-        import xml.etree.ElementTree as ET
-        import os
-        
-        # Initialize or load existing XML structure
-        if file_exist == 'append' and os.path.exists(output_file):
-            try:
-                tree = ET.parse(output_file)
-                root = tree.getroot()
-            except ET.ParseError:
-                root = ET.Element("data")
-                tree = ET.ElementTree(root)
+        """Write parquet data to XML file in chunks: one row element per row, under the data root."""
+        root = self._xml_root(output_file, file_exist)
+        for chunk_df in self._parquet_chunks(parquet_file, chunk_size, sample):
+            self._append_xml_rows(root, chunk_df)
+        self._write_xml_root(root, output_file, encoding)
+
+    @staticmethod
+    def _write_parquet_parquet_data(parquet_file, output_file: str, sample: bool, file_exist: str):
+        """Write parquet data to a parquet file; a sample is its first rows."""
+        if sample:
+            first_batches = itertools.islice(parquet_file.iter_batches(batch_size=SAMPLE_ROWS), 1)
+            table = pa.Table.from_batches(first_batches, schema=parquet_file.schema_arrow)
         else:
-            root = ET.Element("data")
-            tree = ET.ElementTree(root)
-        
-        first_chunk = True
-        for batch in parquet_file.iter_batches(batch_size=chunk_size):
-            chunk_df = batch.to_pandas()
-            
-            if sample and first_chunk:
-                chunk_df = chunk_df.head(20)
-            
-            # Add chunk data to XML
-            for _, row in chunk_df.iterrows():
-                item = ET.SubElement(root, "item")
-                for col, value in row.items():
-                    elem = ET.SubElement(item, str(col))
-                    elem.text = str(value)
-            
-            if sample and first_chunk:
-                break
-            first_chunk = False
-        
-        tree.write(output_file, encoding=encoding, xml_declaration=True)
+            table = parquet_file.read()
+
+        if file_exist == 'append' and os.path.exists(output_file):
+            old_data = pd.read_parquet(output_file)
+            combined_data = pd.concat([old_data, table.to_pandas()], ignore_index=True)
+            combined_data.to_parquet(output_file)
+        else:
+            pq.write_table(table, output_file)
 
     def _create_file_dataset(self, file_path: str, file_type: str, delimiter: str, encoding: str) -> FileDataset:
         """Create a new FileDataset for the output file.
