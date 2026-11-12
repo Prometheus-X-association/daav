@@ -61,7 +61,7 @@ async def get_output_from_custom_path(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error processing custom path {custom_path}: {e}", exc_info=True)
+        logger.exception(f"Unexpected error processing custom path {custom_path}: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
@@ -124,7 +124,7 @@ async def get_workflow_output(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error: {e}", exc_info=True)
+        logger.exception(f"Unexpected error: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"

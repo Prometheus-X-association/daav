@@ -290,5 +290,5 @@ def authenticate_m2m_credentials(request_headers: Headers, users: List[User]) ->
         return authenticated_users
         
     except Exception as e:
-        logger.error(f"Error during M2M authentication: {str(e)}")
+        logger.exception(f"Error during M2M authentication: {str(e)}")
         return []

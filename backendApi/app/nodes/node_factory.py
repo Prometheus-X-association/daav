@@ -113,5 +113,5 @@ class NodeFactory:
             logger.debug(f"Successfully created node: {node_type} with id: {node_data.id}")
             return node_instance
         except Exception as e:
-            logger.error(f"Error creating node {node_type} with id {node_data.id}: {e}", exc_info=True)
+            logger.exception(f"Error creating node {node_type} with id {node_data.id}: {e}")
             raise

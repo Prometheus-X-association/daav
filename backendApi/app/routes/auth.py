@@ -3,7 +3,7 @@ Authentication and user management routes
 """
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -25,6 +25,8 @@ from app.config.settings import settings
 from app.routes.responses import error_responses
 
 logger = logging.getLogger(__name__)
+
+USER_NOT_FOUND = "User not found"
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -80,7 +82,7 @@ async def conditional_admin_check(
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, responses=error_responses(401, 403, 500))
 async def register(
     user_data: UserCreate,
-    admin_user: Optional[User] = Depends(conditional_admin_check)
+    admin_user: Annotated[Optional[User], Depends(conditional_admin_check)]
 ):
     """
     Register a new user
@@ -112,7 +114,7 @@ async def register(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Registration error: {e}", exc_info=True)
+        logger.exception(f"Registration error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed"
@@ -136,7 +138,7 @@ async def login(login_data: LoginRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Login error: {e}", exc_info=True)
+        logger.exception(f"Login error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
@@ -158,7 +160,7 @@ async def refresh_token(refresh_data: RefreshTokenRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Token refresh error: {e}", exc_info=True)
+        logger.exception(f"Token refresh error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not refresh token"
@@ -183,7 +185,7 @@ async def forgot_password(request: ForgotPasswordRequest):
             "message": "If the email exists, a password reset link has been sent. Please check your inbox."
         }
     except Exception as e:
-        logger.error(f"Forgot password error: {e}", exc_info=True)
+        logger.exception(f"Forgot password error: {e}")
         # Still return success to prevent email enumeration
         return {
             "message": "If the email exists, a password reset link has been sent. Please check your inbox."
@@ -213,7 +215,7 @@ async def reset_password(request: ResetPasswordRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Reset password error: {e}", exc_info=True)
+        logger.exception(f"Reset password error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to reset password"
@@ -260,7 +262,7 @@ async def update_current_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"User update error: {e}", exc_info=True)
+        logger.exception(f"User update error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user"
@@ -302,7 +304,7 @@ async def change_password(
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Password change error: {e}", exc_info=True)
+        logger.exception(f"Password change error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to change password"
@@ -329,7 +331,7 @@ async def update_user_configuration(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Config update error: {e}", exc_info=True)
+        logger.exception(f"Config update error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update configuration"
@@ -349,7 +351,7 @@ async def get_all_users(admin_user: AdminUser):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get users error: {e}", exc_info=True)
+        logger.exception(f"Get users error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve users"
@@ -366,13 +368,13 @@ async def get_user_by_id(user_id: str, admin_user: AdminUser):
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail=USER_NOT_FOUND
             )
         return UserResponse.model_validate(user)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get user error: {e}", exc_info=True)
+        logger.exception(f"Get user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve user"
@@ -400,7 +402,7 @@ async def update_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Update user error: {e}", exc_info=True)
+        logger.exception(f"Update user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user"
@@ -420,7 +422,7 @@ async def delete_user(user_id: str, admin_user: AdminUser):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Delete user error: {e}", exc_info=True)
+        logger.exception(f"Delete user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete user"
@@ -450,7 +452,7 @@ async def deactivate_user(
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail=USER_NOT_FOUND
             )
         
         # Check if already inactive
@@ -496,7 +498,7 @@ async def deactivate_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Deactivate user error: {e}", exc_info=True)
+        logger.exception(f"Deactivate user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to deactivate user"
@@ -521,7 +523,7 @@ async def activate_user(
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail=USER_NOT_FOUND
             )
         
         # Check if already active
@@ -559,7 +561,7 @@ async def activate_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Activate user error: {e}", exc_info=True)
+        logger.exception(f"Activate user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to activate user"
@@ -605,7 +607,7 @@ async def share_resource(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Share resource error: {e}", exc_info=True)
+        logger.exception(f"Share resource error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to share resource"
@@ -649,7 +651,7 @@ async def unshare_resource(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unshare resource error: {e}", exc_info=True)
+        logger.exception(f"Unshare resource error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to unshare resource"

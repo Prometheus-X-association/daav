@@ -77,7 +77,7 @@ async def migrate_resource_ownership():
         return True
         
     except Exception as e:
-        logger.error(f"❌ Migration failed: {e}", exc_info=True)
+        logger.exception(f"❌ Migration failed: {e}")
         return False
 
 

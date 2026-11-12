@@ -42,7 +42,7 @@ class MongoOutput(OutputNode):
             StatusNode: The status of the node after processing.
         """
         try:
-            dataset, database, collection, if_exist ,create_index,index_table = await self._retreiveDatabase()
+            dataset, database, collection, if_exist, _, _ = await self._retreiveDatabase()
             return self._write(dataset, database, collection, if_exist, sample)
         except ValueError as e:
             return self._fail(e)

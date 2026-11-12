@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, TypeVar, Generic, Union, Optional
+from typing import Annotated, Literal, Union, Optional
 from bson import ObjectId
 import numpy
 from pandas import DataFrame
@@ -8,8 +8,6 @@ from pyarrow.parquet import ParquetSchema
 from pydantic import BaseModel, Field, WithJsonSchema, field_serializer
 from app.models.interface.dataset_schema import MysqlSchema, PandasSchema
 
-T = TypeVar('T')
-D = TypeVar('D')
 
 # Python constructor of numpy scalars, by dtype family, checked in order
 _NUMPY_SCALAR_CONVERTERS = (
@@ -38,7 +36,7 @@ JsonParquetSchema = Annotated[ParquetSchema, WithJsonSchema({
     "description": "Parquet columns",
 })]
 
-class NodeData(BaseModel, Generic[T, D]):
+class NodeData[T, D](BaseModel):
     model_config = {
         'arbitrary_types_allowed': True
     }

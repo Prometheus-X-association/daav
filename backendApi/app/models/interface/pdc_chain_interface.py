@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from beanie import Document
 from pydantic import BaseModel, Field
 from pymongo import ASCENDING, IndexModel
@@ -34,7 +34,7 @@ class PdcChainRequestData(BaseModel):
 
 
 class PdcChainRequest(BaseModel):
-    data: Union[PdcChainRequestData, str, List[Any],Dict[str, Any]]
+    data: PdcChainRequestData | str | List[Any] | Dict[str, Any]
     contract: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
 

@@ -3,7 +3,7 @@ import hmac
 import json
 import logging
 import os
-from typing import Dict, List, NoReturn, Optional, Union, TYPE_CHECKING
+from typing import Dict, List, NoReturn, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
 
 import duckdb
@@ -538,7 +538,7 @@ def resolve_file_name(filename: str, expected_ext: str) -> str:
         
         return final_filename
 
-def filter_data_with_duckdb(filepath: str, select: Optional[str] = None, where: Optional[str] = None, params: Optional[str] = None) -> Union[list, dict]:
+def filter_data_with_duckdb(filepath: str, select: Optional[str] = None, where: Optional[str] = None, params: Optional[str] = None) -> list | dict:
     """
     Filter JSON data using DuckDB with optional SELECT and WHERE clauses
     
@@ -590,7 +590,7 @@ def filter_data_with_duckdb(filepath: str, select: Optional[str] = None, where: 
         return filtered_data
         
     except Exception as e:
-        logger.error(f"Error filtering data with DuckDB: {e}", exc_info=True)
+        logger.exception(f"Error filtering data with DuckDB: {e}")
         raise HTTPException(status_code=500, detail=f"Error filtering data: {str(e)}")
 
 
@@ -601,7 +601,7 @@ def _secret_equals(value: str, expected: str) -> bool:
 
 def verify_route_access(
     request: Request,
-    api_keys: Optional[List[Union[str, Dict[str, str]]]] = None
+    api_keys: Optional[List[str | Dict[str, str]]] = None
 ) -> None:
     """
     Verify route access using domain whitelist or API keys.
@@ -659,7 +659,7 @@ def _origin_is_whitelisted(request: Request) -> bool:
     return False
 
 
-def _matches_api_key(request: Request, api_key: Union[str, Dict[str, str]], authorization: Optional[str]) -> bool:
+def _matches_api_key(request: Request, api_key: str | Dict[str, str], authorization: Optional[str]) -> bool:
     """True if the request carries the API key: a Bearer token (str) or custom headers (dict)."""
     if isinstance(api_key, str):
         return _matches_bearer_token(authorization, api_key)

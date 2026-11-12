@@ -82,7 +82,7 @@ class EmailService(metaclass=SingletonMeta):
             return True
             
         except Exception as e:
-            logger.error(f"Failed to send email to {to_email}: {e}", exc_info=True)
+            logger.exception(f"Failed to send email to {to_email}: {e}")
             return False
     
     async def send_password_reset_email(

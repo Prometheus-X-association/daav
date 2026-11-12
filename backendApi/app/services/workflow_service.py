@@ -11,6 +11,8 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
+ACCESS_DENIED = "Access denied"
+
 class WorkflowService(metaclass=SingletonMeta):
     
     def __init__(self):
@@ -58,7 +60,7 @@ class WorkflowService(metaclass=SingletonMeta):
                 return workflows
             
         except Exception as e:
-            logger.error(f"Error retrieving workflows: {e}", exc_info=True)
+            logger.exception(f"Error retrieving workflows: {e}")
             raise HTTPException(status_code=500, detail="Failed to retrieve workflows")
 
     async def get_workflow(self, workflow_id: str, user: Optional[User] = None) -> IProject:
@@ -91,7 +93,7 @@ class WorkflowService(metaclass=SingletonMeta):
                 can_access = self.user_service.can_access_workflow(user, workflow_id)
                 if not can_access:
                     logger.warning(f"User {user.username} denied access to workflow {workflow_id}")
-                    raise HTTPException(status_code=403, detail="Access denied")
+                    raise HTTPException(status_code=403, detail=ACCESS_DENIED)
                 logger.info(f"User {user.username} successfully accessed workflow: {workflow.name}")
             else:
                 logger.info(f"System successfully accessed workflow: {workflow.name}")
@@ -101,7 +103,7 @@ class WorkflowService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error retrieving workflow {workflow_id}: {e}", exc_info=True)
+            logger.exception(f"Error retrieving workflow {workflow_id}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
     async def create_workflow(self, workflow_data: IProject, user: User) -> IProject:
@@ -130,7 +132,7 @@ class WorkflowService(metaclass=SingletonMeta):
             return workflow
             
         except Exception as e:
-            logger.error(f"Error creating workflow: {e}", exc_info=True)
+            logger.exception(f"Error creating workflow: {e}")
             raise HTTPException(status_code=500, detail="Failed to create workflow")
 
     async def update_workflow(self, workflow_updates: IProject, user: User) -> IProject:
@@ -158,7 +160,7 @@ class WorkflowService(metaclass=SingletonMeta):
             can_modify = self.user_service.can_modify_workflow(user, workflow_id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to update workflow {workflow_id}")
-                raise HTTPException(status_code=403, detail="Access denied")
+                raise HTTPException(status_code=403, detail=ACCESS_DENIED)
             
             # Find existing workflow
             existing_workflow = await IProject.get(workflow_id)
@@ -187,7 +189,7 @@ class WorkflowService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error updating workflow {workflow_updates.id}: {e}", exc_info=True)
+            logger.exception(f"Error updating workflow {workflow_updates.id}: {e}")
             raise HTTPException(status_code=500, detail="Failed to update workflow")
 
     async def delete_workflow(self, workflow_id: str, user: User) -> bool:
@@ -199,7 +201,7 @@ class WorkflowService(metaclass=SingletonMeta):
             can_modify = self.user_service.can_modify_workflow(user, workflow_id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to delete workflow {workflow_id}")
-                raise HTTPException(status_code=403, detail="Access denied")
+                raise HTTPException(status_code=403, detail=ACCESS_DENIED)
             
             workflow = await IProject.get(workflow_id)
             if not workflow:
@@ -219,7 +221,7 @@ class WorkflowService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error deleting workflow {workflow_id}: {e}", exc_info=True)
+            logger.exception(f"Error deleting workflow {workflow_id}: {e}")
             return False
 
     async def workflow_exists(self, workflow_id: str) -> bool:

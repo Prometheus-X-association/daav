@@ -35,6 +35,12 @@ from app.config.settings import settings
 from app.routes.responses import error_responses
 
 logger = logging.getLogger(__name__)
+
+JSONLD_TYPE = "@type"
+DATA_RESOURCES_TYPE = "ptx:dataresources"
+CATALOG_KEY = "ptx:catalog"
+JSON_CONTENT_TYPE = 'application/json'
+BILATERAL_CONTRACTS_ERROR = "Failed to get bilateral contracts for participants"
 router = APIRouter(prefix="/ptx", tags=["prometheus-x"])
 
 logging.basicConfig(filename = 'app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -74,9 +80,9 @@ async def get_ptx_data(
         owner_name = "Unknown"
         owner_logo = None
 
-        if content["@type"] in ["ptx:serviceofferings", "ptx:softwareresources"]:
+        if content[JSONLD_TYPE] in ["ptx:serviceofferings", "ptx:softwareresources"]:
             participant_id = res.get("providedBy")
-        elif content["@type"] == "ptx:dataresources":
+        elif content[JSONLD_TYPE] == DATA_RESOURCES_TYPE:
             participant_id = res.get("producedBy")
 
         if participant_id and catalog_uri:
@@ -89,7 +95,7 @@ async def get_ptx_data(
                 pass
 
         return {
-            "type": content["@type"],
+            "type": content[JSONLD_TYPE],
             "name": res["name"],
             "owner": {
                 "name": owner_name,
@@ -98,10 +104,10 @@ async def get_ptx_data(
         }
 
     catalog = []
-    if "content" in pdc_data and "ptx:catalog" in pdc_data["content"]:
+    if "content" in pdc_data and CATALOG_KEY in pdc_data["content"]:
         async with httpx.AsyncClient(timeout=timeout) as client:
             tasks = [fetch_catalog_item(client, content) 
-                    for content in pdc_data["content"]["ptx:catalog"]]
+                    for content in pdc_data["content"][CATALOG_KEY]]
             catalog = await asyncio.gather(*tasks)
 
     return {"catalog": catalog}
@@ -130,7 +136,7 @@ async def update_data_resource(
 
         headers = {
             'Authorization': f'Bearer {connection.token}',
-            'Content-Type': 'application/json'
+            'Content-Type': JSON_CONTENT_TYPE
         }
 
         data_resource_url = f"{config.get('catalogUri')}dataresources/{data_resources_id}"
@@ -174,9 +180,9 @@ async def get_data_resources(
         pdc_data = await pdc_get_request(connection, "/", timeout_seconds=timeout)
         
         data_resources = []
-        if "content" in pdc_data and "ptx:catalog" in pdc_data["content"]:
-            for content in pdc_data["content"]["ptx:catalog"]:
-                if content["@type"] == "ptx:dataresources":
+        if "content" in pdc_data and CATALOG_KEY in pdc_data["content"]:
+            for content in pdc_data["content"][CATALOG_KEY]:
+                if content[JSONLD_TYPE] == DATA_RESOURCES_TYPE:
                     res = (await asyncio.to_thread(requests.get, content["@id"], timeout=timeout)).json()
                     data = PdcDataResource.model_validate(res)
                     data_resources.append(data)
@@ -314,7 +320,7 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
     print(f"Provider name: {provider_name}")
     
     serialized_data = serialize_data(data, file_format)
-    file_ext = ".json" if file_format == "json" else ".xml" if file_format == "xml" else ".txt"
+    file_ext = {"json": ".json", "xml": ".xml"}.get(file_format, ".txt")
     
     # Create datasets for each authenticated user only
     user_datasets = []
@@ -363,7 +369,7 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
                         os.remove(existing_dataset.filePath)
                         logger.info(f"Removed old user file: {existing_dataset.filePath}")
                     except OSError as e:
-                        logger.error(f"Error removing old user file {existing_dataset.filePath}: {e}")
+                        logger.exception(f"Error removing old user file {existing_dataset.filePath}: {e}")
                 
                 # Mettre à jour le dataset existant
                 write_input(user_complete_filepath, serialized_data)
@@ -400,7 +406,7 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
             })
             
         except Exception as e:
-            logger.error(f"Error creating dataset for user {user_obj.username}: {str(e)}")
+            logger.exception(f"Error creating dataset for user {user_obj.username}: {str(e)}")
             continue
    
     return {
@@ -426,10 +432,10 @@ async def get_participants_id_from_connection(
     pdc_data = await pdc_get_request(connection, "/", timeout_seconds=timeout)
     participants_id = set()
 
-    if "content" in pdc_data and "ptx:catalog" in pdc_data["content"]:
+    if "content" in pdc_data and CATALOG_KEY in pdc_data["content"]:
         async with httpx.AsyncClient(timeout=timeout) as client:
             tasks = [fetch_participant_id(client, content) 
-                    for content in pdc_data["content"]["ptx:catalog"]]
+                    for content in pdc_data["content"][CATALOG_KEY]]
             results = await asyncio.gather(*tasks)
             participants_id.update(pid for pid in results if pid)
 
@@ -443,9 +449,9 @@ async def fetch_participant_id(client: httpx.AsyncClient, content: dict) -> Opti
         if response.status_code == 200:
             res = response.json()
             
-            if content["@type"] in ["ptx:serviceofferings", "ptx:softwareresources"]:
+            if content[JSONLD_TYPE] in ["ptx:serviceofferings", "ptx:softwareresources"]:
                 return res.get("providedBy")
-            elif content["@type"] == "ptx:dataresources":
+            elif content[JSONLD_TYPE] == DATA_RESOURCES_TYPE:
                 return res.get("producedBy")
                 
     except Exception as e:
@@ -544,10 +550,10 @@ async def get_use_case_contract(
                             ])
 
                     except Exception as e:
-                        logger.error(f"Error processing contract data: {str(e)}")
+                        logger.exception(f"Error processing contract data: {str(e)}")
                         traceback.print_exc()
             else:
-                print("Failed to get bilateral contracts for participants")
+                print(BILATERAL_CONTRACTS_ERROR)
 
     return all_use_case_contracts
 
@@ -588,7 +594,7 @@ async def get_service_chain(
                     print(f"Error processing contract data: {e}")
                     traceback.print_exc()
         else:
-            print("Failed to get bilateral contracts for participants")
+            print(BILATERAL_CONTRACTS_ERROR)
 
     return result
 
@@ -779,7 +785,7 @@ async def trigger_data_exchange(
         exchange_url = f"{pdc_endpoint}exchange"
         headers = {
             'Authorization': f'Bearer {connection.token}',
-            'Content-Type': 'application/json'
+            'Content-Type': JSON_CONTENT_TYPE
         }
         
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -831,7 +837,7 @@ async def trigger_service_chain(
         exchange_url = f"{pdc_endpoint}exchange"
         headers = {
             'Authorization': f'Bearer {connection.token}',
-            'Content-Type': 'application/json'
+            'Content-Type': JSON_CONTENT_TYPE
         }
         
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -913,7 +919,7 @@ async def get_billateral_contract(
                 except Exception as e:
                     print(f"Error processing contract data: {e}")
         else:
-            print("Failed to get bilateral contracts for participants")
+            print(BILATERAL_CONTRACTS_ERROR)
 
     return {
         "contracts": all_bilateral_contracts,

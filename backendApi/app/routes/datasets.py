@@ -34,6 +34,8 @@ dataset_service = DatasetService()
 
 UPLOAD_DIR = Path(settings.upload_dir)
 
+INTERNAL_SERVER_ERROR = "Internal server error"
+
 @router.get("/", responses=error_responses(500))
 async def get_all_datasets(current_user: CurrentUser):
     """Get all datasets accessible by current user"""
@@ -44,8 +46,8 @@ async def get_all_datasets(current_user: CurrentUser):
         logger.info(f"Successfully returned {len(datasets)} datasets to user {current_user.username}")
         return datasets
     except Exception as e:
-        logger.error(f"Error fetching datasets: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.exception(f"Error fetching datasets: {e}")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 @router.get("/{id}")
 async def get_dataset(id: str, current_user: CurrentUser) -> Dataset:
@@ -69,8 +71,8 @@ async def delete_dataset(dataset_id: str, current_user: CurrentUser):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting dataset {dataset_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.exception(f"Error deleting dataset {dataset_id}: {e}")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 @router.put("/")
 async def edit_dataset(dataset: DatasetUnion, current_user: CurrentUser) -> bool:
@@ -93,8 +95,8 @@ async def create_dataset(dataset: DatasetUnion, current_user: CurrentUser):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating dataset {dataset.name}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.exception(f"Error creating dataset {dataset.name}: {e}")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 @router.post("/uploadFile", responses=error_responses(400, 413, 500))
 async def receive_file(
@@ -121,7 +123,7 @@ async def receive_file(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error uploading file(s): {e}", exc_info=True)
+        logger.exception(f"Error uploading file(s): {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload file(s): {str(e)}")
 
 async def _save_upload_file(file: UploadFile, current_user: CurrentUser, folder: str = None) -> dict:
@@ -189,7 +191,7 @@ async def _save_upload_file(file: UploadFile, current_user: CurrentUser, folder:
         result["folder"] = str(base_dir)
     return result
 
-@router.post("/getContentDataset", response_model=DatasetContentResponse, responses=error_responses(400, 403, 404, 413, 422, 500, 503, 504))
+@router.post("/getContentDataset", responses=error_responses(400, 403, 404, 413, 422, 500, 503, 504))
 async def get_content_dataset(request: Request, data: ConnectionInfo, current_user: CurrentUser) -> DatasetContentResponse:
     """Get dataset content with permission check"""
     connection = data.dataset
@@ -206,7 +208,7 @@ async def get_content_dataset(request: Request, data: ConnectionInfo, current_us
     if isinstance(connection, ApiDataset):
         return await get_api_content(connection, pagination)
     if isinstance(connection, PTXDataset):
-        return get_ptx_content(connection, pagination, dataset_params)
+        return get_ptx_content(connection)
     reader = _synchronous_content_reader(connection)
     if reader is None:
         raise ValueError("Type de connexion non reconnu")
@@ -516,7 +518,7 @@ def get_elastic_content(dataset: ElasticDataset, pagination: Pagination, dataset
         current_page=page
     )
 
-def get_ptx_content(dataset: PTXDataset, pagination: Pagination, dataset_params: DatasetParams):
+def get_ptx_content(dataset: PTXDataset):
 
     return dataset
 

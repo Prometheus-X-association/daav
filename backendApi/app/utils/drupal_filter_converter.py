@@ -12,22 +12,14 @@ class DrupalFilterConverter:
     """
     
     # Mapping of JSON:API operators to MySQL operators
+    # Operators written the same way in SQL
+    _SQL_OPERATORS = ('=', '>', '>=', '<', '<=', 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN', 'IS NULL', 'IS NOT NULL')
     OPERATOR_MAP = {
-        '=': '=',
+        **dict(zip(_SQL_OPERATORS, _SQL_OPERATORS)),
         '<>': '!=',
-        '>': '>',
-        '>=': '>=',
-        '<': '<',
-        '<=': '<=',
         'STARTS_WITH': 'LIKE',
         'CONTAINS': 'LIKE',
         'ENDS_WITH': 'LIKE',
-        'IN': 'IN',
-        'NOT IN': 'NOT IN',
-        'BETWEEN': 'BETWEEN',
-        'NOT BETWEEN': 'NOT BETWEEN',
-        'IS NULL': 'IS NULL',
-        'IS NOT NULL': 'IS NOT NULL',
     }
 
     # Allowed group conjunctions (inserted in the SQL, so never taken as is from the query string)

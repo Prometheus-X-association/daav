@@ -42,7 +42,7 @@ async def resolve_owner(workflow: Any):
         logger.debug(f"Retrieved user from workflow: {getattr(user, 'id', user)}")
         return user
     except Exception:
-        logger.error("UserService.get_user_from_workflow failed, cannot verify workflow ownership", exc_info=True)
+        logger.exception("UserService.get_user_from_workflow failed, cannot verify workflow ownership")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to verify workflow ownership"
@@ -60,7 +60,7 @@ async def ensure_output_file(file_path: str, workflow: Any, user: Any,
     try:
         await execute(workflow, current_user=user)
     except Exception as exec_error:
-        logger.error(f"Workflow execution failed: {exec_error}", exc_info=True)
+        logger.exception(f"Workflow execution failed: {exec_error}")
         raise HTTPException(
             status_code=500,
             detail=f"Workflow execution failed: {str(exec_error)}"
@@ -82,7 +82,7 @@ def parse_filters(request: Request) -> Tuple[Optional[str], Optional[list]]:
     try:
         return drupal_filter_converter.convert_query_string_to_where(str(request.query_params))
     except Exception as filter_error:
-        logger.error(f"Filter parsing failed: {filter_error}", exc_info=True)
+        logger.exception(f"Filter parsing failed: {filter_error}")
         raise HTTPException(
             status_code=400,
             detail=f"Invalid filter parameters: {str(filter_error)}"
@@ -95,7 +95,7 @@ def filtered_response(file_path: str, where: Optional[str], params: Optional[lis
         data = filter_data_with_duckdb(file_path, where=where, params=params)
         return JSONResponse(content=data)
     except Exception as filter_error:
-        logger.error(f"Data filtering failed: {filter_error}", exc_info=True)
+        logger.exception(f"Data filtering failed: {filter_error}")
         raise HTTPException(
             status_code=500,
             detail=f"Error filtering data: {str(filter_error)}"

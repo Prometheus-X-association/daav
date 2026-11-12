@@ -1,3 +1,5 @@
+import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
@@ -34,6 +36,11 @@ from app.services.user_service import UserService
 
 from app.routes import datasets, elastic, mysql, workflows, ptx, output, api, auth
 from app.middleware.security import SecurityMiddleware
+
+def _write_json_file(path: str, content: dict) -> None:
+    with open(path, 'w') as f:
+        json.dump(content, f, indent=2, default=str)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -286,7 +293,6 @@ if settings.debug and settings.environment != "production":
         """Create config.ini from current database state"""
         try:
             from datetime import datetime
-            import json
             
             # Generate filename with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -329,8 +335,7 @@ if settings.debug and settings.environment != "production":
                 config_data["workflows"].append(workflow_dict)
             
             # Write config file as JSON
-            with open(f'./app/{filename}', 'w') as f:
-                json.dump(config_data, f, indent=2, default=str)
+            await asyncio.to_thread(_write_json_file, f'./app/{filename}', config_data)
             
             return {
                 "success": True,

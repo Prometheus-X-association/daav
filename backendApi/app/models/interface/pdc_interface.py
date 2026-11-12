@@ -1,6 +1,10 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
+
+JSONLD_CONTEXT = "@context"
+JSONLD_TYPE = "@type"
+JSONLD_VALUE = "@value"
 
 
 
@@ -128,8 +132,8 @@ class LegalPerson(BaseModel):
 
 
 class PdcParticipant(BaseModel):
-    context: str | None = Field(default=None, alias="@context")
-    type: str = Field(alias="@type", default="Participant")
+    context: str | None = Field(default=None, alias=JSONLD_CONTEXT)
+    type: str = Field(alias=JSONLD_TYPE, default="Participant")
     id: str = Field(alias="_id")
     did: str | None = None
     legalName: str
@@ -178,8 +182,8 @@ class BusinessLogic(BaseModel):
 
 
 class PdcEcosystem(BaseModel):
-    context: str = Field(alias="@context")
-    type: str = Field(alias="@type", default="Ecosystem")
+    context: str = Field(alias=JSONLD_CONTEXT)
+    type: str = Field(alias=JSONLD_TYPE, default="Ecosystem")
     id: str = Field(alias="_id")
     administrator: str
     orchestrator: str
@@ -230,15 +234,15 @@ class PolicyContext(BaseModel):
     description: Dict[str, Any] = {}
 
 class PolicyTitle(BaseModel):
-    type: str = Field(alias="@type")
-    value: str = Field(alias="@value")
+    type: str = Field(alias=JSONLD_TYPE)
+    value: str = Field(alias=JSONLD_VALUE)
 
 class PolicyDescription(BaseModel):
-    value: str = Field(alias="@value")
+    value: str = Field(alias=JSONLD_VALUE)
     language: str = Field(alias="@language")
 
 class DetailedPolicy(BaseModel):
-    context: PolicyContext = Field(alias="@context")
+    context: PolicyContext = Field(alias=JSONLD_CONTEXT)
     id: str = Field(alias="@id")
     title: PolicyTitle
     uid: str
@@ -248,8 +252,8 @@ class DetailedPolicy(BaseModel):
     requestedFields: List[str] = []
 
 class PdcServiceOffering(BaseModel):
-    context: str = Field(alias="@context")
-    type: str = Field(alias="@type", default="ServiceOffering")
+    context: str = Field(alias=JSONLD_CONTEXT)
+    type: str = Field(alias=JSONLD_TYPE, default="ServiceOffering")
     id: str = Field(alias="_id")
     name: str
     providedBy: str
@@ -320,8 +324,8 @@ class Representation(BaseModel):
     updatedAt: datetime
     v: int = Field(alias="__v")
 class PdcSoftwareResource(BaseModel):
-    context: str = Field(alias="@context")
-    type: str = Field(alias="@type", default="SoftwareResource")
+    context: str = Field(alias=JSONLD_CONTEXT)
+    type: str = Field(alias=JSONLD_TYPE, default="SoftwareResource")
     id: str = Field(alias="_id")
     name: str
     description: str = ""
@@ -348,12 +352,12 @@ class PdcSoftwareResource(BaseModel):
 
 class B2CDescription(BaseModel):
     language: str = Field(alias="@language")
-    value: str = Field(alias="@value")
+    value: str = Field(alias=JSONLD_VALUE)
 
 
 class PdcDataResource(BaseModel):
-    context: Optional[str] = Field(alias="@context", default=None)
-    type: str = Field(alias="@type", default="DataResource")
+    context: Optional[str] = Field(alias=JSONLD_CONTEXT, default=None)
+    type: str = Field(alias=JSONLD_TYPE, default="DataResource")
     id: str = Field(alias="_id")
     aggregationOf: List[Any] = []
     name: str = ""
@@ -369,13 +373,13 @@ class PdcDataResource(BaseModel):
     anonymized_extract: Optional[str] = ""
     archived: bool = False
     attributes: List[Any]
-    category: Union[str, dict, List[Any]] = None
+    category: str | dict | List[Any] = None
     isPayloadForAPI: bool = False
     country_or_region: str = ""
     entries: int = 0
     subCategories: List[Any] = []
     schema_version: str = ""
-    b2cDescription: Optional[Union[str, List[B2CDescription]]]  = None
+    b2cDescription: Optional[str | List[B2CDescription]] = None
     createdAt: datetime 
     updatedAt: datetime 
     representation: Optional[Representation] = None

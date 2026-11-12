@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/output", tags=["outputs"])
 UPLOADS_DIR = os.path.join("app", "uploads")
 
+NO_VALID_CREDENTIALS = "No valid credentials found in headers"
+
 # Initialize services
 dataset_service = DatasetService()
 workflow_service = WorkflowService()
@@ -61,7 +63,7 @@ async def get_output_from_custom_path(custom_path: str, request: Request,):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error processing custom path {custom_path}: {e}", exc_info=True)
+        logger.exception(f"Unexpected error processing custom path {custom_path}: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
@@ -74,13 +76,13 @@ def _check_owner_credentials(request: Request, user) -> None:
         logger.warning("Output refused: the workflow has no owner to check the credentials against")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No valid credentials found in headers"
+            detail=NO_VALID_CREDENTIALS
         )
     authenticated_users: List[AuthenticatedUser] = authenticate_m2m_credentials(request.headers, [user])
     if not authenticated_users:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No valid credentials found in headers"
+            detail=NO_VALID_CREDENTIALS
         )
 
 
@@ -114,7 +116,7 @@ async def get_workflow_output(workflow_id: str, request: Request):
         if not authenticated_users:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="No valid credentials found in headers"
+                detail=NO_VALID_CREDENTIALS
             )
         logger.info(f"Getting workflow output for ID: {workflow_id}")
 
@@ -136,5 +138,5 @@ async def get_workflow_output(workflow_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error processing workflow {workflow_id}: {e}", exc_info=True)
+        logger.exception(f"Unexpected error processing workflow {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

@@ -61,7 +61,7 @@ class DatabaseConfig:
             logger.info("Database connection established successfully")
             
         except Exception as e:
-            logger.error(f"Database connection failed: {e}", exc_info=True)
+            logger.exception(f"Database connection failed: {e}")
             raise
     
     async def disconnect(self):
