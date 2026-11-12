@@ -3,9 +3,8 @@ import datetime
 import itertools
 import json
 import re
-import traceback
 import xml.etree.ElementTree as ET
-from typing import Any, Iterator, List, Optional
+from typing import Any, Iterator, List, NamedTuple, Optional
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -39,6 +38,15 @@ def _plain_file_name(file_name: str) -> str:
     if file_name in ('.', '..') or '/' in file_name or '\\' in file_name or os.path.isabs(file_name):
         raise HTTPException(status_code=400, detail="Invalid file name: a file name without directory is expected")
     return file_name
+
+
+class _OutputFile(NamedTuple):
+    """The file to write, and how to write it."""
+    path: str
+    file_type: str
+    file_exist: Optional[str]
+    delimiter: str
+    encoding: str
 
 
 def _is_missing(value: Any) -> bool:
@@ -92,146 +100,122 @@ class FileOutput(OutputNode):
         """
         try:
             dataset, delimiter, encoding, file_type, file_name, file_exist = await self._retrieveFileConfig()
-            
+            self._check_file_type(dataset, file_type)
+            output_file = self._resolve_output_path(dataset, file_name, file_type)
+            target = _OutputFile(output_file, file_type, file_exist, delimiter, encoding)
 
-            if dataset is not None and dataset.filePath:
-                data_file_type = dataset.metadata.fileType
-                if data_file_type != file_type:
-                    raise ValueError(f"Output type '{file_type}' does not match dataset type '{data_file_type}'")
-                
-            # Determine output file path
-            if dataset is not None:
-                output_file = PathSecurityValidator.validate_file_path(dataset.filePath)
-            elif file_name:
-                resolved_filename = resolve_file_name(file_name, file_type)
-                
-                # Get user context for file isolation
-                current_user = ExecutionContext.get_user()
-                
-                if current_user:
-                    # Create user-specific directory: uploads/{user_id}/
-                    user_upload_dir = os.path.join(settings.upload_dir, current_user.id)
-                    os.makedirs(user_upload_dir, exist_ok=True)
-                    output_file = os.path.join(user_upload_dir, resolved_filename)
-                    logger.info(f"Creating file in user directory: {user_upload_dir}")
-                else:
-                    # Fallback to general uploads directory
-                    output_file = os.path.join(settings.upload_dir, resolved_filename)
-                    logger.info(f"Creating file in general directory: {settings.upload_dir}")
-            else:
-                raise ValueError("No output file specified")
-            for input in self.inputs.values():
-                data = input.get_node_data()
-                if input.get_connected_node():
-                    if isinstance(data, NodeDataPandasDf):
-                        if sample:
-                            df = data.dataExample
-                        else:
-                            df = data.data
-                        if not isinstance(df, pd.DataFrame):
-                            raise ValueError("Input data is not a pandas DataFrame")
-
-                        print(f"Exporting data to {output_file}")
-                        
-                        if file_type == 'csv':
-                            if file_exist == 'append' and os.path.exists(output_file):
-                                df.to_csv(output_file, sep=delimiter, encoding=encoding, index=False, mode='a', header=False)
-                            else:
-                                df.to_csv(output_file, sep=delimiter, encoding=encoding, index=False)
-                        elif file_type == 'json':
-                            self._write_json_data(df, output_file, file_exist)
-                        elif file_type == 'xml':
-                            self._write_xml_data(df, output_file, encoding, file_exist)
-                        elif file_type == 'parquet':
-                            if file_exist == 'append' and os.path.exists(output_file):
-                                old_data = pd.read_parquet(output_file)
-                                df = pd.concat([old_data, df], ignore_index=True)
-                                df.to_parquet(output_file)
-                            else:
-                                df.to_parquet(output_file)
-                        else:
-                            raise ValueError(f"Unsupported file type: {file_type}")
-                        
-                        print(f"Successfully exported to {output_file}")
-                        
-                        # Create and save new dataset AFTER the file has been created successfully
-                        if dataset is None and file_name:
-                            # Get execution context for user information
-                            current_user = ExecutionContext.get_user()
-                            workflow = ExecutionContext.get_workflow()
-                            
-                            if current_user:
-                                logger.info(f"User {current_user.username} creating dataset in workflow {workflow.name if workflow else 'unknown'}")
-                            
-                            new_dataset = self._create_file_dataset(output_file, file_type, delimiter, encoding)
-                            
-                            # Add connection with user context if available
-                            if current_user:
-                                await self.datasetService.add_connection(new_dataset, current_user)
-                                logger.info(f"Created new dataset: {new_dataset.name} for user {current_user.username}")
-                                self.data['selectDataSource']["value"] =  new_dataset.id
-                                self.data['selectDataSource']["list"].append({
-                                    "value": new_dataset.id,
-                                    "label": new_dataset.name
-                                })
-                                self.data['fileName']["value"] = None
-                                self.data['fileName']["label"] = None
-                            else:
-                                logger.warning("No user context available for dataset creation")
-                                # You could handle this case differently or skip dataset creation                                
-                        break
-                        
-                    elif isinstance(data, NodeDataParquet):
-                        # Process in chunks to handle large files
-                        chunk_size = 100
-                        parquet_file_path = PathSecurityValidator.validate_file_path(data.data)
-                        parquet_file = pq.ParquetFile(parquet_file_path)
-                        
-                        if file_type == 'csv':
-                            # The file is written in a worker thread so that it does not block the event loop
-                            await asyncio.to_thread(
-                                self._write_csv_parquet_data, parquet_file, output_file, delimiter, encoding, sample, chunk_size, file_exist
-                            )
-                        
-                        elif file_type == 'json':
-                            self._write_json_parquet_data(parquet_file, output_file, sample, chunk_size, file_exist)
-                        
-                        elif file_type == 'xml':
-                            self._write_xml_parquet_data(parquet_file, output_file, encoding, sample, chunk_size, file_exist)
-                        elif file_type == 'parquet':
-                            self._write_parquet_parquet_data(parquet_file, output_file, sample, file_exist)
-                        else:
-                            raise ValueError(f"Unsupported file type: {file_type}")
-                        print(f"Successfully exported to {output_file}")
-                        
-                        # Create and save new dataset AFTER the file has been created successfully
-                        if dataset is None and file_name:
-                            # Get execution context for user information  
-                            current_user = ExecutionContext.get_user()
-                            
-                            new_dataset = self._create_file_dataset(output_file, file_type, delimiter, encoding)
-                            if current_user:
-                                await self.datasetService.add_connection(new_dataset, current_user)
-                                logger.info(f"Created new dataset: {new_dataset.name} for user {current_user.username}")
-                                self.data['selectDataSource']["value"] =  new_dataset.id
-                                self.data['selectDataSource']["list"].append({
-                                    "value": new_dataset.id,
-                                    "label": new_dataset.name
-                                })
-                                self.data['fileName']["value"] = None
-                                self.data['fileName']["label"] = None
-                            else:
-                                logger.warning("No user context available for dataset creation")
-                                # You could handle this case differently or skip dataset creation         
-                        break
-                    else:
-                        raise TypeError("Unsupported data type: {}".format(type(data)))
+            # Only the first connected input is written
+            for data in self._connected_data():
+                await self._write(data, target, sample)
+                # Create and save new dataset AFTER the file has been created successfully
+                if dataset is None and file_name:
+                    await self._register_new_dataset(target)
+                break
         except Exception as e:
-            traceback.print_exc()
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            self.statusMessage = e.__str__()
-            return StatusNode.Error
+            return self._fail(e)
         return StatusNode.Valid
+
+    @staticmethod
+    def _check_file_type(dataset: Optional[FileDataset], file_type: str) -> None:
+        """Refuse a file type that is not the one of the file of the dataset."""
+        if dataset is not None and dataset.filePath:
+            data_file_type = dataset.metadata.fileType
+            if data_file_type != file_type:
+                raise ValueError(f"Output type '{file_type}' does not match dataset type '{data_file_type}'")
+
+    @staticmethod
+    def _resolve_output_path(dataset: Optional[FileDataset], file_name: Optional[str], file_type: str) -> str:
+        """Path of the output file: the file of the dataset, else the named file in the upload folder of the user."""
+        if dataset is not None:
+            return PathSecurityValidator.validate_file_path(dataset.filePath)
+        if not file_name:
+            raise ValueError("No output file specified")
+        resolved_filename = resolve_file_name(file_name, file_type)
+
+        # Get user context for file isolation
+        current_user = ExecutionContext.get_user()
+
+        if current_user:
+            # Create user-specific directory: uploads/{user_id}/
+            user_upload_dir = os.path.join(settings.upload_dir, current_user.id)
+            os.makedirs(user_upload_dir, exist_ok=True)
+            logger.info(f"Creating file in user directory: {user_upload_dir}")
+            return os.path.join(user_upload_dir, resolved_filename)
+        # Fallback to general uploads directory
+        logger.info(f"Creating file in general directory: {settings.upload_dir}")
+        return os.path.join(settings.upload_dir, resolved_filename)
+
+    async def _write(self, data: Any, target: _OutputFile, sample: bool) -> None:
+        """Write the data of an input to the output file."""
+        if isinstance(data, NodeDataPandasDf):
+            df = self._input_dataframe(data, sample)
+            print(f"Exporting data to {target.path}")
+            self._write_dataframe(df, target)
+        elif isinstance(data, NodeDataParquet):
+            await self._write_parquet_source(data, target, sample)
+        else:
+            raise TypeError("Unsupported data type: {}".format(type(data)))
+        print(f"Successfully exported to {target.path}")
+
+    def _write_dataframe(self, df: pd.DataFrame, target: _OutputFile) -> None:
+        """Write a DataFrame in the format of the output file."""
+        if target.file_type == 'csv':
+            self._write_csv_data(df, target.path, target.delimiter, target.encoding, target.file_exist)
+        elif target.file_type == 'json':
+            self._write_json_data(df, target.path, target.file_exist)
+        elif target.file_type == 'xml':
+            self._write_xml_data(df, target.path, target.encoding, target.file_exist)
+        elif target.file_type == 'parquet':
+            self._write_parquet_data(df, target.path, target.file_exist)
+        else:
+            raise ValueError(f"Unsupported file type: {target.file_type}")
+
+    async def _write_parquet_source(self, data: NodeDataParquet, target: _OutputFile, sample: bool) -> None:
+        """Write a parquet input in the format of the output file."""
+        # Process in chunks to handle large files
+        chunk_size = 100
+        parquet_file_path = PathSecurityValidator.validate_file_path(data.data)
+        parquet_file = pq.ParquetFile(parquet_file_path)
+
+        if target.file_type == 'csv':
+            # The file is written in a worker thread so that it does not block the event loop
+            await asyncio.to_thread(
+                self._write_csv_parquet_data, parquet_file, target.path, target.delimiter, target.encoding, sample,
+                chunk_size, target.file_exist
+            )
+        elif target.file_type == 'json':
+            self._write_json_parquet_data(parquet_file, target.path, sample, chunk_size, target.file_exist)
+        elif target.file_type == 'xml':
+            self._write_xml_parquet_data(parquet_file, target.path, target.encoding, sample, chunk_size, target.file_exist)
+        elif target.file_type == 'parquet':
+            self._write_parquet_parquet_data(parquet_file, target.path, sample, target.file_exist)
+        else:
+            raise ValueError(f"Unsupported file type: {target.file_type}")
+
+    async def _register_new_dataset(self, target: _OutputFile) -> None:
+        """Register the new file as a dataset of the user, and select it in the node instead of the file name."""
+        # Get execution context for user information
+        current_user = ExecutionContext.get_user()
+        workflow = ExecutionContext.get_workflow()
+
+        if current_user:
+            logger.info(f"User {current_user.username} creating dataset in workflow {workflow.name if workflow else 'unknown'}")
+
+        new_dataset = self._create_file_dataset(target.path, target.file_type, target.delimiter, target.encoding)
+
+        # Add connection with user context if available
+        if not current_user:
+            logger.warning("No user context available for dataset creation")
+            return
+        await self.datasetService.add_connection(new_dataset, current_user)
+        logger.info(f"Created new dataset: {new_dataset.name} for user {current_user.username}")
+        self.data['selectDataSource']["value"] =  new_dataset.id
+        self.data['selectDataSource']["list"].append({
+            "value": new_dataset.id,
+            "label": new_dataset.name
+        })
+        self.data['fileName']["value"] = None
+        self.data['fileName']["label"] = None
 
     async def _retrieveFileConfig(self):
         """Retrieve the file configuration.
@@ -265,6 +249,22 @@ class FileOutput(OutputNode):
             raise ValueError("Either a data source must be selected or a filename must be provided")
 
         return dataset, delimiter, encoding , file_type, secure_file_name, file_exist
+
+    @staticmethod
+    def _write_csv_data(df: pd.DataFrame, output_file: str, delimiter: str, encoding: str, file_exist: str):
+        """Write DataFrame to CSV file: the header is written unless the rows are appended."""
+        if file_exist == 'append' and os.path.exists(output_file):
+            df.to_csv(output_file, sep=delimiter, encoding=encoding, index=False, mode='a', header=False)
+        else:
+            df.to_csv(output_file, sep=delimiter, encoding=encoding, index=False)
+
+    @staticmethod
+    def _write_parquet_data(df: pd.DataFrame, output_file: str, file_exist: str):
+        """Write DataFrame to parquet file, after the rows of the file when appending."""
+        if file_exist == 'append' and os.path.exists(output_file):
+            old_data = pd.read_parquet(output_file)
+            df = pd.concat([old_data, df], ignore_index=True)
+        df.to_parquet(output_file)
 
     def _write_json_data(self, df: pd.DataFrame, output_file: str, file_exist: str):
         """Write DataFrame to JSON file with proper array handling."""
