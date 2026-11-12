@@ -68,7 +68,7 @@ export class ResetPasswordPage implements OnInit {
 
     const hasUpperCase = /[A-Z]/.test(value);
     const hasLowerCase = /[a-z]/.test(value);
-    const hasNumber = /[0-9]/.test(value);
+    const hasNumber = /\d/.test(value);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
 
     const passwordValid = hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
@@ -181,14 +181,14 @@ export class ResetPasswordPage implements OnInit {
    * Navigate to forgot password page
    */
   goToForgotPassword() {
-    this.router.navigate(['/forgot-password']);
+    void this.router.navigate(['/forgot-password']);
   }
 
   /**
    * Navigate to login page
    */
   goToLogin() {
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 
   /**

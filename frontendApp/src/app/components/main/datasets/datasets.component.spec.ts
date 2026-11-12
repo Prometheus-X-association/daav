@@ -55,7 +55,7 @@ describe('DatasetsComponent', () => {
     await fixture.whenStable();
 
     const icons: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.icon-button ion-icon'));
-    expect(icons.length).toBe(2);
+    expect(icons).toHaveSize(2);
     for (const icon of icons) {
       expect(icon.getBoundingClientRect().width).toBeGreaterThanOrEqual(22);
     }

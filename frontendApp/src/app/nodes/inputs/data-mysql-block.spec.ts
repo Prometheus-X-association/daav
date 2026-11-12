@@ -180,7 +180,7 @@ describe('DataMysqlBlock', () => {
     block.addSelectTable(data, {} as Node);
 
     expect(block.selectControlTable).toBeDefined();
-    expect(block.selectControlTable.list.length).toBe(2);
+    expect(block.selectControlTable.list).toHaveSize(2);
     expect(area.update).toHaveBeenCalledWith('control', block.selectControlTable.id);
   });
 
@@ -191,7 +191,7 @@ describe('DataMysqlBlock', () => {
     block.addSelectDatabase(data, {} as Node);
 
     expect(block.selectControlDatabase).toBeDefined();
-    expect(block.selectControlDatabase.list.length).toBe(2);
+    expect(block.selectControlDatabase.list).toHaveSize(2);
     expect(area.update).toHaveBeenCalledWith('control', block.selectControlDatabase.id);
   });
 

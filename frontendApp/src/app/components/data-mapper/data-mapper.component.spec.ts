@@ -95,7 +95,7 @@ describe('DataMapperComponent', () => {
 
     component.onDrop(event);
 
-    expect(component.mappings.length).toBe(1);
+    expect(component.mappings).toHaveSize(1);
     expect(component.mappings[0].id).toBe('00000000-0000-0000-0000-000000000000');
     expect(component.mappings[0].sources).toContain(column);
   });
@@ -117,7 +117,7 @@ describe('DataMapperComponent', () => {
 
     component.removeSourceFromMapping('map1', 'col1');
 
-    expect(component.mappings.length).toBe(0);
+    expect(component.mappings).toHaveSize(0);
   });
 
   it('should toggle collapse state for sections', () => {

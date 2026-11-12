@@ -97,7 +97,7 @@ export class RegisterPage implements OnInit {
 
     const hasUpperCase = /[A-Z]/.test(value);
     const hasLowerCase = /[a-z]/.test(value);
-    const hasNumber = /[0-9]/.test(value);
+    const hasNumber = /\d/.test(value);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
 
     const passwordValid = hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
@@ -177,7 +177,7 @@ export class RegisterPage implements OnInit {
    * Navigate to login page
    */
   goToLogin() {
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 
   /**

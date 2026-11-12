@@ -94,7 +94,7 @@ describe('DataMongoBlock', () => {
     block.addSelectCollection(data, {} as Node);
 
     expect(block.selectControlCollection).toBeDefined();
-    expect(block.selectControlCollection.list.length).toBe(2);
+    expect(block.selectControlCollection.list).toHaveSize(2);
     expect(area.update).toHaveBeenCalledWith('control', block.selectControlCollection.id);
   });
 
@@ -105,7 +105,7 @@ describe('DataMongoBlock', () => {
     block.addSelectDatabase(data, {} as Node);
 
     expect(block.selectControlDatabase).toBeDefined();
-    expect(block.selectControlDatabase.list.length).toBe(2);
+    expect(block.selectControlDatabase.list).toHaveSize(2);
     expect(area.update).toHaveBeenCalledWith('control', block.selectControlDatabase.id);
   });
 

@@ -50,14 +50,14 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
       }
       this.statusControl = new StatusControl(this.status,this.statusMessage,this.errorStacktrace);
       this.addControl("status",this.statusControl);
-      area.update("control", this.statusControl.id);
+      void area.update("control", this.statusControl.id);
       this.playButtonControl = new ButtonControl(()=>{
         this.execute();
       },null,"play_arrow","playButton");
       this.playButtonControl.ariaLabel = "Run node";
       this.playButtonControl.disabled = (this.status === StatusNode.Incomplete);
       this.addControl("play",this.playButtonControl);
-      area.update("control", this.playButtonControl.id);
+      void area.update("control", this.playButtonControl.id);
       this.nodeLoader = new NodeLoaderControl();
       this.addControl("loader",this.nodeLoader);
     }
@@ -95,8 +95,8 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
       this.statusControl.statusMessage=statusMessage;
       this.statusControl.errorStacktrace=errorStacktrace;
       this.playButtonControl.disabled = (status === StatusNode.Incomplete);
-      this.area.update("node",this.id);
-      this.area.update("control", this.statusControl.id);
+      void this.area.update("node",this.id);
+      void this.area.update("control", this.statusControl.id);
     }
 
     /**
@@ -105,7 +105,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
      */
     showLoader(show : boolean){
       this.nodeLoader.loading = show;
-      this.area.update("control", this.nodeLoader.id);
+      void this.area.update("control", this.nodeLoader.id);
     }
 
     execute(){
@@ -123,7 +123,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
             Object.assign(this.data(), response.data);
 
             // Update area to reflect changes
-            this.area.update("node", this.id);
+            void this.area.update("node", this.id);
         }
     }
 

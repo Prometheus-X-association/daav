@@ -66,7 +66,7 @@ export class InputDataBlock<
       this.parquetSaveChange.bind(this)
     );
     this.addControl('parquet', this.parquetCheckbox);
-    this.area.update('node', this.parquetCheckbox.id);
+    void this.area.update('node', this.parquetCheckbox.id);
   }
 
   parquetSaveChange(event: MatSelectChange) {
@@ -108,7 +108,7 @@ export class InputDataBlock<
       this.onDataSourceSelected.bind(this)
     );
     this.addControl('dataSource', this.selectControl);
-    this.area.update('control', this.selectControl.id);
+    void this.area.update('control', this.selectControl.id);
     //update list from service on dataset signal
     // this is obscur toObservable have problem context and need to run in runInInjectionContext
     runInInjectionContext(this.worflowEditor.injector, () => {
@@ -135,7 +135,7 @@ export class InputDataBlock<
           if (!result.idInside) {
             this.selectControl.value = null;
           }
-          this.area.update('control', this.selectControl.id);
+          void this.area.update('control', this.selectControl.id);
         });
     });
   }

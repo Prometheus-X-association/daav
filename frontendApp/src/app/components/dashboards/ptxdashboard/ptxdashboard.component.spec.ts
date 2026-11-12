@@ -39,11 +39,11 @@ describe('PTXDashboardComponent', () => {
 
     expect(component.shouldShowMoreButton(exchange)).toBeTrue();
     expect(component.getHiddenExecutionsCount(exchange)).toBe(2);
-    expect(component.getExecutionsToShow(exchange, 0).length).toBe(10);
+    expect(component.getExecutionsToShow(exchange, 0)).toHaveSize(10);
 
     component.toggleShowAllExecutions(0);
     expect(component.isShowingAllExecutions(0)).toBeTrue();
-    expect(component.getExecutionsToShow(exchange, 0).length).toBe(12);
+    expect(component.getExecutionsToShow(exchange, 0)).toHaveSize(12);
 
     component.toggleShowAllExecutions(0);
     expect(component.isShowingAllExecutions(0)).toBeFalse();

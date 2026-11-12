@@ -79,7 +79,7 @@ describe('FilterTransform', () => {
 
     block['buildDataset']('connectioncreated');
 
-    expect(block['dataFilterControl'].datasets.length).toBe(1);
+    expect(block['dataFilterControl'].datasets).toHaveSize(1);
     expect(block.data().dataSource).toBe('datasource');
   });
 

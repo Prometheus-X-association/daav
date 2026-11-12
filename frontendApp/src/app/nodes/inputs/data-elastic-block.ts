@@ -61,7 +61,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     if (node?.data?.query) {
       this.addOptionControls(node);
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   private get dataset(): DatasetElasticSearch {
@@ -122,8 +122,8 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     };
     this.selectControlIndex = new SelectControl(selectIndex, this.indexChange.bind(this));
     this.addControl('dataIndexSource', this.selectControlIndex);
-    this.area.update('control', this.selectControlIndex.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlIndex.id);
+    void this.area.update('node', this.id);
   }
 
   removeSelectIndex() {
@@ -132,7 +132,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     if (this.node?.data?.selectIndexDataSource) {
       this.node.data.selectIndexDataSource = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   /** Query, fields, maximum number of documents and _id option */
@@ -168,7 +168,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     this.addControl('fields', this.fieldsControl);
     this.addControl('maxDocs', this.maxDocsControl);
     this.addControl('includeId', this.includeIdControl);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   removeOptionControls() {
@@ -182,7 +182,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     this.fieldsControl = null;
     this.maxDocsControl = null;
     this.includeIdControl = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   schedulePreview() {
@@ -200,7 +200,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     const fields = (this.fieldsControl?.value ?? '')
       .split(',')
       .map((field) => field.trim())
-      .filter((field) => field);
+      .filter(Boolean);
     this.showLoader(true);
     this.elasticService
       .sample(dataset.id, {
@@ -228,7 +228,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     }
     this.dataOutput.set('out', data);
     this.updateStatus(StatusNode.Complete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   cleanOutput() {
@@ -237,13 +237,13 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
         .getConnections()
         .find((conn) => conn.source === this.id && conn.sourceOutput === 'out');
       if (connection) {
-        this.worflowEditor.removeConnection(connection.id);
+        void this.worflowEditor.removeConnection(connection.id);
       }
       this.removeOutput('out');
       this.dataOutput.delete('out');
     }
     this.updateStatus(StatusNode.Incomplete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   override data() {
@@ -257,5 +257,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     return { ...super.data(), ...data };
   }
 
-  override execute() {}
+  override execute() {
+    // Intentionally empty: the data is loaded when the source is selected.
+  }
 }

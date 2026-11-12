@@ -42,7 +42,7 @@ describe('JsonInputsWidgetComponent', () => {
     component.data = new JsonInputsControl([]);
     component.hasChanged = false;
     component.addInputExample();
-    expect(component.data.inputsDataExample.length).toBe(1);
+    expect(component.data.inputsDataExample).toHaveSize(1);
     expect(component.hasChanged).toBeTrue();
   });
 

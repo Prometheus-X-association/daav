@@ -207,7 +207,7 @@ export class DatasetsModalComponent implements OnChanges {
 
     // close modal
     this.modal.isOpen = false;
-    this.modal.dismiss();
+    void this.modal.dismiss();
   }
 
   uploadFile(event: Event) {

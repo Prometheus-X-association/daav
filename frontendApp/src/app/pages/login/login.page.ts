@@ -93,14 +93,14 @@ export class LoginPage implements OnInit {
    * Navigate to register page
    */
   goToRegister() {
-    this.router.navigate(['/register']);
+    void this.router.navigate(['/register']);
   }
 
   /**
    * Navigate to forgot password page
    */
   goToForgotPassword() {
-    this.router.navigate(['/forgot-password']);
+    void this.router.navigate(['/forgot-password']);
   }
 
   /**

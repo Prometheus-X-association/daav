@@ -60,7 +60,7 @@ describe('PdcOutput', () => {
     block['addSelectControlDataResource']({ dataResources: [{ name: 'Resource 1', _id: 'r1' }] });
 
     expect(block['selectControlDataResource']).toBeDefined();
-    expect(block['selectControlDataResource'].list.length).toBe(1);
+    expect(block['selectControlDataResource'].list).toHaveSize(1);
 
     block.removeControlDataSource();
 

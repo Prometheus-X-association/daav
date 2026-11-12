@@ -44,7 +44,7 @@ export class ElasticOutput extends OutputDataBlock {
     if (node?.data?.indexAutoComplete) {
       this.addOptionControls([], node);
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   override dataSourceChange(event: MatSelectChange) {
@@ -111,7 +111,7 @@ export class ElasticOutput extends OutputDataBlock {
     if (!node) {
       this.updateStatus(this.indexAutoCompleteControl.value ? StatusNode.Complete : StatusNode.Incomplete);
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   removeOptionControls() {

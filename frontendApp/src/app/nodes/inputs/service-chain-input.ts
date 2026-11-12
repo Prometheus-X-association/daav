@@ -56,8 +56,8 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
     }
 
     this.addControl('inputsDatasource', this.inputsDatasource);
-    this.area.update('control', this.inputsDatasource.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.inputsDatasource.id);
+    void this.area.update('node', this.id);
   }
 
   override dataSourceChange(event: MatSelectChange): void {
@@ -109,8 +109,8 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
     );
 
     this.addControl("selectServiceChain", this.serviceChainControl)
-    this.area.update('control', this.serviceChainControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.serviceChainControl.id);
+    void this.area.update('node', this.id);
   } 
 
   serviceChainChanged(event: MatSelectChange){
@@ -139,13 +139,13 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
       'url-save-button',
     )
     this.addControl("triggerButton", this.triggerButton);
-    this.area.update("control", this.triggerButton.id);
-    this.area.update('node', this.id);
+    void this.area.update("control", this.triggerButton.id);
+    void this.area.update('node', this.id);
   }
 
   removeTriggerButton(){
     this.removeControl("triggerButton");
-    this.area.update('node', this.id)
+    void this.area.update('node', this.id)
   }
 
   triggeredServiceChain(){
@@ -194,8 +194,8 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
         }
       })
 
-      this.area.update('control', this.inputsDatasource.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.inputsDatasource.id);
+      void this.area.update('node', this.id);
     }
 
     removeServiceChainData(service_chain_id: string){
@@ -213,7 +213,7 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
   removeControlServiceChain(){
     this.removeControl("selectServiceChain");
     this.serviceChainControl = null;
-    this.area.update('node', this.id)
+    void this.area.update('node', this.id)
   }
 
   inputsDataChange(evt : IonModalCustomEvent<OverlayEventDetail<boolean>>){
@@ -248,10 +248,10 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
               if (hasErrors) {
                 console.error('Errors have occurred during processing inputs.');
                 this.updateStatus(StatusNode.Incomplete);
-                this.area.update('node', this.id);
+                void this.area.update('node', this.id);
               } else {
                 this.updateStatus(StatusNode.Complete);
-                this.area.update('node', this.id);
+                void this.area.update('node', this.id);
               }
             }
           }, () => {
@@ -284,7 +284,7 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
         next: (data) => {
           console.log(`Processed input ${index}:`, data);
           this.addOutput(outputName, new ClassicPreset.Output(PandasSchemaUtils.isDeepObjectSchema(data.nodeSchema)?new DeepObjectSocket(): new FlatObjectSocket(), labelName));
-          this.area.update('node', this.id);
+          void this.area.update('node', this.id);
           this.dataOutput.set(outputName, data);
           onComplete();
         },
@@ -292,7 +292,7 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
           console.error(`Error processing input ${index}:`, err);
           // Ajouter une sortie avec indication d'erreur
           this.addOutput(outputName, new ClassicPreset.Output(new SimpleFieldSocket(), `${labelName} (ERROR)`));
-          this.area.update('node', this.id);
+          void this.area.update('node', this.id);
           onError();
         }
       });
@@ -302,7 +302,7 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
     Object.entries(this.outputs).forEach(([key, input]) => {
       const connection = this.worflowEditor.getConnections().find(conn => conn.source === this.id && conn.sourceOutput === key);
       if (connection){
-        this.worflowEditor.removeConnection(connection.id);
+        void this.worflowEditor.removeConnection(connection.id);
       }
       this.removeOutput(key);
       this.dataOutput.delete(key);

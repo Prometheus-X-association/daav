@@ -49,7 +49,7 @@ describe('ElasticDashboardComponent', () => {
     create();
     expect(component.info.version).toBe('8.15.5');
     expect(component.totalDocs).toBe(70);
-    expect(fixture.nativeElement.querySelectorAll('table.indices tbody tr').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('table.indices tbody tr')).toHaveSize(2);
   });
 
   it('should filter indices by name or alias', () => {

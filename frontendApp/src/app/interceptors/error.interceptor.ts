@@ -33,16 +33,16 @@ export class ErrorInterceptor implements HttpInterceptor {
 
         if (error.status === 403) {
           if (error.error?.detail === PASSWORD_CHANGE_REQUIRED_DETAIL) {
-            this.router.navigate(['/change-password'], {
+            void this.router.navigate(['/change-password'], {
               queryParams: { returnUrl: this.router.url }
             });
           } else {
-            this.handle403Error();
+            void this.handle403Error();
           }
         }
 
         if (error.status >= 500) {
-          this.handle500Error(error);
+          void this.handle500Error(error);
         }
 
         return throwError(() => error);
@@ -77,11 +77,11 @@ export class ErrorInterceptor implements HttpInterceptor {
             }
           });
 
-          next.handle(clonedRequest).subscribe(
-            event => observer.next(event),
-            error => observer.error(error),
-            () => observer.complete()
-          );
+          next.handle(clonedRequest).subscribe({
+            next: event => observer.next(event),
+            error: error => observer.error(error),
+            complete: () => observer.complete()
+          });
         } else {
           // Refresh failed, redirect to login
           void this.redirectToLogin();

@@ -84,7 +84,7 @@ export class ForgotPasswordPage implements OnInit {
    * Navigate back to login page
    */
   goToLogin() {
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 
   /**

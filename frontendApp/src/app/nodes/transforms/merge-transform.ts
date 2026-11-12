@@ -37,7 +37,7 @@ export class MergeTransform extends TransformBlock {
     }
 
     this.addControl("dataMapper",this.dataMapperControl);
-    area.update("control", this.dataMapperControl.id);
+    void area.update("control", this.dataMapperControl.id);
     //save the callback to remove from area pipe from signal arrays because no method to remove
     const contextPipe = context => {
       //when clear in progress disable event
@@ -98,9 +98,9 @@ export class MergeTransform extends TransformBlock {
       }
     }
     // datasource (index 0) or datasource_x (index x)
-    const match = connection.targetInput.match(/^datasource(_(\d+))?$/);
+    const match = /^datasource(_(\d+))?$/.exec(connection.targetInput);
     if (match) {
-      const index = match[2] ? parseInt(match[2], 10) : 0;
+      const index = match[2] ? Number.parseInt(match[2], 10) : 0;
       if (type === 'connectioncreated'){
         this.onIndexedConnected(connection.targetInput, index + 1);
       } else {
@@ -138,13 +138,13 @@ export class MergeTransform extends TransformBlock {
       if (key !== "datasource") {
         const connection = worflowEditor.getConnections().find(conn => conn.target === this.id && conn.targetInput === key);
         if (connection){
-          worflowEditor.removeConnection(connection.id);
+          void worflowEditor.removeConnection(connection.id);
         }
         this.removeInput(key);
       }
       const connectionOuput = worflowEditor.getConnections().find(conn => conn.source === this.id && conn.sourceOutput === "out");
       if (connectionOuput){
-        worflowEditor.removeConnection(connectionOuput.id);
+        void worflowEditor.removeConnection(connectionOuput.id);
       }
       this.removeOutput("out");
     });
@@ -214,6 +214,6 @@ export class MergeTransform extends TransformBlock {
     if (type === 'connectionremoved'){
       this.dataMapperControl.mappings = [];
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 }

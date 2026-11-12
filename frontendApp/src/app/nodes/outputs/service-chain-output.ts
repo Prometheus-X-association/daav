@@ -37,7 +37,7 @@ export class ServiceChainOutput extends OutputDataBlock{
       )
     }
 
-    this.area.update("node", this.id);
+    void this.area.update("node", this.id);
   }
 
   override dataSourceChange(event: MatSelectChange) {
@@ -47,6 +47,6 @@ export class ServiceChainOutput extends OutputDataBlock{
     } else {
       this.updateStatus(StatusNode.Incomplete);
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 }

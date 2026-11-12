@@ -1,7 +1,7 @@
 import { Injectable, Injector, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, firstValueFrom, throwError } from 'rxjs';
 import { catchError, tap, switchMap } from 'rxjs/operators';
 import {
   User,
@@ -156,9 +156,9 @@ export class AuthService {
         return null;
       }
 
-      const token = await this.http.post<Token>(`${this.baseService.urlBack}/auth/refresh`, {
+      const token = await firstValueFrom(this.http.post<Token>(`${this.baseService.urlBack}/auth/refresh`, {
         refresh_token: refreshToken
-      }).toPromise();
+      }));
 
       if (token) {
         const rememberMe = await this.tokenService.isRememberMe();
@@ -192,7 +192,7 @@ export class AuthService {
         'Authorization': `Bearer ${accessToken}`
       });
 
-      const user = await this.http.get<User>(`${this.baseService.urlBack}/auth/me`, { headers }).toPromise();
+      const user = await firstValueFrom(this.http.get<User>(`${this.baseService.urlBack}/auth/me`, { headers }));
 
       if (user) {
         this.currentUserSubject.next(user);

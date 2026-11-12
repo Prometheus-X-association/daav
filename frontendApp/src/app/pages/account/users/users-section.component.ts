@@ -234,7 +234,7 @@ export class UsersSectionComponent implements OnInit {
    * Navigate to create user (register page)
    */
   createNewUser() {
-    this.router.navigate(['/register']);
+    void this.router.navigate(['/register']);
   }
 
   /**

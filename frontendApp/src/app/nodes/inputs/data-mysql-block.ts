@@ -44,7 +44,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      this.area.update('control', this.selectControlDatabase.id);
+      void this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.selectTableDataSource) {
       this.selectControlTable = new SelectControl(
@@ -52,9 +52,9 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
         this.tableChange.bind(this)
       );
       this.addControl('dataTableSource', this.selectControlTable);
-      this.area.update('control', this.selectControlTable.id);
+      void this.area.update('control', this.selectControlTable.id);
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   override async dataSourceChange(event: MatSelectChange) {
@@ -121,7 +121,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
       name: table,
     });
     this.updateStatus(StatusNode.Complete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   cleanOutput() {
@@ -130,13 +130,13 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
         .getConnections()
         .find((conn) => conn.source === this.id && conn.sourceOutput === 'out');
       if (connection) {
-        this.worflowEditor.removeConnection(connection.id);
+        void this.worflowEditor.removeConnection(connection.id);
       }
       this.removeOutput('out');
       this.dataOutput.delete('out');
     }
     this.updateStatus(StatusNode.Incomplete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   addSelectTable(data: MySQLContentResponse, node: Node) {
@@ -157,7 +157,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
     });
     if (
       selectTableSource.value &&
-      !selectTableSource.list.find(
+      !selectTableSource.list.some(
         (table) => table.value === selectTableSource.value
       )
     ) {
@@ -168,8 +168,8 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
       this.tableChange.bind(this)
     );
     this.addControl('dataTableSource', this.selectControlTable);
-    this.area.update('control', this.selectControlTable.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlTable.id);
+    void this.area.update('node', this.id);
   }
 
   addSelectDatabase(data: MySQLContentResponse, node: Node) {
@@ -193,7 +193,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
     }
     if (
       selectDatabaseSource.value &&
-      !selectDatabaseSource.list.find(
+      !selectDatabaseSource.list.some(
         (database) => database.value === selectDatabaseSource.value
       )
     ) {
@@ -204,14 +204,14 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
       this.dataBaseChange.bind(this)
     );
     this.addControl('dataDatabaseSource', this.selectControlDatabase);
-    this.area.update('control', this.selectControlDatabase.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlDatabase.id);
+    void this.area.update('node', this.id);
   }
 
   removeControlDatabase() {
     this.removeControl('dataDatabaseSource');
     this.selectControlDatabase = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
     if (this.node?.data?.selectTableDataSource) {
       this.node.data.selectTableDataSource = null;
     }
@@ -220,7 +220,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
   removeControlTable() {
     this.removeControl('dataTableSource');
     this.selectControlTable = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
     if (this.node?.data?.selectTableDataSource) {
       this.node.data.selectTableDataSource = null;
     }

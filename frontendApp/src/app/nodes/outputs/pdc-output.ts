@@ -50,7 +50,7 @@ export class PdcOutput extends OutputDataBlock {
           this.dataResourceChange.bind(this)
         );
         this.addControl("selectDataResource", this.selectControlDataResource);
-        this.area.update('control', this.selectControlDataResource.id);
+        void this.area.update('control', this.selectControlDataResource.id);
       }
 
       this.loadDataResourcesAndInitialize(node);
@@ -67,7 +67,7 @@ export class PdcOutput extends OutputDataBlock {
         this.removeUrlControl();
       }
 
-      this.area.update('node', this.id);
+      void this.area.update('node', this.id);
     }
 
     private addCurrentUrlControl(url?: string): void {
@@ -81,22 +81,22 @@ export class PdcOutput extends OutputDataBlock {
       
       this.currentUrlControl = new TextDisplayControl(currentUrlData);
       this.addControl('currentUrl', this.currentUrlControl);
-      this.area.update('control', this.currentUrlControl.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.currentUrlControl.id);
+      void this.area.update('node', this.id);
     }
 
     private removeCurrentUrlControl(): void {
       if (this.currentUrlControl) {
         this.removeControl('currentUrl');
         this.currentUrlControl = null;
-        this.area.update('node', this.id);
+        void this.area.update('node', this.id);
       }
     }
 
     private updateCurrentUrlDisplay(newUrl: string): void {
       if (this.currentUrlControl) {
         this.currentUrlControl.value = newUrl;
-        this.area.update('control', this.currentUrlControl.id);
+        void this.area.update('control', this.currentUrlControl.id);
       }
     }
 
@@ -156,7 +156,7 @@ export class PdcOutput extends OutputDataBlock {
       this.removeUrlControl();
       this.removeSaveButton();
       this.selectControlDataResource = null;
-      this.area.update('node', this.id);
+      void this.area.update('node', this.id);
     }
 
     addSelectControlDataResource(data, node?: Node) {
@@ -185,7 +185,7 @@ export class PdcOutput extends OutputDataBlock {
       
       if (
         selectDataResource.value &&
-        !selectDataResource.list.find(
+        !selectDataResource.list.some(
           (resource) => resource.value === selectDataResource.value
         )
       ) {
@@ -198,8 +198,8 @@ export class PdcOutput extends OutputDataBlock {
       );
 
       this.addControl("selectDataResource", this.selectControlDataResource)
-      this.area.update('control', this.selectControlDataResource.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.selectControlDataResource.id);
+      void this.area.update('node', this.id);
     }
 
     dataResourceChange(event: MatSelectChange): void {
@@ -236,7 +236,7 @@ export class PdcOutput extends OutputDataBlock {
       if(node?.data?.urlInput) {
         urlControlData = { ...node.data.urlInput };
         
-        if (urlControlData.value && urlControlData.value.includes('://')) {
+        if (urlControlData.value?.includes('://')) {
           const { baseUrl, fileName } = this.extractUrlParts(urlControlData.value);
           urlControlData.value = fileName; 
           urlControlData.label = baseUrl;  
@@ -258,8 +258,8 @@ export class PdcOutput extends OutputDataBlock {
       );
   
       this.addControl('urlText', this.urlInputControl);
-      this.area.update('control', this.urlInputControl.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.urlInputControl.id);
+      void this.area.update('node', this.id);
   
       if (urlControlData.value) {
         this.updateStatus(StatusNode.Complete);
@@ -277,8 +277,8 @@ export class PdcOutput extends OutputDataBlock {
         disabled
       );
       this.addControl('saveUrlButton', this.saveUrlButton);
-      this.area.update('control', this.saveUrlButton.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.saveUrlButton.id);
+      void this.area.update('node', this.id);
     }
 
     private extractUrlParts(fullUrl?: string): { baseUrl: string, fileName: string } {
@@ -293,7 +293,7 @@ export class PdcOutput extends OutputDataBlock {
         try {
           const url = new URL(fullUrl);
           const pathParts = url.pathname.split('/');
-          const fileName = pathParts[pathParts.length - 1] || '';
+          const fileName = pathParts.at(-1) || '';
           const baseUrl = fullUrl.substring(0, fullUrl.lastIndexOf('/') + 1);
           
           return {
@@ -359,7 +359,7 @@ export class PdcOutput extends OutputDataBlock {
       if (this.saveUrlButton) {
         this.removeControl('saveUrlButton');
         this.saveUrlButton = null;
-        this.area.update('node', this.id);
+        void this.area.update('node', this.id);
       }
     }
 
@@ -368,7 +368,7 @@ export class PdcOutput extends OutputDataBlock {
       if (this.urlInputControl) {
         this.removeControl('urlText');
         this.urlInputControl = null;
-        this.area.update('node', this.id);
+        void this.area.update('node', this.id);
       }
     }
 

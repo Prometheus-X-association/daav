@@ -68,12 +68,8 @@ function getNodeContainer(size: number, scale: number) {
  * @param props.area Area plugin instance
  */
 export function setup<T>(props: { size?: number, scale?: number, area: AreaPlugin<BaseSchemes, T> }): Preset {
-  const size = props.size === undefined
-    ? 100
-    : props.size
-  const scale = props.scale === undefined
-    ? 0.7
-    : props.scale
+  const size = props.size ?? 100
+  const scale = props.scale ?? 0.7
   const container = getContainer(size)
 
   props.area.container.appendChild(container)
@@ -94,7 +90,7 @@ export function setup<T>(props: { size?: number, scale?: number, area: AreaPlugi
       return element
     },
     removeItem(element) {
-      container.removeChild(element)
+      element.remove()
     }
   }
 }

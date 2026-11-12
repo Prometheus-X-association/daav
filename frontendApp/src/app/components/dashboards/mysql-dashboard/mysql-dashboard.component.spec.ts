@@ -52,7 +52,7 @@ describe('MysqlDashboardComponent', () => {
     create();
     expect(component.totalTables).toBe(3);
     expect(component.totalSize).toBe(49152);
-    expect(fixture.nativeElement.querySelectorAll('table.databases tbody tr').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('table.databases tbody tr')).toHaveSize(2);
     // several databases: none is opened automatically
     expect(mysql.getTables).not.toHaveBeenCalled();
   });
@@ -76,7 +76,7 @@ describe('MysqlDashboardComponent', () => {
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('table.databases')).toBeNull();
     expect(element.querySelector('table.tables')).toBeNull();
-    expect(element.querySelectorAll('table.columns tbody tr').length).toBe(1);
+    expect(element.querySelectorAll('table.columns tbody tr')).toHaveSize(1);
     expect(element.textContent).toContain('shop.orders');
     expect(element.textContent).toContain('InnoDB');
   });
@@ -94,7 +94,7 @@ describe('MysqlDashboardComponent', () => {
     create();
     component.selectDatabase(shop);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelectorAll('table.tables tbody tr').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('table.tables tbody tr')).toHaveSize(2);
     component.tableFilter = 'v_';
     expect(component.filteredTables.map((t) => t.name)).toEqual(['v_orders']);
   });

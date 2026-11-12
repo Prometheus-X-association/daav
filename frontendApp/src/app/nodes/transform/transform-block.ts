@@ -30,7 +30,7 @@ export class TransformBlock extends NodeBlock{
         }
         this.parquetCheckbox = new CheckboxControl(parquetSave,this.parquetSaveChange.bind(this));
         this.addControl('parquet', this.parquetCheckbox);
-        this.area.update('node', this.parquetCheckbox.id);
+        void this.area.update('node', this.parquetCheckbox.id);
       }
 
     parquetSaveChange(event: MatSelectChange){

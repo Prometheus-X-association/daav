@@ -74,7 +74,7 @@ export class DataFileBlock extends InputDataBlock<PandasSchema, NodeDataPandasDf
       );
       this.dataOutput.set('out', data);
       this.updateStatus(StatusNode.Complete);
-      this.area.update('node', this.id);
+      void this.area.update('node', this.id);
     }
 
   cleanOutput() {
@@ -83,12 +83,12 @@ export class DataFileBlock extends InputDataBlock<PandasSchema, NodeDataPandasDf
         .getConnections()
         .find((conn) => conn.source === this.id && conn.sourceOutput === 'out');
       if (connection) {
-        this.worflowEditor.removeConnection(connection.id);
+        void this.worflowEditor.removeConnection(connection.id);
       }
       this.removeOutput('out');
       this.dataOutput.delete('out');
     }
     this.updateStatus(StatusNode.Incomplete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 }

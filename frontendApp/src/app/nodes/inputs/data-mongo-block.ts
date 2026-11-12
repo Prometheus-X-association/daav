@@ -47,7 +47,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      this.area.update('control', this.selectControlDatabase.id);
+      void this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.selectCollectionDataSource) {
       this.selectControlCollection = new SelectControl(
@@ -55,9 +55,9 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
         this.collectionChange.bind(this)
       );
       this.addControl('dataCollectionSource', this.selectControlCollection);
-      this.area.update('control', this.selectControlCollection.id);
+      void this.area.update('control', this.selectControlCollection.id);
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   override async dataSourceChange(event: MatSelectChange) {
@@ -129,7 +129,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
     );
     this.dataOutput.set('out', data);
     this.updateStatus(StatusNode.Complete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   cleanOutput() {
@@ -138,13 +138,13 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
         .getConnections()
         .find((conn) => conn.source === this.id && conn.sourceOutput === 'out');
       if (connection) {
-        this.worflowEditor.removeConnection(connection.id);
+        void this.worflowEditor.removeConnection(connection.id);
       }
       this.removeOutput('out');
       this.dataOutput.delete('out');
     }
     this.updateStatus(StatusNode.Incomplete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   addSelectCollection(data: MongoContentResponse, node: Node) {
@@ -165,7 +165,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
     });
     if (
       selectTableSource.value &&
-      !selectTableSource.list.find(
+      !selectTableSource.list.some(
         (table) => table.value === selectTableSource.value
       )
     ) {
@@ -176,8 +176,8 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
       this.collectionChange.bind(this)
     );
     this.addControl('dataCollectionSource', this.selectControlCollection);
-    this.area.update('control', this.selectControlCollection.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlCollection.id);
+    void this.area.update('node', this.id);
   }
 
   addSelectDatabase(data: MongoContentResponse, node: Node) {
@@ -201,7 +201,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
     }
     if (
       selectDatabaseSource.value &&
-      !selectDatabaseSource.list.find(
+      !selectDatabaseSource.list.some(
         (database) => database.value === selectDatabaseSource.value
       )
     ) {
@@ -212,14 +212,14 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
       this.dataBaseChange.bind(this)
     );
     this.addControl('dataDatabaseSource', this.selectControlDatabase);
-    this.area.update('control', this.selectControlDatabase.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlDatabase.id);
+    void this.area.update('node', this.id);
   }
 
   removeControlDatabase() {
     this.removeControl('dataDatabaseSource');
     this.selectControlDatabase = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
     if (this.node?.data?.selectCollectionDataSource) {
       this.node.data.selectCollectionDataSource = null;
     }
@@ -228,7 +228,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
   removeControlCollection() {
     this.removeControl('dataCollectionSource');
     this.selectControlCollection = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
     if (this.node?.data?.selectCollectionDataSource) {
       this.node.data.selectCollectionDataSource = null;
     }

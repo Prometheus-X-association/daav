@@ -53,7 +53,7 @@ export class FileDashboardComponent extends DashboardComponent implements OnInit
     switch(delimiter) {
       case ',': return 'Comma (,)';
       case ';': return 'Semicolon (;)';
-      case '\t': return 'Tab (\\t)';
+      case '\t': return String.raw`Tab (\t)`;
       case '|': return 'Pipe (|)';
       default: return delimiter;
     }

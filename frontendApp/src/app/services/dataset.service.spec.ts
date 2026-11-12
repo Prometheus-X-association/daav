@@ -63,7 +63,7 @@ describe('DatasetService', () => {
   it('should map getDatasets response to DatasetFile instances', () => {
     const response = [{ type: DatasetType.FilePath, filePath: '/tmp/data.csv' }];
     service.getDatasets().subscribe((datasets) => {
-      expect(datasets.length).toBe(1);
+      expect(datasets).toHaveSize(1);
       expect(datasets[0]).toBeInstanceOf(DatasetFile);
       expect((datasets[0] as DatasetFile).filePath).toBe('/tmp/data.csv');
     });
@@ -78,7 +78,7 @@ describe('DatasetService', () => {
     service.addDatasetToList(dataset);
     service.addDatasetToList(dataset);
 
-    expect(service.datasets().length).toBe(1);
+    expect(service.datasets()).toHaveSize(1);
     expect(service.datasets()[0].id).toBe('d1');
   });
 
@@ -139,7 +139,7 @@ describe('DatasetService', () => {
     const req = httpMock.expectOne(`${service['apiUrl']}/`);
     req.flush(response);
 
-    expect(service.datasets().length).toBe(1);
+    expect(service.datasets()).toHaveSize(1);
     expect(service.datasets()[0]).toEqual(jasmine.any(DatasetFile));
   });
 

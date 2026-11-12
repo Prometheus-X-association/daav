@@ -52,7 +52,7 @@ export class MysqlOutput extends OutputDataBlock {
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      this.area.update('control', this.selectControlDatabase.id);
+      void this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.tableAutoComplete) {
       this.addInputTable(null,node);
@@ -60,7 +60,7 @@ export class MysqlOutput extends OutputDataBlock {
     if (node?.data?.selectExist) {
       this.addSelectExist(node);
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   addInputTable(data: MySQLContentResponse, node: Node, table?: string) {
@@ -90,8 +90,8 @@ export class MysqlOutput extends OutputDataBlock {
       }
     );
     this.addControl('table', this.tableAutoCompleteControl);
-    this.area.update('control', this.tableAutoCompleteControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.tableAutoCompleteControl.id);
+    void this.area.update('node', this.id);
   }
 
 
@@ -121,8 +121,8 @@ export class MysqlOutput extends OutputDataBlock {
       selectExist
     );
     this.addControl('exist', this.selectExistControl);
-    this.area.update('control', this.selectExistControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectExistControl.id);
+    void this.area.update('node', this.id);
     let createIndex: CheckboxControlI;
     if (node?.data?.createIndex){
       createIndex = node.data?.createIndex;
@@ -139,8 +139,8 @@ export class MysqlOutput extends OutputDataBlock {
       }
     );
     this.addControl('createIndex', this.indexCheckbox );
-    this.area.update('control', this.indexCheckbox.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.indexCheckbox.id);
+    void this.area.update('node', this.id);
   }
 
   removeSelectExist() {
@@ -154,7 +154,7 @@ export class MysqlOutput extends OutputDataBlock {
     if (this.node?.data?.createIndex) {
       this.node.data.createIndex = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   addIndexTable(node: Node){
@@ -174,8 +174,8 @@ export class MysqlOutput extends OutputDataBlock {
       indexTable
     );
     this.addControl('indexTable', this.indexTableControl);
-    this.area.update('control', this.indexTableControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.indexTableControl.id);
+    void this.area.update('node', this.id);
   }
 
   removeIndexTable() {
@@ -184,7 +184,7 @@ export class MysqlOutput extends OutputDataBlock {
     if (this.node?.data?.indexTable) {
       this.node.data.indexTable = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
 
@@ -209,7 +209,7 @@ export class MysqlOutput extends OutputDataBlock {
     }
     if (
       selectDatabaseSource.value &&
-      !selectDatabaseSource.list.find(
+      !selectDatabaseSource.list.some(
         (database) => database.value === selectDatabaseSource.value
       )
     ) {
@@ -220,8 +220,8 @@ export class MysqlOutput extends OutputDataBlock {
       this.dataBaseChange.bind(this)
     );
     this.addControl('dataDatabaseSource', this.selectControlDatabase);
-    this.area.update('control', this.selectControlDatabase.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlDatabase.id);
+    void this.area.update('node', this.id);
   }
 
   override dataSourceChange(event: MatSelectChange) {
@@ -256,7 +256,7 @@ export class MysqlOutput extends OutputDataBlock {
   removeControlDatabase() {
     this.removeControl('dataDatabaseSource');
     this.selectControlDatabase = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
     if (this.node?.data?.selectTableDataSource) {
       this.node.data.selectTableDataSource = null;
     }

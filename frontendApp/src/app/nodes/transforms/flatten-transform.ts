@@ -76,7 +76,7 @@ export class FlattenTransform extends TransformBlock {
         } else {
           this.updateStatus(StatusNode.Incomplete);
           this.dataOutput.set("out", null);
-          this.worflowEditor.core.nodeEditor.emit({
+          void this.worflowEditor.core.nodeEditor.emit({
             type: "nodeDataOutputUpdated",
             data: {
                 nodeId: this.id,

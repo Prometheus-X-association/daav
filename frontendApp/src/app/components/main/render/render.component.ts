@@ -83,7 +83,7 @@ export class RenderComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges) {
     if (changes['dataset']) {
       this.data = this.dataDefault;
-      this.getDatasetContent(this.dataset, "", "", 0);
+      void this.getDatasetContent(this.dataset, "", "", 0);
     }
   }
 
@@ -166,7 +166,7 @@ export class RenderComponent implements OnInit, OnChanges {
       const params = this.data.selectedDataset?.type === DatasetType.ElasticSearch
         ? { index: table || null }
         : { database, table };
-      this.datasetService.getContentDataset(this.data.selectedDataset,this.data.pagination, params).subscribe((res) => {
+      this.datasetService.getContentDataset(this.data.selectedDataset,this.data.pagination, params).subscribe({ next: (res) => {
         this.data.pagination.nextUrl = null;
         if (!res) {
           // Connection work but the user don't have access to this dataset
@@ -192,14 +192,14 @@ export class RenderComponent implements OnInit, OnChanges {
         this.applyApiPagination(res);
         this.updateDisplayedColumns();
         resolve();
-      },error => {
+      }, error: error => {
         // Connection don't work
         console.log("error",error)
         this.resetFiche();
         alert("Connection error.")
         this.data.pagination.nextUrl = null;
         reject(new Error("Connection error.", { cause: error }));
-      });
+      }});
     })
   }
 

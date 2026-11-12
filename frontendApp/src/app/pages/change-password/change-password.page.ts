@@ -64,7 +64,7 @@ export class ChangePasswordPage implements OnInit {
 
     const hasUpperCase = /[A-Z]/.test(value);
     const hasLowerCase = /[a-z]/.test(value);
-    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?\/]/.test(value);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{}|;:,.<>?/]/.test(value);
 
     const passwordValid = hasUpperCase && hasLowerCase && hasSpecialChar;
 

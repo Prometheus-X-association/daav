@@ -53,7 +53,7 @@ export class MongoOutput extends OutputDataBlock {
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      this.area.update('control', this.selectControlDatabase.id);
+      void this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.collectionAutoComplete) {
       this.addInputCollection(null,node);
@@ -61,7 +61,7 @@ export class MongoOutput extends OutputDataBlock {
     if (node?.data?.selectExist) {
       this.addSelectExist(node);
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   addInputCollection(data: MongoContentResponse, node: Node, collection?: string) {
@@ -91,8 +91,8 @@ export class MongoOutput extends OutputDataBlock {
       }
     );
     this.addControl('collection', this.collectionAutoCompleteControl);
-    this.area.update('control', this.collectionAutoCompleteControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.collectionAutoCompleteControl.id);
+    void this.area.update('node', this.id);
   }
 
 
@@ -122,8 +122,8 @@ export class MongoOutput extends OutputDataBlock {
       selectExist
     );
     this.addControl('exist', this.selectExistControl);
-    this.area.update('control', this.selectExistControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectExistControl.id);
+    void this.area.update('node', this.id);
     let createIndex: CheckboxControlI;
     if (node?.data?.createIndex){
       createIndex = node.data?.createIndex;
@@ -140,8 +140,8 @@ export class MongoOutput extends OutputDataBlock {
       }
     );
     this.addControl('createIndex', this.indexCheckbox );
-    this.area.update('control', this.indexCheckbox.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.indexCheckbox.id);
+    void this.area.update('node', this.id);
   }
 
   removeSelectExist() {
@@ -155,7 +155,7 @@ export class MongoOutput extends OutputDataBlock {
     if (this.node?.data?.createIndex) {
       this.node.data.createIndex = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   addIndexTable(node: Node){
@@ -175,8 +175,8 @@ export class MongoOutput extends OutputDataBlock {
       indexTable
     );
     this.addControl('indexTable', this.indexTableControl);
-    this.area.update('control', this.indexTableControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.indexTableControl.id);
+    void this.area.update('node', this.id);
   }
 
   removeIndexTable() {
@@ -185,7 +185,7 @@ export class MongoOutput extends OutputDataBlock {
     if (this.node?.data?.indexTable) {
       this.node.data.indexTable = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
 
@@ -210,7 +210,7 @@ export class MongoOutput extends OutputDataBlock {
     }
     if (
       selectDatabaseSource.value &&
-      !selectDatabaseSource.list.find(
+      !selectDatabaseSource.list.some(
         (database) => database.value === selectDatabaseSource.value
       )
     ) {
@@ -221,8 +221,8 @@ export class MongoOutput extends OutputDataBlock {
       this.dataBaseChange.bind(this)
     );
     this.addControl('dataDatabaseSource', this.selectControlDatabase);
-    this.area.update('control', this.selectControlDatabase.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlDatabase.id);
+    void this.area.update('node', this.id);
   }
 
   override dataSourceChange(event: MatSelectChange) {
@@ -257,7 +257,7 @@ export class MongoOutput extends OutputDataBlock {
   removeControlDatabase() {
     this.removeControl('dataDatabaseSource');
     this.selectControlDatabase = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
     if (this.node?.data?.selectTableDataSource) {
       this.node.data.selectTableDataSource = null;
     }

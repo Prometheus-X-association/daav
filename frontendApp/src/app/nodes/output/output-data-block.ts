@@ -56,7 +56,7 @@ export class OutputDataBlock extends NodeBlock {
       this.dataSourceChange.bind(this)
     );
     this.addControl('dataSource', this.selectControl);
-    this.area.update('control', this.selectControl.id);
+    void this.area.update('control', this.selectControl.id);
     //update list from service on dataset signal
     // this is obscur toObservable have problem context and need to run in runInInjectionContext
     runInInjectionContext(this.worflowEditor.injector, () => {
@@ -97,8 +97,8 @@ export class OutputDataBlock extends NodeBlock {
     }
 
     // Forcer la mise à jour du contrôle
-    this.area.update('control', this.selectControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControl.id);
+    void this.area.update('node', this.id);
   }
 
   protected datasetFilter(dataset : Dataset){

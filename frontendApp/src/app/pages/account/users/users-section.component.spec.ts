@@ -58,8 +58,8 @@ describe('UsersSectionComponent', () => {
   it('should not offer actions on the current user', () => {
     const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('tbody tr'));
 
-    expect(rows[0].querySelectorAll('.actions ion-button').length).toBe(0);
-    expect(rows[1].querySelectorAll('.actions ion-button').length).toBe(3);
+    expect(rows[0].querySelectorAll('.actions ion-button')).toHaveSize(0);
+    expect(rows[1].querySelectorAll('.actions ion-button')).toHaveSize(3);
   });
 
   it('should handle loadAllUsers error', async () => {

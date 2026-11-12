@@ -87,8 +87,8 @@ export class FileOutput extends OutputDataBlock {
     );
 
     this.addControl('fileName', this.fileNameControl);
-    this.area.update('control', this.fileNameControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.fileNameControl.id);
+    void this.area.update('node', this.id);
   }
 
   addDelimiterControl(node? : Node) {
@@ -98,15 +98,15 @@ export class FileOutput extends OutputDataBlock {
       list: [
         { label: 'Comma (,)', value: ',' },
         { label: 'Semicolon (;)', value: ';' },
-        { label: 'Tab (\\t)', value: '\t' },
+        { label: String.raw`Tab (\t)`, value: '\t' },
       ],
       none: false,
       label: 'Delimiter',
     };
     this.delimiterControl = new SelectControl(node?.data?.delimiterControl?node.data.delimiterControl : delimiterOptions);
     this.addControl('delimiter', this.delimiterControl);
-    this.area.update('control', this.delimiterControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.delimiterControl.id);
+    void this.area.update('node', this.id);
   }
 
   addFileTypeControl(type? : string) {
@@ -122,8 +122,8 @@ export class FileOutput extends OutputDataBlock {
     };
     this.fileTypeControl = new SelectControl(fileTypeOptions,this.fileControlChange.bind(this));
     this.addControl('fileType', this.fileTypeControl);
-    this.area.update('control', this.fileTypeControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.fileTypeControl.id);
+    void this.area.update('node', this.id);
     if (fileTypeOptions.value === 'csv') {
       this.addDelimiterControl();
     }
@@ -141,8 +141,8 @@ export class FileOutput extends OutputDataBlock {
     };
     this.fileExistControl = new SelectControl(node?.data?.fileExist ? node.data.fileExist: fileTypeOptions,this.fileControlChange.bind(this));
     this.addControl('fileExist', this.fileExistControl);
-    this.area.update('control', this.fileExistControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.fileExistControl.id);
+    void this.area.update('node', this.id);
   }
 
   /**
@@ -213,7 +213,7 @@ export class FileOutput extends OutputDataBlock {
     this.fileNameControl = null;
     this.fileTypeControl = null;
     this.fileExistControl = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
 
     if (event.value) {
       const dataset = this.datasetService
@@ -239,7 +239,7 @@ export class FileOutput extends OutputDataBlock {
     } else {
       this.removeControl('delimiter');
       this.delimiterControl = null;
-      this.area.update('node', this.id);
+      void this.area.update('node', this.id);
     }
   }
 
@@ -268,8 +268,8 @@ export class FileOutput extends OutputDataBlock {
           }
 
           // Update the view
-          this.area.update('control', this.selectControl.id);
-          this.area.update('node', this.id);
+          void this.area.update('control', this.selectControl.id);
+          void this.area.update('node', this.id);
         }
       });
     }

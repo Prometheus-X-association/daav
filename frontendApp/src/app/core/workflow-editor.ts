@@ -129,7 +129,7 @@ export class WorkflowEditor {
     this.area.use(this.arrange);
     this.buildDockContent();
     AreaExtensions.simpleNodesOrder(this.area);
-    AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
+    void AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
     AreaExtensions.showInputControl(this.area);
     console.log(registeredBlock);
   }
@@ -217,7 +217,7 @@ export class WorkflowEditor {
             const { editor } = context;
 
             if (source && target) {
-              editor.addConnection(
+              void editor.addConnection(
                 new ClassicPreset.Connection<
                   ClassicPreset.Node,
                   ClassicPreset.Node
@@ -396,7 +396,7 @@ export class WorkflowEditor {
       node.preventNodeEvent = false;
       console.log("desactivate prevent default", node);
     });
-    AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
+    void AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
     this.markAsSaved();
   }
   /**
@@ -578,8 +578,8 @@ export class WorkflowEditor {
           this.nodeEditor.getNode(node.id).dataOutput = newDataOutput;
         }
         newDataOutput.forEach((value, key) => {
-          if (!previousDataOutput || !previousDataOutput.get(key) ||previousDataOutput.get(key).dataExample !== value.dataExample) {
-            this.nodeEditor.emit({
+          if (previousDataOutput?.get(key)?.dataExample !== value.dataExample) {
+            void this.nodeEditor.emit({
               type: "nodeDataOutputUpdated",
               data: {
                   nodeId: node.id,

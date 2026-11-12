@@ -134,7 +134,7 @@ export class TokenService {
       }
 
       const payload = parts[1];
-      const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      const decoded = atob(payload.replaceAll('-', '+').replaceAll('_', '/'));
       return JSON.parse(decoded);
     } catch (error) {
       console.error('Error decoding token:', error);
@@ -149,7 +149,7 @@ export class TokenService {
   isTokenExpired(token: string): boolean {
     try {
       const decoded = this.decodeToken(token);
-      if (!decoded || !decoded.exp) {
+      if (!decoded?.exp) {
         return true;
       }
 
@@ -170,7 +170,7 @@ export class TokenService {
   getTokenExpiration(token: string): Date | null {
     try {
       const decoded = this.decodeToken(token);
-      if (!decoded || !decoded.exp) {
+      if (!decoded?.exp) {
         return null;
       }
 
@@ -191,7 +191,7 @@ export class TokenService {
 
     try {
       const decoded = this.decodeToken(this.accessToken);
-      if (!decoded || !decoded.exp) {
+      if (!decoded?.exp) {
         return true;
       }
 

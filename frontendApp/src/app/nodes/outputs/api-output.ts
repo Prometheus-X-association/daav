@@ -43,7 +43,7 @@ export class ApiOutput extends OutputDataBlock{
     this.addTokenInput(node);
 
     this.validateInput();
-    this.area.update("node", this.id);
+    void this.area.update("node", this.id);
   }
 
   override addSourceSelect(){
@@ -97,8 +97,8 @@ export class ApiOutput extends OutputDataBlock{
         }
       )
       this.addControl('token', this.tokenControl);
-      this.area.update('control', this.tokenControl.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.tokenControl.id);
+      void this.area.update('node', this.id);
 }
 
   private addNameInput(node: Node): void{
@@ -127,8 +127,8 @@ export class ApiOutput extends OutputDataBlock{
       }
     )
     this.addControl('name', this.nameControl);
-    this.area.update('control', this.nameControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.nameControl.id);
+    void this.area.update('node', this.id);
   }
 
   private addUrlInput(node: Node): void{
@@ -157,8 +157,8 @@ export class ApiOutput extends OutputDataBlock{
       }
     )
     this.addControl('url', this.urlControl);
-    this.area.update('control', this.urlControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.urlControl.id);
+    void this.area.update('node', this.id);
   }
 
   private extractValue(event: InputEvent | MatAutocompleteSelectedEvent): string {
@@ -194,7 +194,7 @@ export class ApiOutput extends OutputDataBlock{
     }
 
     this.updateStatus(StatusNode.Complete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
 

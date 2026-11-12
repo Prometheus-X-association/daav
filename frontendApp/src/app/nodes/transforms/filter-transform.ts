@@ -84,9 +84,7 @@ export class FilterTransform extends TransformBlock {
     }
 
     onFilterClose(){
-        const hasRules = this.dataFilterControl.query &&
-                         this.dataFilterControl.query.rules &&
-                         this.dataFilterControl.query.rules.length > 0;
+        const hasRules = this.dataFilterControl.query?.rules?.length > 0;
         if(hasRules){
             console.log("rules: ", this.dataFilterControl.query)
             this.updateStatus(StatusNode.Complete);
@@ -112,7 +110,7 @@ export class FilterTransform extends TransformBlock {
             else {
                 const connectionOutput = worflowEditor.getConnections().find(conn => conn.source === this.id && conn.sourceOutput === "out");
                 if ( connectionOutput ){
-                    worflowEditor.removeConnection(connectionOutput.id)
+                    void worflowEditor.removeConnection(connectionOutput.id)
                 }
                 this.removeOutput("out");
             }
@@ -141,7 +139,7 @@ export class FilterTransform extends TransformBlock {
             this.resetQuery();
 
         }
-        this.area.update('node', this.id);
+        void this.area.update('node', this.id);
     }
 
     private resetQuery(){
