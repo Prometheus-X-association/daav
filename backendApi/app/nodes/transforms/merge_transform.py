@@ -1,6 +1,7 @@
+import itertools
 import os
 import traceback
-from typing import Dict, List, Optional, Any
+from typing import Dict, Iterator, List, Optional, Any, Tuple
 
 from pydantic import BaseModel, ConfigDict, TypeAdapter
 from app.enums.status_node import StatusNode
@@ -28,6 +29,64 @@ class DataMappingItem(BaseModel):
     id: str
     sources: List[Source]
     targetName: str
+
+# Number of rows of the batches of the merge with the parquet option
+BATCH_SIZE = 100
+
+
+def _to_arrow(column: pd.Series) -> pa.Array:
+    """Arrow array of a pandas column; a categorical column gives its values, not their codes."""
+    array = pa.Array.from_pandas(column)
+    if pa.types.is_dictionary(array.type):
+        array = array.dictionary_decode()
+    return array
+
+
+def _column_type(column: pd.Series) -> pa.DataType:
+    """Arrow type of a pandas column: only an object column needs its values to tell its type."""
+    return _to_arrow(column if column.dtype == object else column.iloc[:0]).type
+
+
+def _column_chunks(column: pd.Series) -> Iterator[pa.Array]:
+    """Yield a pandas column by chunks."""
+    for start in range(0, len(column), BATCH_SIZE):
+        yield _to_arrow(column.iloc[start:start + BATCH_SIZE])
+
+
+def _common_type(target_name: str, types: List[pa.DataType]) -> pa.DataType:
+    """Type that holds the values of every source of a target column (an integer and a float give a float).
+
+    Raises:
+        ValueError: If the types cannot be stored in one parquet column, as a number and a text.
+    """
+    try:
+        schemas = [pa.schema([pa.field(target_name, source_type)]) for source_type in types]
+        return pa.unify_schemas(schemas, promote_options="permissive").field(0).type
+    except (pa.ArrowInvalid, pa.ArrowTypeError) as e:
+        names = ', '.join(str(source_type) for source_type in types)
+        raise ValueError(f"The sources of column '{target_name}' have types that cannot be merged in a parquet file: {names}") from e
+
+
+def _batches(chunks: Iterator[pa.Array], size: int) -> Iterator[pa.Array]:
+    """Regroup the chunks, put end to end, in batches of the given size (the last one may be shorter)."""
+    pending = None
+    for chunk in chunks:
+        pending = chunk if pending is None else pa.concat_arrays([pending, chunk])
+        while len(pending) >= size:
+            yield pending.slice(0, size)
+            pending = pending.slice(size)
+    if pending is not None and len(pending) > 0:
+        yield pending
+
+
+def _completed(array: Optional[pa.Array], array_type: pa.DataType, size: int) -> pa.Array:
+    """The array completed with nulls up to the given size; None stands for a column that has no more values."""
+    if array is None:
+        return pa.nulls(size, array_type)
+    if len(array) < size:
+        return pa.concat_arrays([array, pa.nulls(size - len(array), array_type)])
+    return array
+
 
 class MergeTransform(TransformNode):
 
@@ -106,138 +165,70 @@ class MergeTransform(TransformNode):
         """
         Processes the input data by merging columns from different sources based on a predefined mapping.
         Uses parquet file and batch processing to reduce memory usage.
+
+        The file holds the same rows as the in-memory merge: each target column holds its sources end to end,
+        and a column shorter than the longest one is completed with missing values.
         """
-
-        # Determine the number of each source
-        total_rows = 0
-        source_sizes = {}
-        row_group_sizes = {}
-        upload_folder = settings.upload_dir
-
+        # One stream of batches per target column
+        columns = {}
         for mapping_item in data_mapping:
-            for source in mapping_item.sources:
-                dataset_id = source.datasetId
-                if dataset_id not in source_sizes and dataset_id in self.inputs:
-                    source_data = self.inputs[dataset_id].get_node_data()
-                    if isinstance(source_data, NodeDataPandasDf):
-                        source_sizes[dataset_id] = len(source_data.dataExample) if sample else len(source_data.data)
+            column = self._target_column(mapping_item, sample)
+            if column is not None:
+                columns[mapping_item.targetName] = column
+        schema = pa.schema([pa.field(name, column_type) for name, (column_type, _) in columns.items()])
 
-                    elif isinstance(source_data, NodeDataParquet):
-                        file_path = PathSecurityValidator.validate_file_path(source_data.data)
-                        parquet_file = pq.ParquetFile(file_path)
-                        source_sizes[dataset_id] = parquet_file.metadata.num_rows
-                        num_row_groups = parquet_file.metadata.num_row_groups
-                        
-                        if num_row_groups > 0:
-                            total_row_group_size = 0
-                            for i in range(num_row_groups):
-                                total_row_group_size += parquet_file.metadata.row_group(i).num_rows
-                            row_group_sizes[dataset_id] = total_row_group_size // num_row_groups
-                        else:
-                            row_group_sizes[dataset_id] = source_sizes[dataset_id]
-
-                    else:
-                        raise TypeError("Unkown input type")
-        if source_sizes:
-            total_rows = max(source_sizes.values())
-
-        secure_path = os.path.join(upload_folder, f"merged_data_{self.id}.parquet")
+        secure_path = os.path.join(settings.upload_dir, f"merged_data_{self.id}.parquet")
         parquet_path = PathSecurityValidator.validate_file_path(secure_path)
-        batch_size = 100
-        parquet_writer = None
-        schema = None
-        column_types = {}
 
-        #Process data in batches
-        for start_idx in range(0, total_rows, batch_size):
-            end_idx = min(start_idx + batch_size, total_rows)
-            batch_df = pd.DataFrame(index = range(end_idx - start_idx))
+        # Process data in batches: the file is always written, even without any row
+        with pq.ParquetWriter(parquet_path, schema) as parquet_writer:
+            for arrays in itertools.zip_longest(*(batches for _, batches in columns.values())):
+                parquet_writer.write_table(self._aligned_table(arrays, schema))
 
-            for mapping_item in data_mapping:
-                target_name = mapping_item.targetName
-                sorted_sources = sorted(mapping_item.sources, key = lambda x: x.id)
-
-                target_column = pd.Series([None] * (end_idx - start_idx))
-                current_position = 0
-
-                for source in sorted_sources:
-                    dataset_id = source.datasetId
-                    column_name = source.name
-                    if dataset_id in self.inputs:
-                        source_data = self.inputs[dataset_id].get_node_data()
-                        column_slice = None
-                        if isinstance(source_data, NodeDataPandasDf):
-                            df = source_data.dataExample if sample else source_data.data
-                            
-                            # Get slice of this column for the current batch
-                            if start_idx < len(df) and current_position < (end_idx - start_idx):
-                                slice_end = min(end_idx, len(df)) - start_idx
-                                slice_size = min(slice_end, end_idx - start_idx - current_position)
-                                if slice_size > 0:
-                                    column_slice = df.iloc[start_idx:start_idx+slice_size][column_name].reset_index(drop=True)
-                        
-                        elif isinstance(source_data, NodeDataParquet):
-                            row_group_size = row_group_sizes[dataset_id]
-                            # Read just this batch from the parquet file
-                            if current_position < (end_idx - start_idx):
-                                file_path = PathSecurityValidator.validate_file_path(source_data.data)
-                                parquet_file = pq.ParquetFile(file_path)
-                                start_row_group = start_idx // row_group_size
-                                end_row_group = (min(end_idx, source_sizes[dataset_id]) + row_group_size - 1) // row_group_size
-                                row_groups_to_read = list(range(start_row_group, end_row_group))
-                                
-                                batches = parquet_file.iter_batches(
-                                    columns=[column_name],
-                                    row_groups=row_groups_to_read
-                                )
-                                df_slices = []
-                                for batch in batches:
-                                    df_slices.append(batch.to_pandas())
-                                df_slice = pd.concat(df_slices, ignore_index=True) if df_slices else pd.DataFrame()
-                                if len(df_slice) > 0:
-                                    start_in_slice = start_idx % row_group_size
-                                    end_in_slice = min(len(df_slice), start_in_slice + (end_idx - start_idx - current_position))
-                                    if end_in_slice > start_in_slice:
-                                        column_slice = df_slice.iloc[start_in_slice:end_in_slice][column_name].reset_index(drop=True)
-                        else:
-                            raise TypeError("Unkown input type")
-
-                        if column_slice is not None and len(column_slice) > 0:
-                            slice_size = len(column_slice)
-                            target_column.iloc[current_position:current_position + slice_size] = column_slice
-                            current_position += slice_size
-                batch_df[target_name] = target_column
-            
-            #to prevent that some batches has different schema
-            for column in batch_df.columns:
-                if batch_df[column].isna().all():
-                    if column in column_types:
-                        batch_df[column] = batch_df[column].astype(column_types[column])        #use the type already seen for this column
-                else:
-                    column_types[column] = batch_df[column].dtype
-
-            if start_idx == 0 and schema is None:
-                table = pa.Table.from_pandas(batch_df)
-                schema = table.schema
-                parquet_writer = pq.ParquetWriter(parquet_path, schema)
-            else:
-                table = pa.Table.from_pandas(batch_df, schema=schema)
-            parquet_writer.write_table(table)
-
-        if parquet_writer:
-                parquet_writer.close()
-            
         # Create the node data output
         parquet_file = pq.ParquetFile(parquet_path)
-        schema = parquet_file.schema
         node_data = NodeDataParquet(
             data=parquet_path,
-            nodeSchema=schema,
+            nodeSchema=parquet_file.schema,
             name="merged_data",
         )
         self.outputs.get('out').set_node_data(node_data, self)
         return StatusNode.Valid
-            
+
+    def _target_column(self, mapping_item: DataMappingItem, sample: bool) -> Optional[Tuple[pa.DataType, Iterator[pa.Array]]]:
+        """Type and batches of a target column, or None if no dataset of its sources is an input of the node."""
+        # Sort sources by their order in the mapping item to ensure to keep the same order for all columns
+        sorted_sources = sorted(mapping_item.sources, key=lambda x: x.id)
+        sources = [self._open_source(source, sample) for source in sorted_sources if source.datasetId in self.inputs]
+        if not sources:
+            return None
+        column_type = _common_type(mapping_item.targetName, [source_type for source_type, _ in sources])
+        chunks = (chunk.cast(column_type) for _, source_chunks in sources for chunk in source_chunks)
+        return column_type, _batches(chunks, BATCH_SIZE)
+
+    def _open_source(self, source: Source, sample: bool) -> Tuple[pa.DataType, Iterator[pa.Array]]:
+        """Type of the column of a source, and its values by chunks (read when the chunks are consumed)."""
+        source_data = self.inputs[source.datasetId].get_node_data()
+        if isinstance(source_data, NodeDataPandasDf):
+            df = source_data.dataExample if sample else source_data.data
+            column = df[source.name]
+            return _column_type(column), _column_chunks(column)
+        if isinstance(source_data, NodeDataParquet):
+            file_path = PathSecurityValidator.validate_file_path(source_data.data)
+            parquet_file = pq.ParquetFile(file_path)
+            column_type = parquet_file.schema_arrow.field(source.name).type
+            # Read by batches, whatever the size of the row groups of the file
+            batches = parquet_file.iter_batches(batch_size=BATCH_SIZE, columns=[source.name])
+            return column_type, (batch.column(0) for batch in batches)
+        raise TypeError("Unkown input type")
+
+    @staticmethod
+    def _aligned_table(arrays, schema: pa.Schema) -> pa.Table:
+        """Table of one batch: a column that is shorter than the longest one, or finished, is completed with nulls."""
+        size = max(len(array) for array in arrays if array is not None)
+        return pa.Table.from_arrays(
+            [_completed(array, field.type, size) for array, field in zip(arrays, schema)], schema=schema)
+
     def _retreiveColumnsMapping(self) -> tuple[List[DataMappingItem], bool]:
         if self.data.get('dataMapping') and self.data.get('parquetSave'):
             mappings = TypeAdapter(List[DataMappingItem]).validate_python(self.data.get('dataMapping'))
