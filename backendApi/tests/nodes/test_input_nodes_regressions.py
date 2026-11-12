@@ -61,7 +61,8 @@ class TestDataMysqlBlockParquet:
         written = pd.read_parquet(tmp_path / "ds1_orders.parquet")
         assert len(written) == 120
         assert str(pq.ParquetFile(tmp_path / "ds1_orders.parquet").schema_arrow.field("n").type) == "int64"
-        assert pd.isna(written["n"][70]) and written["n"][71] == 142
+        assert pd.isna(written["n"][70])
+        assert written["n"][71] == 142
 
     async def test_existing_parquet_output_is_updated(self, mysql_table, tmp_path):
         existing = existing_parquet(tmp_path)

@@ -19,8 +19,9 @@ def response(status_code, payload):
 
 async def test_bilateral_contracts_of_a_missing_connection_is_a_404():
     with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=None)):
+        current_user = Mock()
         with pytest.raises(HTTPException) as error:
-            await ptx.get_billateral_contract("unknown", Mock())
+            await ptx.get_billateral_contract("unknown", current_user)
     assert error.value.status_code == 404
 
 

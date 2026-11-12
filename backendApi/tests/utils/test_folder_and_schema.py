@@ -54,7 +54,8 @@ def test_folder_reads_each_file_type(files_dir):
     png = (files_dir / "image.png").read_bytes()
     assert result["image.png"]["media"] == base64.b64encode(png).decode("utf-8")
     assert result["image.png"]["content"] is None
-    assert result["blob.bin"]["content"] is None and result["blob.bin"]["media"] is None
+    assert result["blob.bin"]["content"] is None
+    assert result["blob.bin"]["media"] is None
     for item in result.values():
         assert item["folder"] == str(files_dir)
         assert item["path"] == os.path.join(str(files_dir), item["file"])
@@ -107,7 +108,8 @@ def test_folder_metadata(tmp_path):
     assert item["mime_type"] == "application/json"
     assert item["size"] == "8.0 B"
     assert item["modified"] == str(datetime.fromtimestamp(1640995200))
-    assert "+00:00" not in item["created"] and len(item["created"]) == 19
+    assert "+00:00" not in item["created"]
+    assert len(item["created"]) == 19
 
 
 def test_folder_unreadable_file_is_skipped_but_counted(tmp_path, capsys):

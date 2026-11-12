@@ -479,12 +479,12 @@ async def test_servicechain_data_overwrite(pdc_service_instance):
 
 
 @pytest.mark.asyncio
-async def test_servicechain_data_shared_between_instances(pdc_service_instance):
+async def test_servicechain_data_shared_between_instances(pdc_service_instance, monkeypatch):
     """Data stored by one worker must be readable by another (no per-process storage)"""
     await pdc_service_instance.store_servicechain_data("chain_shared", {"value": 42}, [USER_ID])
 
     # Simulate another worker process with its own PdcService instance
-    PdcService._instances = {}
+    monkeypatch.setattr(PdcService, "_instances", {})
     other_worker = PdcService()
     assert other_worker is not pdc_service_instance
 

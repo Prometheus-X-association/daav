@@ -566,8 +566,9 @@ class TestGetContentDataset:
                                               datasetParams=DatasetParams())
         with patch.object(datasets, "get_file_content", side_effect=HTTPException(status_code=status)), \
                 patch.object(datasets, "log_file_access") as log:
+            current_user = Mock()
             with pytest.raises(HTTPException):
-                await get_content_dataset(request_mock, info, Mock())
+                await get_content_dataset(request_mock, info, current_user)
         calls = [call.args for call in log.call_args_list]
         assert calls[0] == ("10.0.0.1", "/data/dir", "read")
         assert (("10.0.0.1", "/data/dir", "read_failed") in calls) is logged
@@ -575,8 +576,9 @@ class TestGetContentDataset:
     async def test_unknown_type(self, request_mock):
         info = ConnectionInfo.model_construct(dataset=Mock(id=None), pagination=Pagination(),
                                               datasetParams=DatasetParams())
+        current_user = Mock()
         with pytest.raises(ValueError, match="Type de connexion non reconnu"):
-            await get_content_dataset(request_mock, info, Mock())
+            await get_content_dataset(request_mock, info, current_user)
 
 
 # ===========================

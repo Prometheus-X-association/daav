@@ -5,6 +5,7 @@ import json
 import urllib.parse
 
 import pytest
+from fastapi import HTTPException
 
 from app.utils.drupal_filter_converter import DrupalFilterConverter
 from app.utils.utils import filter_data_with_duckdb
@@ -76,7 +77,7 @@ class TestDrupalFilterConverter:
             "filter[f][condition][value]": "zz",
         }))
         # The whole path is treated as an (unknown) column name, not as SQL
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             filter_data_with_duckdb(data_file, where=where, params=params)
         assert "read_text" in str(exc_info.value)
         assert "not found" in str(exc_info.value).lower()
@@ -100,12 +101,13 @@ class TestDrupalFilterConverter:
         assert sorted(row["name"] for row in rows) == ["a", "c"]
 
     def test_group_conjunction_is_whitelisted(self, converter):
+        query = self._group_query("OR 1=1 OR")
         with pytest.raises(ValueError, match="conjunction"):
-            converter.convert_query_string_to_where(self._group_query("OR 1=1 OR"))
+            converter.convert_query_string_to_where(query)
 
     def test_duckdb_query_cannot_access_files(self, data_file):
         # Defense in depth: even an injected clause cannot read files once the data is loaded
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             filter_data_with_duckdb(
                 data_file,
                 where="name IN (SELECT content FROM read_text(?))",

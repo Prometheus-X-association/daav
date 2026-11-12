@@ -230,14 +230,18 @@ async def test_mysql_input_parameters():
 
 @pytest.mark.asyncio
 async def test_mysql_input_errors():
+    node = _node(DataMysqlBlock, {}, _dataset())
     with pytest.raises(ValueError, match="No data source selected"):
-        await _node(DataMysqlBlock, {}, _dataset())._retreiveDatabase()
+        await node._retreiveDatabase()
+    node = _node(DataMysqlBlock, dict(SOURCE), _dataset(database="shop"))
     with pytest.raises(ValueError, match="No table selected"):
-        await _node(DataMysqlBlock, dict(SOURCE), _dataset(database="shop"))._retreiveDatabase()
+        await node._retreiveDatabase()
+    node = _node(DataMysqlBlock, dict(SOURCE), _dataset(table="orders"))
     with pytest.raises(ValueError, match="No database selected"):
-        await _node(DataMysqlBlock, dict(SOURCE), _dataset(table="orders"))._retreiveDatabase()
+        await node._retreiveDatabase()
+    node = _node(DataMysqlBlock, dict(SOURCE), _dataset(database="shop", table="a b"))
     with pytest.raises(ValueError, match="invalid characters"):
-        await _node(DataMysqlBlock, dict(SOURCE), _dataset(database="shop", table="a b"))._retreiveDatabase()
+        await node._retreiveDatabase()
 
 
 @pytest.mark.asyncio
@@ -252,9 +256,12 @@ async def test_mongo_input_parameters():
 
 @pytest.mark.asyncio
 async def test_mongo_input_errors():
+    node = _node(DataMongoBlock, {"selectDataSource": {"value": None}}, _dataset())
     with pytest.raises(ValueError, match="No data source selected"):
-        await _node(DataMongoBlock, {"selectDataSource": {"value": None}}, _dataset())._retreiveDatabase()
+        await node._retreiveDatabase()
+    node = _node(DataMongoBlock, dict(SOURCE), _dataset(database="shop"))
     with pytest.raises(ValueError, match="No Collection selected"):
-        await _node(DataMongoBlock, dict(SOURCE), _dataset(database="shop"))._retreiveDatabase()
+        await node._retreiveDatabase()
+    node = _node(DataMongoBlock, dict(SOURCE), _dataset(collection="orders"))
     with pytest.raises(ValueError, match="No database selected"):
-        await _node(DataMongoBlock, dict(SOURCE), _dataset(collection="orders"))._retreiveDatabase()
+        await node._retreiveDatabase()

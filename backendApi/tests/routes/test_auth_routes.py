@@ -20,8 +20,9 @@ async def test_register_with_an_existing_username_is_a_400():
     duplicate = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
 
     with patch.object(auth.user_service, "create_user", AsyncMock(side_effect=duplicate)):
+        user_data = new_user()
         with pytest.raises(HTTPException) as error:
-            await auth.register(new_user(), admin_user=None)
+            await auth.register(user_data, admin_user=None)
 
     assert (error.value.status_code, error.value.detail) == (400, "Username already exists")
 
@@ -29,7 +30,8 @@ async def test_register_with_an_existing_username_is_a_400():
 @pytest.mark.asyncio
 async def test_register_unexpected_error_is_a_500():
     with patch.object(auth.user_service, "create_user", AsyncMock(side_effect=RuntimeError("db down"))):
+        user_data = new_user()
         with pytest.raises(HTTPException) as error:
-            await auth.register(new_user(), admin_user=None)
+            await auth.register(user_data, admin_user=None)
 
     assert (error.value.status_code, error.value.detail) == (500, "Registration failed")

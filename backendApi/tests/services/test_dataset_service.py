@@ -134,7 +134,8 @@ async def test_edit_ptx_dataset_logs_in_to_the_pdc_outside_event_loop_thread(dat
 
     assert result is True
     connect_pdc.assert_called_once_with("https://pdc.example.com", "service", "secret")
-    assert login_threads and login_threads[0] is not threading.current_thread()
+    assert login_threads
+    assert login_threads[0] is not threading.current_thread()
     saved = await PTXDataset.get(dataset.id)
     assert saved.token == "new-token"
     assert saved.refreshToken == "new-refresh"

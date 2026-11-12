@@ -82,8 +82,9 @@ def test_list_tables(cursor):
 
 def test_list_columns_unknown_table(cursor):
     cursor.fetchall.return_value = []
+    service, dataset = MysqlService(), _dataset()
     with pytest.raises(MysqlServiceError) as err:
-        MysqlService().list_columns(_dataset(), "shop", "missing")
+        service.list_columns(dataset, "shop", "missing")
     assert err.value.status_code == 404
 
 
@@ -97,23 +98,26 @@ def test_list_columns(cursor):
 
 def test_bad_credentials_are_a_bad_gateway():
     err = mysql.connector.Error(msg="Access denied", errno=errorcode.ER_ACCESS_DENIED_ERROR)
+    service, dataset = MysqlService(), _dataset()
     with patch.object(mysql_service.mysql.connector, "connect", side_effect=err):
         with pytest.raises(MysqlServiceError) as raised:
-            MysqlService().info(_dataset())
+            service.info(dataset)
     assert raised.value.status_code == 502
     assert "credentials" in str(raised.value)
 
 
 def test_query_error_closes_the_connection(cursor):
     cursor.execute.side_effect = mysql.connector.Error(msg="boom")
+    service, dataset = MysqlService(), _dataset()
     with pytest.raises(MysqlServiceError):
-        MysqlService().info(_dataset())
+        service.info(dataset)
     cursor.conn.close.assert_called_once()
 
 
 def test_missing_host():
+    service, dataset = MysqlService(), _dataset().model_copy(update={"host": None})
     with pytest.raises(MysqlServiceError) as err:
-        MysqlService().info(_dataset().model_copy(update={"host": None}))
+        service.info(dataset)
     assert err.value.status_code == 400
 
 

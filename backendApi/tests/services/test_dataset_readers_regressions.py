@@ -26,25 +26,28 @@ def service():
 def test_mysql_dataframe_without_table_is_a_422(service):
     dataset = MysqlDataset.model_construct(id="ds1", type="mysql", name="my", host="h", user="u", password="p",
                                            database=None, table=None)
+    params = DatasetParams()
     with pytest.raises(HTTPException) as error:
-        service.getDfMysqlContent(dataset, DatasetParams())
+        service.getDfMysqlContent(dataset, params)
     assert error.value.status_code == 422
 
 
 def test_mongo_dataframe_without_collection_is_a_422(service):
     dataset = MongoDataset.model_construct(id="ds1", type="mongo", name="mg", uri="mongodb://db.example.com",
                                            database=None, collection=None)
+    params = DatasetParams()
     with pytest.raises(HTTPException) as error:
-        service.getDfMongoContent(dataset, DatasetParams())
+        service.getDfMongoContent(dataset, params)
     assert error.value.status_code == 422
 
 
 def test_mongo_content_connection_failure_is_a_503():
     dataset = MongoDataset.model_construct(id="ds1", type="mongo", name="mg", uri="mongodb://db.example.com",
                                            database="shop", collection="orders")
+    pagination, params = Pagination(page=1, perPage=10), DatasetParams()
     with patch("pymongo.mongo_client.MongoClient", side_effect=ConnectionFailure("mongo is down")):
         with pytest.raises(HTTPException) as error:
-            get_mongo_content(dataset, Pagination(page=1, perPage=10), DatasetParams())
+            get_mongo_content(dataset, pagination, params)
     assert error.value.status_code == 503
 
 

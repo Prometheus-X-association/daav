@@ -34,7 +34,8 @@ async def test_pdc_get_request_runs_outside_event_loop_thread():
         result = await ptx.pdc_get_request(ptx_connection(), "/", timeout_seconds=30)
 
     assert result == {"content": {}}
-    assert request_threads and request_threads[0] is not threading.current_thread()
+    assert request_threads
+    assert request_threads[0] is not threading.current_thread()
 
 
 @pytest.mark.asyncio
@@ -54,7 +55,8 @@ async def test_data_resources_are_fetched_outside_event_loop_thread():
         result = await ptx.get_data_resources("connection-id", Mock(username="alice"), timeout_seconds=30)
 
     assert result == {"dataResources": [{"@id": "resource-1"}]}
-    assert request_threads and request_threads[0] is not threading.current_thread()
+    assert request_threads
+    assert request_threads[0] is not threading.current_thread()
 
 
 class _StopAfterDecoding(Exception):
@@ -77,8 +79,9 @@ async def test_pdc_input_with_invalid_json_body_is_kept_as_raw_data():
     with patch.object(ptx.user_service, "get_all_users", AsyncMock(return_value=[])), \
          patch.object(ptx, "authenticate_m2m_credentials", return_value=[{"user": Mock(), "matched_credentials": []}]), \
          patch.object(ptx, "decode_dictionary", side_effect=fake_decode):
+        response, headers = Mock(), Mock()
         with pytest.raises(_StopAfterDecoding):
-            await ptx.read_input(request, Mock(), Mock())
+            await ptx.read_input(request, response, headers)
 
     assert decoded == [b"not json"]
 
@@ -138,8 +141,9 @@ async def test_pdc_input_fetches_the_contract_outside_event_loop_thread():
          patch.object(ptx.pdc_service, "fetch_contract", side_effect=thread_recorder(threads, contract)), \
          patch.object(ptx.pdc_service, "get_provider_name_from_contract", side_effect=thread_recorder(threads, "provider")), \
          patch.object(ptx, "serialize_data", side_effect=_StopAfterDecoding()):
+        response, headers = Mock(), Mock(x_ptx_contracturl="https://contract/contracts/1")
         with pytest.raises(_StopAfterDecoding):
-            await ptx.read_input(request, Mock(), Mock(x_ptx_contracturl="https://contract/contracts/1"))
+            await ptx.read_input(request, response, headers)
 
     assert_off_event_loop(threads, expected_calls=2)
 
@@ -208,8 +212,9 @@ async def test_update_data_resource_of_a_non_ptx_connection_is_a_400():
     connection = MongoDataset.model_construct(id=None, type="mongo", name="m")
 
     with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=connection)):
+        request, current_user = Mock(), Mock(username="alice")
         with pytest.raises(HTTPException) as error:
-            await ptx.update_data_resource("connection-id", Mock(), Mock(username="alice"), timeout_seconds=30)
+            await ptx.update_data_resource("connection-id", request, current_user, timeout_seconds=30)
 
     assert error.value.status_code == 400
     assert error.value.detail == "Invalid connection type. Expected PTXDataset."
@@ -219,8 +224,9 @@ async def test_update_data_resource_of_a_non_ptx_connection_is_a_400():
 async def test_data_resources_with_an_expired_pdc_token_is_a_401():
     with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=ptx_connection())), \
          patch.object(ptx, "pdc_get_request", AsyncMock(side_effect=pdc_unauthorized())):
+        current_user = Mock(username="alice")
         with pytest.raises(HTTPException) as error:
-            await ptx.get_data_resources("connection-id", Mock(username="alice"), timeout_seconds=30)
+            await ptx.get_data_resources("connection-id", current_user, timeout_seconds=30)
 
     assert error.value.status_code == 401
     assert error.value.detail.startswith("PTX token invalid")
@@ -230,8 +236,9 @@ async def test_data_resources_with_an_expired_pdc_token_is_a_401():
 async def test_data_resources_of_a_missing_connection_is_a_404():
     with patch.object(ptx.dataset_service, "get_dataset",
                       AsyncMock(side_effect=HTTPException(status_code=404, detail="Dataset not found"))):
+        current_user = Mock(username="alice")
         with pytest.raises(HTTPException) as error:
-            await ptx.get_data_resources("connection-id", Mock(username="alice"), timeout_seconds=30)
+            await ptx.get_data_resources("connection-id", current_user, timeout_seconds=30)
 
     assert (error.value.status_code, error.value.detail) == (404, "Dataset not found")
 
@@ -250,8 +257,9 @@ async def test_rejected_exchange_keeps_the_pdc_status_code(route):
     with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=ptx_connection())), \
          patch.object(ptx, "get_private_configuration", AsyncMock(return_value=PDC_CONFIG)), \
          patch.object(ptx.httpx, "AsyncClient", async_client):
+        current_user = Mock(username="alice")
         with pytest.raises(HTTPException) as error:
-            await route("connection-id", request, Mock(username="alice"), timeout_seconds=30)
+            await route("connection-id", request, current_user, timeout_seconds=30)
 
     assert (error.value.status_code, error.value.detail) == (409, "Data exchange failed: already running")
 
@@ -260,8 +268,9 @@ async def test_rejected_exchange_keeps_the_pdc_status_code(route):
 async def test_bilateral_contracts_with_an_expired_pdc_token_is_a_401():
     with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=ptx_connection())), \
          patch.object(ptx, "get_private_configuration", AsyncMock(side_effect=pdc_unauthorized())):
+        current_user = Mock(username="alice")
         with pytest.raises(HTTPException) as error:
-            await ptx.get_billateral_contract("connection-id", Mock(username="alice"), timeout_seconds=30)
+            await ptx.get_billateral_contract("connection-id", current_user, timeout_seconds=30)
 
     assert error.value.status_code == 401
 
@@ -271,8 +280,9 @@ async def test_bilateral_contracts_keep_the_client_error_of_the_participants_loo
     with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=ptx_connection())), \
          patch.object(ptx, "get_private_configuration", AsyncMock(return_value=PDC_CONFIG)), \
          patch.object(ptx, "get_participants_id_from_connection", AsyncMock(side_effect=pdc_unauthorized())):
+        current_user = Mock(username="alice")
         with pytest.raises(HTTPException) as error:
-            await ptx.get_billateral_contract("connection-id", Mock(username="alice"), timeout_seconds=30)
+            await ptx.get_billateral_contract("connection-id", current_user, timeout_seconds=30)
 
     assert error.value.status_code == 401
 
@@ -283,8 +293,9 @@ async def test_bilateral_contracts_without_participants_is_still_a_500():
     with patch.object(ptx.dataset_service, "get_dataset", AsyncMock(return_value=ptx_connection())), \
          patch.object(ptx, "get_private_configuration", AsyncMock(return_value=PDC_CONFIG)), \
          patch.object(ptx, "get_participants_id_from_connection", AsyncMock(return_value=None)):
+        current_user = Mock(username="alice")
         with pytest.raises(HTTPException) as error:
-            await ptx.get_billateral_contract("connection-id", Mock(username="alice"), timeout_seconds=30)
+            await ptx.get_billateral_contract("connection-id", current_user, timeout_seconds=30)
 
     assert error.value.status_code == 500
     assert error.value.detail == "Error retrieving participants: No participants found for this connection"

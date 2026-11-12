@@ -227,7 +227,8 @@ async def test_xml_missing_value_is_an_empty_element(tmp_path, kind, file_exist)
 
     assert await node.process() == StatusNode.Valid
     assert read_file(path, "xml")[-2:] == [{"a": "1", "b": "x", "c": "1.5"}, {"a": "2", "b": None, "c": None}]
-    assert "None" not in path.read_text() and "nan" not in path.read_text()
+    assert "None" not in path.read_text()
+    assert "nan" not in path.read_text()
 
 
 @pytest.mark.parametrize("file_exist", ["replace", "append"])

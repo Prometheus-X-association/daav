@@ -147,7 +147,8 @@ def test_target_without_connected_source_has_no_column():
 def test_no_connected_source_gives_an_empty_result():
     result = merge([target("gone", ("missing", "n"))], {})
 
-    assert result.empty and list(result.columns) == []
+    assert result.empty
+    assert list(result.columns) == []
 
 
 # ===========================
@@ -221,7 +222,8 @@ def test_parquet_mixed_sources_of_different_lengths(tmp_path):
     assert expected["stacked"] == list(range(130)) + list(range(1000, 1045)) + list(range(5000, 5270))
     assert expected["short"] == [f"r{i}" for i in range(1000, 1045)] + [None] * 400
     assert expected["label"][268:272] == ["p5268", "p5269", "r0", "r1"]
-    assert len(expected["label"]) == 445 and expected["label"][400:] == [None] * 45
+    assert len(expected["label"]) == 445
+    assert expected["label"][400:] == [None] * 45
 
 
 def test_parquet_shorter_target_column_is_completed(tmp_path):
@@ -261,7 +263,8 @@ def test_parquet_dates_and_text(tmp_path):
 
     expected = assert_same_as_in_memory([target("day", ("ds1", "d"), ("ds2", "d")), target("text", ("ds2", "s"))], inputs)
 
-    assert expected["day"][129] == pd.Timestamp("2026-01-06 09:00:00") and len(expected["day"]) == 260
+    assert expected["day"][129] == pd.Timestamp("2026-01-06 09:00:00")
+    assert len(expected["day"]) == 260
 
 
 def test_parquet_sample(tmp_path):
@@ -288,13 +291,15 @@ def test_parquet_empty_input_gives_an_empty_file(tmp_path, kind):
 
     result = merge(RENAME, inputs, parquet_save=True)
 
-    assert list(result.columns) == ["number", "label"] and len(result) == 0
+    assert list(result.columns) == ["number", "label"]
+    assert len(result) == 0
 
 
 def test_parquet_no_connected_source_gives_an_empty_file():
     result = merge([target("gone", ("missing", "n"))], {}, parquet_save=True)
 
-    assert result.empty and list(result.columns) == []
+    assert result.empty
+    assert list(result.columns) == []
 
 
 def test_parquet_file_of_a_previous_run_is_replaced(upload_dir):

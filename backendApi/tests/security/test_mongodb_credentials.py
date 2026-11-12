@@ -30,8 +30,9 @@ def test_password_read_from_file(tmp_path):
 
 def test_missing_password_file(tmp_path):
     """A missing file stops the connection with an explicit error"""
+    settings = make_settings("admin", str(tmp_path / "missing"))
     with pytest.raises(RuntimeError, match="Cannot read the MongoDB password"):
-        mongodb_credentials(make_settings("admin", str(tmp_path / "missing")))
+        mongodb_credentials(settings)
 
 
 def test_empty_password_file(tmp_path):
@@ -39,8 +40,9 @@ def test_empty_password_file(tmp_path):
     password_file = tmp_path / "mongo_root_password"
     password_file.write_text("\n")
 
+    settings = make_settings("admin", str(password_file))
     with pytest.raises(RuntimeError, match="is empty"):
-        mongodb_credentials(make_settings("admin", str(password_file)))
+        mongodb_credentials(settings)
 
 
 def test_password_file_requires_username(tmp_path):
@@ -48,8 +50,9 @@ def test_password_file_requires_username(tmp_path):
     password_file = tmp_path / "mongo_root_password"
     password_file.write_text("s3cret")
 
+    settings = make_settings(None, str(password_file))
     with pytest.raises(RuntimeError, match="MONGODB_USERNAME must be set"):
-        mongodb_credentials(make_settings(None, str(password_file)))
+        mongodb_credentials(settings)
 
 
 def test_client_accepts_separate_credentials():

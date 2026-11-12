@@ -403,7 +403,8 @@ class TestProcessFileDataset:
         assert result.metadata.fileType == file_type
         assert (result.metadata.columnCount, result.metadata.rowCount) == ("2", "3")
         assert result.metadata.fileSize.endswith("B")
-        assert len(result.metadata.modifTime) == 19 and len(result.metadata.accessTime) == 19
+        assert len(result.metadata.modifTime) == 19
+        assert len(result.metadata.accessTime) == 19
 
     def test_csv_options(self, service, tmp_path):
         path = tmp_path / "data.csv"
