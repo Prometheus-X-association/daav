@@ -243,7 +243,8 @@
     padding: 16px;
     margin-bottom: 12px;
     position: relative;
-    transition: all 200ms ease;
+    // Only the hover / active highlight is animated
+    transition: border-color 200ms ease, background-color 200ms ease;
 
     &:last-child {
       margin-bottom: 0;

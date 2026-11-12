@@ -14,15 +14,15 @@
 </ion-toolbar>
 <div [id]="menuId" class="theme-menu" [class.is-open]="isMenuOpen">
   <span [id]="menuId + '-themes'" i18n>Themes</span>
-  <div class="theme-btns" role="group" [attr.aria-labelledby]="menuId + '-themes'">
+  <fieldset class="theme-btns" [attr.aria-labelledby]="menuId + '-themes'">
     @for (theme of themeService.themes; track theme.class) {
       <ion-button [attr.aria-pressed]="themeService.currentTheme === theme.class" (click)="themeService.applyTheme(theme.class)">{{theme.name}}</ion-button>
     }
-  </div>
+  </fieldset>
   <span [id]="menuId + '-fonts'" i18n>Fonts</span>
-  <div class="font-btns" role="group" [attr.aria-labelledby]="menuId + '-fonts'">
+  <fieldset class="font-btns" [attr.aria-labelledby]="menuId + '-fonts'">
     @for (font of themeService.fonts; track font) {
       <ion-button [attr.aria-pressed]="themeService.currentFont === font" (click)="themeService.applyFont(font)">{{font.charAt(0).toUpperCase() + font.slice(1)}}</ion-button>
     }
-  </div>
+  </fieldset>
 </div>

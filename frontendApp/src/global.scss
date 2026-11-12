@@ -29,11 +29,14 @@
 @font-face {
   font-family: 'poppins';
   src: url(assets/font/Poppins-Variable.ttf);
+  // Text stays readable in the fallback font while the font downloads
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'OpenDyslexic';
   src: url(assets/font/OpenDyslexic-Regular.otf);
+  font-display: swap;
 }
 
 // Material Icons, self-hosted (Apache-2.0, see assets/font/MaterialIcons-LICENSE.txt).
@@ -48,7 +51,8 @@
 }
 
 .material-icons {
-  font-family: 'Material Icons';
+  // The generic family only matters if the icon font cannot be loaded
+  font-family: 'Material Icons', sans-serif;
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -172,17 +176,17 @@
 }
 
 body {
-  font-family: 'poppins', sans-serif !important;
+  font-family: 'poppins', sans-serif;
 }
 
 .poppins {
   --ion-default-font: 'poppins' !important;
-  --ion-font-family: 'poppins' !important;
+  --ion-font-family: 'poppins';
 }
 
 .OpenDyslexic {
   --ion-default-font: 'OpenDyslexic' !important;
-  --ion-font-family: 'OpenDyslexic' !important;
+  --ion-font-family: 'OpenDyslexic';
 }
 
 ion-item {

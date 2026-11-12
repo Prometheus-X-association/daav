@@ -18,10 +18,10 @@
   </div>
 
   @if (loadingUsers) {
-    <div class="empty-state" role="status">
+    <output class="empty-state" aria-live="polite">
       <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
-      <p>Loading users...</p>
-    </div>
+      <span>Loading users...</span>
+    </output>
   }
   @else if (allUsers.length === 0) {
     <div class="empty-state">

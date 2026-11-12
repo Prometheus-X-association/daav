@@ -139,7 +139,7 @@
       placeholder='{"properties": {"title": {"type": "text"}, "price": {"type": "double"}}}'></ion-textarea>
     <div class="actions">
       <ion-button size="small" (click)="createIndex()" [disabled]="!newIndexName.trim() || creating" i18n>Create</ion-button>
-      @if (createMessage) { <span class="success" role="status">{{ createMessage }}</span> }
+      @if (createMessage) { <output class="success" aria-live="polite">{{ createMessage }}</output> }
     </div>
     @if (createError) {
       <p class="error" role="alert">{{ createError }}</p>

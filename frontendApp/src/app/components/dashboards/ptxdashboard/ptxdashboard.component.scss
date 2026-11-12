@@ -186,6 +186,11 @@ $color-text-secondary: #6c757d;
   }
 }
 
+// <output> is inline by default; the loading skeleton keeps the block layout of a div
+.loading-container {
+  display: block;
+}
+
 .status-indicator {
   display: flex;
   align-items: center;
@@ -200,13 +205,14 @@ $color-text-secondary: #6c757d;
   
   &.signed {
     background: rgba(8, 255, 173, 0.15);
-    color: #1a7f37;
+    // At least 4.5:1 even against the opaque badge color
+    color: #177030;
     border: 1px solid rgba(8, 255, 173, 0.3);
   }
   
   &.pending {
     background: rgba(255, 193, 7, 0.15);
-    color: #916602;
+    color: #6e4e02;
     border: 1px solid rgba(255, 193, 7, 0.3);
   }
 }

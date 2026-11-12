@@ -9,14 +9,14 @@ ion-title {
     position: static;
     width: auto;
     padding-right: 8px;
-    color: var(--darkPtx) !important;
-    font-weight: 900 !important;
+    color: var(--darkPtx);
+    font-weight: 900;
     font-size: 1.8em;
     padding-top: 10px;
     padding-bottom: 10px;
     padding-left: 30px;
     background-color: transparent;
-    font-family: 'poppins' !important;
+    font-family: 'poppins', sans-serif;
 }
 
 ion-toolbar {
@@ -55,19 +55,25 @@ ion-toolbar::part(content) {
         flex-direction: column;
     }
 
-    .theme-btns {
-        margin-bottom: 1em;
-    }
-
+    // Fieldsets group the buttons for assistive technologies; the browser
+    // fieldset border, padding and margins are reset so they render as plain blocks
     .theme-btns,
     .font-btns {
         display: flex;
         flex-direction: column;
         width: 100%;
+        min-inline-size: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
 
         ion-button {
             width: 100%;
             box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 4px 0px;
         }
+    }
+
+    .theme-btns {
+        margin-bottom: 1em;
     }
 }

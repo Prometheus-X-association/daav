@@ -33,7 +33,7 @@ ion-list {
 
 .dataset-container:nth-of-type(odd) {
     &::part(native) {
-        background-color: var(--grayLight) !important;
+        background-color: var(--grayLight);
     }
 }
 
@@ -42,7 +42,7 @@ ion-list {
     transition: var(--custom-transition);
 
     &:hover {
-        background-color: var(--bluePtxLight) !important;
+        background-color: var(--bluePtxLight);
     }
 }
 
@@ -65,9 +65,9 @@ ion-list {
     .dataset-info-container {
         width: 15%;
         max-width: 200px;
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: flex-start !important;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
         padding: 10px 0px;
         margin-right: 40px;
 
@@ -82,10 +82,10 @@ ion-list {
 }
 
 .datasets-infos-container {
-    width: 100% !important;
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: flex-start !important;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
 
     &.large .dataset-info {
         overflow: hidden;
@@ -101,18 +101,18 @@ ion-list {
 }
 
 .active-dataset {
-    background-color: var(--bluePtx) !important;
+    background-color: var(--bluePtx);
     --background-hover: var(--bluePtx);
-    color: var(--white) !important;
+    color: var(--white);
 
     &::part(native) {
-        background-color: var(--bluePtx) !important;
+        background-color: var(--bluePtx);
         --background-hover: var(--bluePtx);
-        color: var(--white) !important;
+        color: var(--white);
     }
 
     .dataset-info {
-        color: var(--white) !important;
+        color: var(--white);
     }
 }
 
@@ -131,7 +131,7 @@ ion-list {
         background-color: var(--darkPtx);
 
         ion-icon {
-            color: var(--white) !important;
+            color: var(--white);
         }
     }
 }

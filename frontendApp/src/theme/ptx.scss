@@ -8,13 +8,13 @@
         .circle.orange,
         .circle.green,
         .circle.red {
-            margin: .5em .5em !important;
+            margin: .5em .5em;
             border: 1px solid var(--grayMedium)
         }
 
         .playButton {
             background: #17243F !important;
-            color: white !important;
+            color: white;
             margin: .5em !important;
 
             &:hover {
@@ -44,7 +44,7 @@
             box-shadow: none;
 
             .title {
-                margin: 0 !important;
+                margin: 0;
             }
         }
     }
@@ -93,11 +93,11 @@
             .mdc-checkbox .mdc-checkbox__native-control:enabled:checked~.mdc-checkbox__background,
             .mdc-checkbox .mdc-checkbox__native-control:enabled:indeterminate~.mdc-checkbox__background,
             .mdc-checkbox .mdc-checkbox__native-control[data-indeterminate="true"]:enabled~.mdc-checkbox__background {
-                border-color: #17243F !important;
+                border-color: #17243F;
             }
 
             .mat-mdc-checkbox .mdc-checkbox__ripple {
-                display: none !important;
+                display: none;
             }
 
             .mdc-checkbox__native-control:enabled~.mdc-checkbox__background {
@@ -106,14 +106,14 @@
                 .mdc-checkbox .mdc-checkbox__native-control:enabled:checked~.mdc-checkbox__background,
                 .mdc-checkbox .mdc-checkbox__native-control:enabled:indeterminate~.mdc-checkbox__background {
                     background-color: #17243F;
-                    border-color: #17243F !important;
+                    border-color: #17243F;
                 }
             }
         }
     }
 
     .node.selected {
-        outline: none !important;
+        outline: none;
         box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;
         border: 5px solid orange;
     }

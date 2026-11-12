@@ -233,7 +233,7 @@
 
               <!-- Loading skeleton to display data exchange history -->
               @if (isLoadingHistory) {
-                <div class="loading-container" role="status" aria-label="Loading data exchanges">
+                <output class="loading-container" aria-live="polite" aria-label="Loading data exchanges">
                   @for (item of getSkeletonArray(3); track item) {
                     <ion-card class="exchange-skeleton-card">
                       <ion-card-header>
@@ -248,7 +248,7 @@
                       </ion-card-header>
                     </ion-card>
                   }
-                </div>
+                </output>
               }
 
               <!-- show all data exchanges -->
