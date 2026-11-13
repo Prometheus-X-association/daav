@@ -1,8 +1,7 @@
 /**
- * Represents a dataset schema which can be of type MysqlSchema, PandasSchema, ParquetSchema or any other type.
- * It is typed as `any` because a union containing `any` resolves to `any`.
+ * Represents a dataset schema: MysqlSchema, PandasSchema or ParquetSchema.
  */
-export type DatasetSchema = any
+export type DatasetSchema = MysqlSchema | PandasSchema | ParquetSchema
 
 /**
  * Represents a MySQL schema as an array of field definitions.

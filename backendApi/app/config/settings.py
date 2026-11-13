@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import Dict, List, Optional
-from pydantic import field_validator, model_validator, ConfigDict, Field, PrivateAttr
+from pydantic import field_validator, model_validator, ConfigDict, Field
 
 from app.config.secret_keys import PUBLIC_DEFAULT_JWT_SECRETS, load_or_create_tmp_secret, tmp_secret_path
 
@@ -119,7 +119,8 @@ class Settings(BaseSettings):
     )
 
     # Secrets using a generated temporary value: {name: file path}
-    _temporary_secrets: Dict[str, str] = PrivateAttr(default_factory=dict)
+    # Pydantic copies the default of a private attribute for each instance
+    _temporary_secrets: Dict[str, str] = {}
 
     # Email Configuration (SMTP)
     smtp_host: str = Field(

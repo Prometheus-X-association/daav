@@ -322,9 +322,7 @@ async def test_forgot_password_success(auth_service_instance, test_user):
     with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock) as mock_send_email:
         mock_send_email.return_value = True
         
-        result = await auth_service_instance.forgot_password(test_user.email)
-        
-        assert result is True
+        assert await auth_service_instance.forgot_password(test_user.email) is None
         mock_send_email.assert_called_once()
         
         # Verify reset token was created
@@ -339,10 +337,7 @@ async def test_forgot_password_success(auth_service_instance, test_user):
 async def test_forgot_password_nonexistent_email(auth_service_instance):
     """Test forgot password with non-existent email (should not reveal)"""
     with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock) as mock_send_email:
-        result = await auth_service_instance.forgot_password("nonexistent@example.com")
-        
-        # Always returns True to prevent email enumeration
-        assert result is True
+        assert await auth_service_instance.forgot_password("nonexistent@example.com") is None
         # Email should not be sent
         mock_send_email.assert_not_called()
 
@@ -354,10 +349,8 @@ async def test_forgot_password_inactive_user(auth_service_instance, test_user):
     await test_user.save()
     
     with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock) as mock_send_email:
-        result = await auth_service_instance.forgot_password(test_user.email)
-        
-        # Returns True to prevent account status enumeration
-        assert result is True
+        # Nothing tells the caller that the account is inactive
+        assert await auth_service_instance.forgot_password(test_user.email) is None
         # Email should not be sent
         mock_send_email.assert_not_called()
 
@@ -536,8 +529,7 @@ async def test_full_password_reset_flow(auth_service_instance, test_user):
         mock_send_email.return_value = True
         mock_hash.return_value = "hashed_token"
         
-        result = await auth_service_instance.forgot_password(test_user.email)
-        assert result is True
+        assert await auth_service_instance.forgot_password(test_user.email) is None
         
         # Step 2: Reset password using token
         mock_verify.return_value = True  # Token matches

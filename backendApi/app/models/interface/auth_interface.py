@@ -1,7 +1,8 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-_SPECIAL_PASSWORD_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?/'
+# Characters accepted as the special character required in a password
+_SPECIAL_CHARACTERS = '!@#$%^&*()_+-=[]{}|;:,.<>?/'
 
 
 def validate_password_complexity(password: str) -> str:
@@ -12,7 +13,7 @@ def validate_password_complexity(password: str) -> str:
         raise ValueError('Password must contain at least one uppercase letter')
     if not any(c.islower() for c in password):
         raise ValueError('Password must contain at least one lowercase letter')
-    if not any(c in _SPECIAL_PASSWORD_CHARS for c in password):
+    if not any(c in _SPECIAL_CHARACTERS for c in password):
         raise ValueError('Password must contain at least one special character')
     return password
 

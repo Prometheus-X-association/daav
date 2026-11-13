@@ -253,15 +253,15 @@ class AuthService(metaclass=SingletonMeta):
                 headers={"WWW-Authenticate": "Bearer"},
             )
     
-    async def forgot_password(self, email: str) -> bool:
+    async def forgot_password(self, email: str) -> None:
         """
         Initiate password reset process
         
         Args:
             email: User email address
             
-        Returns:
-            bool: True if reset email sent (always returns True to prevent email enumeration)
+        Returns nothing and never raises, whether the email exists or not, so that callers cannot reveal
+        which accounts exist (email enumeration).
         """
         try:
             # Find user by email
@@ -270,11 +270,11 @@ class AuthService(metaclass=SingletonMeta):
             if not user:
                 # Don't reveal if email exists or not (security)
                 logger.warning(f"Password reset requested for non-existent email: {email}")
-                return True
+                return
             
             if not user.is_active:
                 logger.warning(f"Password reset requested for inactive account: {email}")
-                return True
+                return
             
             # Generate reset token
             reset_token = secrets.token_urlsafe(32)
@@ -309,12 +309,10 @@ class AuthService(metaclass=SingletonMeta):
             else:
                 logger.error(f"Failed to send password reset email to: {email}")
             
-            return True
         
         except Exception as e:
             logger.exception(f"Error in forgot_password: {e}")
-            # Always return True to prevent email enumeration
-            return True
+            # Never fail, to prevent email enumeration
     
     async def reset_password(self, token: str, new_password: str) -> bool:
         """
