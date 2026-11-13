@@ -1,4 +1,5 @@
 import base64
+from contextlib import contextmanager
 from datetime import timedelta, datetime
 import json
 import os
@@ -274,6 +275,88 @@ async def delete_service_chain_data(service_chain_id: str, current_user: Current
         return True
     return False
 
+async def _read_input_body(request: Request):
+    """Read the body of a PDC input. Returns the data and its format: json, xml or text."""
+    content_type = request.headers.get("Content-Type")
+    if content_type == "application/json":
+        try:
+            return await request.json(), "json"
+        except Exception:
+            return await request.body(), "text"
+    if content_type == "application/x-www-form-urlencoded":
+        try:
+            # for now process this like a raw text
+            return (await request.body()).decode(), "xml"
+        except Exception:
+            return await request.body(), "text"
+    # byte with encode or raw text
+    return (await request.body()).decode(), "text"
+
+
+async def _find_user_input_dataset(user_obj, name: str, user_folder: str) -> Optional[FileDataset]:
+    """Search the datasets owned by the user for the file dataset of this name in its folder."""
+    for owned_dataset_id in user_obj.owned_datasets or []:
+        try:
+            existing = await dataset_service.get_dataset(owned_dataset_id, user_obj)
+            if (isinstance(existing, FileDataset) and
+                existing.name == name and
+                hasattr(existing, 'folder') and
+                os.path.normpath(existing.folder) == os.path.normpath(user_folder)):
+                return existing
+        except Exception:
+            continue
+    return None
+
+
+def _remove_user_file(file_path: Optional[str]) -> None:
+    if file_path and os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            logger.info(f"Removed old user file: {file_path}")
+        except OSError as e:
+            logger.exception(f"Error removing old user file {file_path}: {e}")
+
+
+async def _store_user_input(user_obj, pdc_contract, provider_name, serialized_data: str, file_ext: str) -> FileDataset:
+    """Write the received data in the folder of the user and return the dataset pointing at it."""
+    # User-specific folder in upload_dir: /upload_dir/userid/
+    user_folder = os.path.join(settings.upload_dir, str(user_obj.id))
+    os.makedirs(user_folder, exist_ok=True)
+
+    # Dataset name: provider_contract_id
+    dataset_name = f"{provider_name}_{pdc_contract.id}" if provider_name else str(pdc_contract.id)
+    file_path = os.path.join(user_folder, f"{pdc_contract.id}_{str(time.time())}{file_ext}")
+    existing = await _find_user_input_dataset(user_obj, dataset_name, user_folder)
+
+    if existing and existing.ifExist == "append" and existing.filePath and os.path.exists(existing.filePath):
+        write_input_append(existing.filePath, serialized_data)
+        logger.info(f"Appended data to existing user dataset: {existing.filePath} for user {user_obj.username}")
+        return existing
+
+    if existing:
+        # The dataset exists but not in append mode: replace its file
+        _remove_user_file(existing.filePath)
+        write_input(file_path, serialized_data)
+        existing.filePath = file_path
+        existing.ifExist = 'replace'
+        await dataset_service.edit_dataset(existing, user_obj)
+        logger.info(f"Updated existing user dataset: {file_path} for user {user_obj.username}")
+        return existing
+
+    write_input(file_path, serialized_data)
+    new_dataset = FileDataset(
+        name=dataset_name,
+        type='file',
+        folder=user_folder,
+        filePath=file_path,
+        inputType='file',
+        ifExist='replace'
+    )
+    # Use add_connection for proper user association
+    await dataset_service.add_connection(new_dataset, user_obj)
+    logger.info(f"Created new user dataset: {file_path} for user {user_obj.username}")
+    return new_dataset
+
 @router.post("/pdcInput", responses=error_responses(401))
 async def read_input(request: Request, response: Response, headers: Annotated[PdcDataExchangeHeaders, Header()]):
     """ pdc input endpoint to handle PDC data exchange.
@@ -291,26 +374,7 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No valid credentials found in headers"
         )
-    file_format ="text"
-    if (request.headers.get("Content-Type") == "application/json"):
-        try:
-            data = await request.json()
-            file_format ="json"
-        except Exception:
-            data = await request.body()
-    elif (request.headers.get("Content-Type") == "application/x-www-form-urlencoded"):
-        try:
-            #data = await request.form() 
-            #for now process this  like a raw text
-            form  = await request.body()
-            data = form.decode()
-            file_format ="xml"
-        except Exception:
-            data = await request.body()
-    else:
-        #byte with encode or raw text
-        form  = await request.body()
-        data = form.decode()
+    data, file_format = await _read_input_body(request)
     data = decode_dictionary(data)
     #print(f"Received data: {data}")
     
@@ -328,75 +392,8 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
     for auth_user_data in authenticated_users:
         user_obj = auth_user_data['user']  # TypedDict still uses dict access
         matched_creds = auth_user_data['matched_credentials']
-        user_id = str(user_obj.id)
-        
         try:
-            
-            # Create user-specific folder in upload_dir: /upload_dir/userid/
-            user_folder = os.path.join(settings.upload_dir, user_id)
-            os.makedirs(user_folder, exist_ok=True)
-            
-            # Dataset name: provider_contract_id
-            user_dataset_name = f"{provider_name}_{pdc_contract.id}" if provider_name else str(pdc_contract.id)
-            
-            # Create file path in user's folder
-            user_filename_prefix = f"{pdc_contract.id}_"
-            user_complete_filepath = os.path.join(user_folder, f"{user_filename_prefix}{str(time.time())}{file_ext}")
-            
-            # Check for existing dataset by searching user's owned datasets
-            existing_dataset = None
-            for owned_dataset_id in user_obj.owned_datasets or []:
-                try:
-                    existing = await dataset_service.get_dataset(owned_dataset_id, user_obj)
-                    if (isinstance(existing, FileDataset) and 
-                        existing.name == user_dataset_name and 
-                        hasattr(existing, 'folder') and 
-                        os.path.normpath(existing.folder) == os.path.normpath(user_folder)):
-                        existing_dataset = existing
-                        break
-                except Exception:
-                    continue
-            
-            if existing_dataset and existing_dataset.ifExist == "append" and existing_dataset.filePath and os.path.exists(existing_dataset.filePath):
-                # Mode append: ajouter au fichier existant
-                write_input_append(existing_dataset.filePath, serialized_data)
-                logger.info(f"Appended data to existing user dataset: {existing_dataset.filePath} for user {user_obj.username}")
-                dataset_result = existing_dataset
-            elif existing_dataset:
-                # Dataset existe mais pas en mode append: remplacer le fichier et mettre à jour
-                if existing_dataset.filePath and os.path.exists(existing_dataset.filePath):
-                    try:
-                        os.remove(existing_dataset.filePath)
-                        logger.info(f"Removed old user file: {existing_dataset.filePath}")
-                    except OSError as e:
-                        logger.exception(f"Error removing old user file {existing_dataset.filePath}: {e}")
-                
-                # Mettre à jour le dataset existant
-                write_input(user_complete_filepath, serialized_data)
-                existing_dataset.filePath = user_complete_filepath
-                existing_dataset.ifExist = 'replace'
-                await dataset_service.edit_dataset(existing_dataset, user_obj)
-                dataset_result = existing_dataset
-                logger.info(f"Updated existing user dataset: {user_complete_filepath} for user {user_obj.username}")
-            else:
-                # Aucun dataset existant: en créer un nouveau
-                write_input(user_complete_filepath, serialized_data)
-                
-                # Create FileDataset with proper user ownership
-                new_dataset = FileDataset(
-                    name=user_dataset_name,
-                    type='file',
-                    folder=user_folder,
-                    filePath=user_complete_filepath,
-                    inputType='file',
-                    ifExist='replace'
-                )
-                
-                # Use add_connection for proper user association
-                await dataset_service.add_connection(new_dataset, user_obj)
-                dataset_result = new_dataset
-                logger.info(f"Created new user dataset: {user_complete_filepath} for user {user_obj.username}")
-            
+            dataset_result = await _store_user_input(user_obj, pdc_contract, provider_name, serialized_data, file_ext)
             user_datasets.append({
                 'user': user_obj.username,
                 'dataset_id': dataset_result.id,
@@ -404,11 +401,9 @@ async def read_input(request: Request, response: Response, headers: Annotated[Pd
                 'credentials_count': len(matched_creds),
                 'filepath': dataset_result.filePath
             })
-            
         except Exception as e:
             logger.exception(f"Error creating dataset for user {user_obj.username}: {str(e)}")
-            continue
-   
+
     return {
         "data": data, 
         "path": "user_datasets",
@@ -458,6 +453,79 @@ async def fetch_participant_id(client: httpx.AsyncClient, content: dict) -> Opti
         print(f"Error fetching {content['@id']}: {e}")
     return None
 
+DATA_PROVIDER_ROLES = (
+    "Data provider for Organisational Data",
+    "https://registry.visionstrust.com/static/references/roles/dataProviderForOrganisationalData.json",
+)
+
+
+def _participant_contracts_url(catalog_uri, contract_uri, participant_id) -> str:
+    """URL of the contracts of a participant: its catalog URI is passed encoded in base64."""
+    participant_url = f"{catalog_uri}catalog/participants/{participant_id}"
+    return f"{contract_uri}contracts/for/{b64_encode(participant_url)}"
+
+
+def _is_data_provider(participant) -> bool:
+    return not participant.roles or any(role in participant.roles for role in DATA_PROVIDER_ROLES)
+
+
+async def _fetch_service_offerings(client: httpx.AsyncClient, catalog_uri, participants) -> list:
+    """Fetch in parallel all the service offerings of the given ecosystem participants."""
+    tasks = [
+        pdc_service.fetch_service_offering_async(client, f"{catalog_uri}catalog/serviceofferings/{service.serviceOffering}")
+        for participant in participants
+        for service in participant.offerings
+    ]
+    return await asyncio.gather(*tasks)
+
+
+async def _add_ecosystem_offerings(client: httpx.AsyncClient, contract, ecosystem, participant_id, catalog_uri) -> None:
+    """Add to the contract the data offered by the other signed data providers and the purposes of the participant."""
+    signed_participants = {
+        invitation.get("participant")
+        for invitation in ecosystem.invitations
+        if invitation.get("status") == "Signed"
+    }
+    data_providers = [
+        participant for participant in ecosystem.participants
+        if participant.participant in signed_participants
+        and participant_id != participant.participant
+        and _is_data_provider(participant)
+    ]
+    data_provider_services = await _fetch_service_offerings(client, catalog_uri, data_providers)
+    contract.dataProviders.extend([
+        service for service in data_provider_services
+        if service and service.dataResources and len(service.dataResources) > 0
+    ])
+
+    own = [participant for participant in ecosystem.participants if participant_id == participant.participant]
+    purpose_services = await _fetch_service_offerings(client, catalog_uri, own)
+    contract.purposes.extend([
+        service for service in purpose_services
+        if service and service.softwareResources and len(service.softwareResources) > 0
+    ])
+
+
+async def _orchestrated_use_case_contracts(client: httpx.AsyncClient, contracts, participant_id, catalog_uri) -> list:
+    """Keep the contracts whose ecosystem is orchestrated by the participant, completed with name, logo and offerings."""
+    result = []
+    for contract in contracts:
+        try:
+            contract = PdcContract.model_validate(contract)
+            ecosystem = await pdc_service.fetch_ecosystem_async(client, contract.ecosystem) if contract.ecosystem else None
+            if participant_id != ecosystem.orchestrator:
+                continue
+            contract.name = ecosystem.name
+            if contract.orchestrator:
+                orchestrator = await pdc_service.fetch_participant_async(client, contract.orchestrator)
+                contract.logo = orchestrator.get("logo", "") if orchestrator else ""
+            result.append(contract)
+            await _add_ecosystem_offerings(client, contract, ecosystem, participant_id, catalog_uri)
+        except Exception as e:
+            logger.exception(f"Error processing contract data: {str(e)}")
+            traceback.print_exc()
+    return result
+
 @router.get("/contracts/use-case/{connection_id}", responses=error_responses(401))
 async def get_use_case_contract(
     connection_id: str,
@@ -473,89 +541,39 @@ async def get_use_case_contract(
     contract_uri = config.get("contractUri")
     participants_id = await get_participants_id_from_connection(connection_id, current_user, timeout_seconds=timeout)
 
+    params = {}
+    if has_signed is not None:
+        params["hasSigned"] = "true" if has_signed else "false"
+
     all_use_case_contracts = []
-    
-    # create a new async client for making requests
     async with httpx.AsyncClient(timeout=timeout) as client:
         for participant_id in participants_id:
-            participant_url = f"{catalog_uri}catalog/participants/{participant_id}"
-            encoded_url = b64_encode(participant_url)
-            contract_url = f"{contract_uri}contracts/for/{encoded_url}"
-            
-            params = {}
-            if has_signed is not None:
-                params["hasSigned"] = "true" if has_signed else "false"
-
-            # use the async client to fetch contracts
-            response = await client.get(contract_url, params=params, timeout=timeout)
-
-            if response.status_code == 200:
-                contracts_data = response.json()
-                for contract in contracts_data.get("contracts"):
-                    try:
-                        contract = PdcContract.model_validate(contract)
-                        
-                        # Fetch ecosystem
-                        ecosystem = await pdc_service.fetch_ecosystem_async(client, contract.ecosystem) if contract.ecosystem else None
-                        
-                        if participant_id == ecosystem.orchestrator:
-                            contract.name = ecosystem.name
-                            
-                            # Fetch orchestrator
-                            if contract.orchestrator:
-                                orchestrator = await pdc_service.fetch_participant_async(client, contract.orchestrator)
-                                contract.logo = orchestrator.get("logo", "") if orchestrator else ""
-                            
-                            all_use_case_contracts.append(contract)
-
-                            signed_participants = {
-                                invitation.get("participant") 
-                                for invitation in ecosystem.invitations 
-                                if invitation.get("status") == "Signed"
-                            }
-
-                            # Fetch all service offerings in parallel for data providers
-                            data_provider_tasks = []
-                            for participant in ecosystem.participants:
-                                has_data_provider_role = (
-                                    not participant.roles or 
-                                    "Data provider for Organisational Data" in participant.roles or
-                                    "https://registry.visionstrust.com/static/references/roles/dataProviderForOrganisationalData.json" in participant.roles
-                                )
-                                if (participant.participant in signed_participants and 
-                                    participant_id != participant.participant and 
-                                    has_data_provider_role):
-                                    for service in participant.offerings:
-                                        url = f"{catalog_uri}catalog/serviceofferings/{service.serviceOffering}"
-                                        data_provider_tasks.append(pdc_service.fetch_service_offering_async(client, url))
-
-                            data_provider_services = await asyncio.gather(*data_provider_tasks)
-                            contract.dataProviders.extend([
-                                service for service in data_provider_services 
-                                if service and service.dataResources and len(service.dataResources) > 0
-                            ])
-
-                            # Fetch all service offerings in parallel for purposes
-                            purpose_tasks = []
-                            for participant in ecosystem.participants:
-                                if participant_id == participant.participant:
-                                    for service in participant.offerings:
-                                        url = f"{catalog_uri}catalog/serviceofferings/{service.serviceOffering}"
-                                        purpose_tasks.append(pdc_service.fetch_service_offering_async(client, url))
-
-                            purpose_services = await asyncio.gather(*purpose_tasks)
-                            contract.purposes.extend([
-                                service for service in purpose_services 
-                                if service and service.softwareResources and len(service.softwareResources) > 0
-                            ])
-
-                    except Exception as e:
-                        logger.exception(f"Error processing contract data: {str(e)}")
-                        traceback.print_exc()
-            else:
+            contract_url = _participant_contracts_url(catalog_uri, contract_uri, participant_id)
+            response = await client.get(contract_url, params=dict(params), timeout=timeout)
+            if response.status_code != 200:
                 print(BILATERAL_CONTRACTS_ERROR)
+                continue
+            all_use_case_contracts.extend(await _orchestrated_use_case_contracts(
+                client, response.json().get("contracts"), participant_id, catalog_uri))
 
     return all_use_case_contracts
+
+async def _orchestrated_service_chains(contracts, participant_id, timeout: int) -> list:
+    """Service chains of the contracts whose ecosystem is orchestrated by the participant."""
+    result = []
+    for contract in contracts:
+        try:
+            contract = PdcContract.model_validate(contract)
+            ecosystem = await asyncio.to_thread(pdc_service.fetch_ecosystem, contract.ecosystem, timeout=timeout) if contract.ecosystem else None
+            if participant_id == ecosystem.orchestrator:
+                result.append({
+                    "contract_id": contract.id,
+                    "service_chains": ecosystem.serviceChains
+                })
+        except Exception as e:
+            print(f"Error processing contract data: {e}")
+            traceback.print_exc()
+    return result
 
 @router.get("/serviceChain/{connection_id}", responses=error_responses(401))
 async def get_service_chain(
@@ -572,32 +590,68 @@ async def get_service_chain(
     
     result = []
     for participant_id in participants_id:
-        participant_url = f"{catalog_uri}catalog/participants/{participant_id}"
-        encoded_url = b64_encode(participant_url)
-        contract_url = f"{contract_uri}contracts/for/{encoded_url}"
-
+        contract_url = _participant_contracts_url(catalog_uri, contract_uri, participant_id)
         response = await asyncio.to_thread(requests.get, contract_url, timeout=timeout)
-
-        if response.status_code == 200:
-            contracts_data = response.json()
-            for contract in contracts_data.get("contracts"):
-                try:
-                    contract = PdcContract.model_validate(contract)
-                    ecosystem = await asyncio.to_thread(pdc_service.fetch_ecosystem, contract.ecosystem, timeout=timeout) if contract.ecosystem else None
-                    if participant_id == ecosystem.orchestrator	: 
-                        result.append({
-                            "contract_id": contract.id,
-                            "service_chains": ecosystem.serviceChains
-                        })
-
-                except Exception as e:
-                    print(f"Error processing contract data: {e}")
-                    traceback.print_exc()
-        else:
+        if response.status_code != 200:
             print(BILATERAL_CONTRACTS_ERROR)
+            continue
+        result.extend(await _orchestrated_service_chains(response.json().get("contracts"), participant_id, timeout))
 
     return result
 
+
+def _resource_details(resource_url: str, participant_url: str, timeout: int, cache: dict) -> Optional[dict]:
+    """Fetch the details of an exchanged resource and of its owner. None when they cannot be fetched."""
+    if resource_url in cache:
+        return cache[resource_url]
+
+    try:
+        resource_response = requests.get(resource_url, timeout=timeout)
+        if resource_response.status_code != 200:
+            print(f"Error fetching resource {resource_url}: {resource_response.status_code}")
+            return None
+        resource_data = PdcDataResource.model_validate(resource_response.json())
+        owner_url = f"{participant_url}{resource_data.producedBy}" if resource_data.producedBy else None
+        owner_details = pdc_service.fetch_participant(owner_url, timeout=timeout) if owner_url else None
+        details = {
+            "id": resource_data.id,
+            "name": resource_data.name,
+            "description": resource_data.description,
+            "owner": {
+                "id": owner_details.id if owner_details else None,
+                "name": owner_details.legalName if owner_details else None
+            }
+        }
+        cache[resource_url] = details
+        return details
+    except Exception as e:
+        print(f"Exception while fetching resource {resource_url}: {str(e)}")
+        return None
+
+
+def _add_exchange_execution(grouped_exchanges: dict, item: dict, detailed_resources: list) -> None:
+    """Add a data exchange to its group: same resources, contract and endpoint."""
+    contract = item.get("contract")
+    provider_endpoint = item.get("providerEndpoint")
+    consumer_endpoint = item.get("consumerEndpoint")
+    created_at = item.get("createdAt")
+
+    resources_ids = tuple(sorted(res["id"] for res in detailed_resources))
+    group = grouped_exchanges[(resources_ids, contract, provider_endpoint or consumer_endpoint)]
+    if not group["executions"]:
+        group.update({
+            "resources": detailed_resources,
+            "contract": contract
+        })
+        if provider_endpoint:
+            group["providerEndpoint"] = provider_endpoint
+        elif consumer_endpoint:
+            group["consumerEndpoint"] = consumer_endpoint
+
+    execution = {"id": item.get("_id")}
+    if created_at is not None:
+        execution["createdAt"] = created_at
+    group["executions"].append(execution)
 
 @router.get("/dataExchanges/{connection_id}", responses=error_responses(401, 500))
 async def get_data_exchanges(
@@ -661,84 +715,24 @@ async def get_data_exchanges(
                 detail=f"Can't retrieve data exchange history: {response.text}"
             )
             
-        data_exchanges_data = response.json()
-        content = data_exchanges_data.get("content", [])
-        
+        content = response.json().get("content", [])
+
         # Cache to avoid redundant requests for the same resource
         resource_cache = {}
-        
-        # Helper function to fetch detailed resource information
-        def get_resource_details(resource_url):
-            if resource_url in resource_cache:
-                return resource_cache[resource_url]
-            
-            try:
-                resource_response = requests.get(resource_url, timeout=timeout)
-                if resource_response.status_code == 200:
-                    resource_data = PdcDataResource.model_validate(resource_response.json())
-                    owner_url =  f"{participant_url}{resource_data.producedBy}" if resource_data.producedBy else None
-                    owner_details = pdc_service.fetch_participant(owner_url, timeout=timeout) if owner_url else None
-                    details = {
-                        "id": resource_data.id,
-                        "name": resource_data.name,
-                        "description": resource_data.description,
-                        "owner": {
-                            "id": owner_details.id if owner_details else None,
-                            "name": owner_details.legalName if owner_details else None
-                         } 
-                    }
-                    resource_cache[resource_url] = details
-                    return details
-                else:
-                    print(f"Error fetching resource {resource_url}: {resource_response.status_code}")
-                    return None
-            except Exception as e:
-                print(f"Exception while fetching resource {resource_url}: {str(e)}")
-                return None
-        
         # Group exchanges by resources, contract, and endpoint
         grouped_exchanges = defaultdict(lambda: {"executions": []})
-        
+
         for item in content:
             if item.get("status") != "IMPORT_SUCCESS":
                 continue
-                
-            resources = item.get("resources", [])
-            contract = item.get("contract")
-            provider_endpoint = item.get("providerEndpoint")
-            consumer_endpoint = item.get("consumerEndpoint")
-            item_id = item.get("_id")
-            created_at = item.get("createdAt")
-            
             detailed_resources = []
-            for res in resources:
-                resource_url = res.get("resource", "")
-                resource_details = await asyncio.to_thread(get_resource_details, resource_url)
-                
+            for res in item.get("resources", []):
+                resource_details = await asyncio.to_thread(
+                    _resource_details, res.get("resource", ""), participant_url, timeout, resource_cache)
                 if resource_details:
                     detailed_resources.append(resource_details)
-            
-            # Generate a key for grouping
-            resources_ids = tuple(sorted(res["id"] for res in detailed_resources))
-            endpoint = provider_endpoint or consumer_endpoint
-            group_key = (resources_ids, contract, endpoint)
-            
-            group = grouped_exchanges[group_key]
-            if not group["executions"]:  
-                group.update({
-                    "resources": detailed_resources,  
-                    "contract": contract
-                })
-                if provider_endpoint:
-                    group["providerEndpoint"] = provider_endpoint
-                elif consumer_endpoint:
-                    group["consumerEndpoint"] = consumer_endpoint
-            
-            execution = {"id": item_id}
-            if created_at is not None:
-                execution["createdAt"] = created_at
-            group["executions"].append(execution)
-        
+            _add_exchange_execution(grouped_exchanges, item, detailed_resources)
+
         data_exchanges = []
         for group in grouped_exchanges.values():
             group["executions"].sort(
@@ -746,7 +740,7 @@ async def get_data_exchanges(
                 reverse=True
             )
             data_exchanges.append(group)
-            
+
         return {"dataExchanges": data_exchanges}
         
     except HTTPException:
@@ -860,6 +854,31 @@ async def trigger_service_chain(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+@contextmanager
+def _unexpected_error_as_500(label: str):
+    """Turn an unexpected error into a 500 naming the step; HTTP errors keep their status."""
+    try:
+        yield
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{label}: {str(e)}")
+
+
+async def _named_bilateral_contracts(contracts) -> list:
+    """Validate the bilateral contracts and add the name and image of their provider."""
+    result = []
+    for contract in contracts:
+        try:
+            contract = PdcContractBilateral.model_validate(contract)
+            contract_info = await asyncio.to_thread(pdc_service.get_provider_name_and_img_from_contract, contract)
+            contract.name = contract_info.get("name") if contract_info.get("name") else "Unknown"
+            contract.img = contract_info.get("img") if contract_info.get("img") else ""
+            result.append(contract)
+        except Exception as e:
+            print(f"Error processing contract data: {e}")
+    return result
+
 @router.get("/contracts/bilaterals/{connection_id}", responses=error_responses(401, 500))
 async def get_billateral_contract(
     connection_id: str,
@@ -867,36 +886,24 @@ async def get_billateral_contract(
     timeout_seconds: Annotated[Optional[int], Query(ge=30, description="Visions API timeout in seconds")] = None,
 ):
     #URI pointing to your participant in the catalog, encode it in base64
-    try:
+    with _unexpected_error_as_500("Error finding connection"):
         connection = await dataset_service.get_dataset(connection_id, current_user)
         if not connection:
             raise HTTPException(status_code=404, detail="Connection not found")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error finding connection: {str(e)}")
-    
-    try:
+
+    with _unexpected_error_as_500("Error loading private configuration"):
         config = await get_private_configuration(connection)
         catalog_uri = config.get("catalogUri")
         contract_uri = config.get("contractUri")
         endpoint = config.get("endpoint")
         if not catalog_uri or not contract_uri:
             raise ValueError("Missing catalogUri or contractUri in config")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error loading private configuration: {str(e)}")
-    
-    try:
+
+    with _unexpected_error_as_500("Error retrieving participants"):
         timeout = _resolve_timeout(timeout_seconds)
         participants_id = await get_participants_id_from_connection(connection_id, current_user)
         if not participants_id:
             raise ValueError("No participants found for this connection")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving participants: {str(e)}")
 
     all_bilateral_contracts = []
     for participant_id in participants_id:
@@ -905,21 +912,10 @@ async def get_billateral_contract(
         bilateral_url = f"{contract_uri}/bilaterals/for/{encoded_url}"
 
         response = await asyncio.to_thread(requests.get, bilateral_url, timeout=timeout)
-
-        if response.status_code == 200:
-            contracts_data = response.json()
-
-            for contract in contracts_data.get("contracts"):
-                try:
-                    contract = PdcContractBilateral.model_validate(contract)
-                    contract_info = await asyncio.to_thread(pdc_service.get_provider_name_and_img_from_contract, contract)
-                    contract.name = contract_info.get("name") if contract_info.get("name") else "Unknown"
-                    contract.img = contract_info.get("img") if contract_info.get("img") else ""
-                    all_bilateral_contracts.append(contract)
-                except Exception as e:
-                    print(f"Error processing contract data: {e}")
-        else:
+        if response.status_code != 200:
             print(BILATERAL_CONTRACTS_ERROR)
+            continue
+        all_bilateral_contracts.extend(await _named_bilateral_contracts(response.json().get("contracts")))
 
     return {
         "contracts": all_bilateral_contracts,
