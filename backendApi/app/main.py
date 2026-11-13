@@ -42,6 +42,58 @@ def _write_json_file(path: str, content: dict) -> None:
         json.dump(content, f, indent=2, default=str)
 
 
+async def _check_database() -> None:
+    """Log the number of datasets, to show that Beanie is initialised."""
+    try:
+        count = await Dataset.count()
+        logger.info(f"Beanie test after init: {count} datasets found")
+    except Exception as e:
+        logger.error(f"Beanie test failed: {e}")
+
+
+async def _reencrypt_credentials() -> None:
+    """Encrypt plain text credentials and re-encrypt those using a previous key."""
+    try:
+        counts = await reencrypt_sensitive_fields()
+        if counts["reencrypted"]:
+            logger.info(f"{counts['reencrypted']} sensitive dataset field(s) re-encrypted with the current FIELD_ENCRYPTION_KEY")
+        if counts["failed"]:
+            logger.error(
+                f"{counts['failed']} sensitive dataset field(s) cannot be decrypted with any known key: "
+                "re-enter the credentials of these datasets"
+            )
+    except Exception as e:
+        logger.error(f"Re-encryption of sensitive dataset fields failed: {e}", exc_info=True)
+
+
+async def _ensure_admin():
+    """Return the admin user, creating the default one if no user exists. None when it cannot be obtained."""
+    logger.info("Checking for admin user...")
+    try:
+        admin = await UserService().ensure_admin_exists()
+    except Exception as e:
+        logger.error(f"Failed to ensure admin exists: {e}", exc_info=True)
+        return None
+    if admin:
+        logger.info(f"Admin user available: {admin.username}")
+    return admin
+
+
+async def _migrate_config_ini(admin) -> None:
+    """Run the migration if config.ini exists."""
+    if not os.path.exists("./app/config.ini"):
+        logger.info("No config.ini found, skipping migration")
+        return
+    if not admin:
+        logger.error("Cannot run migration: Admin user not available")
+        return
+    logger.info("Config.ini found, starting migration...")
+    if await MigrationService.migrate_from_config_ini(admin):
+        logger.info("Migration completed successfully")
+    else:
+        logger.warning("Migration completed with warnings")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
@@ -61,51 +113,10 @@ async def lifespan(app: FastAPI):
             ApiDataset, ElasticDataset, PTXDataset, IProject, User, PasswordResetToken,
             ServiceChainData
         ])
-            # Test Beanie après initialisation
-        try:
-            count = await Dataset.count()
-            logger.info(f"Beanie test after init: {count} datasets found")
-        except Exception as e:
-            logger.error(f"Beanie test failed: {e}")
+        await _check_database()
+        await _reencrypt_credentials()
+        await _migrate_config_ini(await _ensure_admin())
 
-        # Encrypt plain text credentials and re-encrypt those using a previous key
-        try:
-            counts = await reencrypt_sensitive_fields()
-            if counts["reencrypted"]:
-                logger.info(f"{counts['reencrypted']} sensitive dataset field(s) re-encrypted with the current FIELD_ENCRYPTION_KEY")
-            if counts["failed"]:
-                logger.error(
-                    f"{counts['failed']} sensitive dataset field(s) cannot be decrypted with any known key: "
-                    "re-enter the credentials of these datasets"
-                )
-        except Exception as e:
-            logger.error(f"Re-encryption of sensitive dataset fields failed: {e}", exc_info=True)
-        
-        # Ensure admin user exists (create default admin if no users exist)
-        logger.info("Checking for admin user...")
-        user_service = UserService()
-        admin = None
-        try:
-            admin = await user_service.ensure_admin_exists()
-            if admin:
-                logger.info(f"Admin user available: {admin.username}")
-        except Exception as e:
-            logger.error(f"Failed to ensure admin exists: {e}", exc_info=True)
-        
-        # Run migration if config.ini exists
-        if os.path.exists("./app/config.ini"):
-            if admin:
-                logger.info("Config.ini found, starting migration...")
-                migration_success = await MigrationService.migrate_from_config_ini(admin)
-                if migration_success:
-                    logger.info("Migration completed successfully")
-                else:
-                    logger.warning("Migration completed with warnings")
-            else:
-                logger.error("Cannot run migration: Admin user not available")
-        else:
-            logger.info("No config.ini found, skipping migration")
-        
         logger.info(f"{settings.app_name} startup completed successfully")
         
     except Exception as e:
