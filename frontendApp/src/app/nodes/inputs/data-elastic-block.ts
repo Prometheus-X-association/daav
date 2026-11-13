@@ -61,7 +61,6 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     if (node?.data?.query) {
       this.addOptionControls(node);
     }
-    void this.area.update('node', this.id);
   }
 
   private get dataset(): DatasetElasticSearch {

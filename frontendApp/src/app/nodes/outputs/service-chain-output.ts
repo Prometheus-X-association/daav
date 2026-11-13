@@ -37,7 +37,6 @@ export class ServiceChainOutput extends OutputDataBlock{
       )
     }
 
-    void this.area.update("node", this.id);
   }
 
   override dataSourceChange(event: MatSelectChange) {

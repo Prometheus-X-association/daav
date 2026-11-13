@@ -56,8 +56,6 @@ export class ServiceChainInput extends InputDataBlock<PandasSchema, NodeDataPand
     }
 
     this.addControl('inputsDatasource', this.inputsDatasource);
-    void this.area.update('control', this.inputsDatasource.id);
-    void this.area.update('node', this.id);
   }
 
   override dataSourceChange(event: MatSelectChange): void {

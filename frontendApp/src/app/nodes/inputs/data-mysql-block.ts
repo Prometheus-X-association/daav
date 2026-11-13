@@ -44,7 +44,6 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      void this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.selectTableDataSource) {
       this.selectControlTable = new SelectControl(
@@ -52,9 +51,7 @@ export class DataMysqlBlock extends InputDataBlock<MysqlSchema, NodeDataMysql> {
         this.tableChange.bind(this)
       );
       this.addControl('dataTableSource', this.selectControlTable);
-      void this.area.update('control', this.selectControlTable.id);
     }
-    void this.area.update('node', this.id);
   }
 
   override async dataSourceChange(event: MatSelectChange) {

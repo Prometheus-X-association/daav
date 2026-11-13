@@ -50,14 +50,12 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
       }
       this.statusControl = new StatusControl(this.status,this.statusMessage,this.errorStacktrace);
       this.addControl("status",this.statusControl);
-      void area.update("control", this.statusControl.id);
       this.playButtonControl = new ButtonControl(()=>{
         this.execute();
       },null,"play_arrow","playButton");
       this.playButtonControl.ariaLabel = "Run node";
       this.playButtonControl.disabled = (this.status === StatusNode.Incomplete);
       this.addControl("play",this.playButtonControl);
-      void area.update("control", this.playButtonControl.id);
       this.nodeLoader = new NodeLoaderControl();
       this.addControl("loader",this.nodeLoader);
     }

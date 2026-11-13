@@ -52,7 +52,6 @@ export class MysqlOutput extends OutputDataBlock {
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      void this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.tableAutoComplete) {
       this.addInputTable(null,node);
@@ -60,7 +59,6 @@ export class MysqlOutput extends OutputDataBlock {
     if (node?.data?.selectExist) {
       this.addSelectExist(node);
     }
-    void this.area.update('node', this.id);
   }
 
   addInputTable(data: MySQLContentResponse, node: Node, table?: string) {

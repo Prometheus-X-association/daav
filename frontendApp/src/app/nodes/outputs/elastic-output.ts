@@ -44,7 +44,6 @@ export class ElasticOutput extends OutputDataBlock {
     if (node?.data?.indexAutoComplete) {
       this.addOptionControls([], node);
     }
-    void this.area.update('node', this.id);
   }
 
   override dataSourceChange(event: MatSelectChange) {

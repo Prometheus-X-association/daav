@@ -43,7 +43,6 @@ export class ApiOutput extends OutputDataBlock{
     this.addTokenInput(node);
 
     this.validateInput();
-    void this.area.update("node", this.id);
   }
 
   override addSourceSelect(){

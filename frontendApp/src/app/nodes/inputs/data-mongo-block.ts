@@ -47,7 +47,6 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      void this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.selectCollectionDataSource) {
       this.selectControlCollection = new SelectControl(
@@ -55,9 +54,7 @@ export class DataMongoBlock extends InputDataBlock<PandasSchema, NodeDataPandasD
         this.collectionChange.bind(this)
       );
       this.addControl('dataCollectionSource', this.selectControlCollection);
-      void this.area.update('control', this.selectControlCollection.id);
     }
-    void this.area.update('node', this.id);
   }
 
   override async dataSourceChange(event: MatSelectChange) {

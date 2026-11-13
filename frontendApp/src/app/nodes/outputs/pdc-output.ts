@@ -50,7 +50,6 @@ export class PdcOutput extends OutputDataBlock {
           this.dataResourceChange.bind(this)
         );
         this.addControl("selectDataResource", this.selectControlDataResource);
-        void this.area.update('control', this.selectControlDataResource.id);
       }
 
       this.loadDataResourcesAndInitialize(node);
@@ -67,7 +66,6 @@ export class PdcOutput extends OutputDataBlock {
         this.removeUrlControl();
       }
 
-      void this.area.update('node', this.id);
     }
 
     private addCurrentUrlControl(url?: string): void {

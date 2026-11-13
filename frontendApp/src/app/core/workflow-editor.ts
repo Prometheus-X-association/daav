@@ -129,9 +129,16 @@ export class WorkflowEditor {
     this.area.use(this.arrange);
     this.buildDockContent();
     AreaExtensions.simpleNodesOrder(this.area);
-    void AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
     AreaExtensions.showInputControl(this.area);
     console.log(registeredBlock);
+  }
+
+  /**
+   * Zoom on the nodes of the editor. With an empty editor, the origin goes to the centre of the container.
+   * Asynchronous, so it is called after the constructor.
+   */
+  zoomOnNodes(): Promise<void> {
+    return AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
   }
 
   buildContextMenu() {

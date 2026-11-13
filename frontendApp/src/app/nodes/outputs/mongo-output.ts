@@ -53,7 +53,6 @@ export class MongoOutput extends OutputDataBlock {
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      void this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.collectionAutoComplete) {
       this.addInputCollection(null,node);
@@ -61,7 +60,6 @@ export class MongoOutput extends OutputDataBlock {
     if (node?.data?.selectExist) {
       this.addSelectExist(node);
     }
-    void this.area.update('node', this.id);
   }
 
   addInputCollection(data: MongoContentResponse, node: Node, collection?: string) {

@@ -37,7 +37,6 @@ export class MergeTransform extends TransformBlock {
     }
 
     this.addControl("dataMapper",this.dataMapperControl);
-    void area.update("control", this.dataMapperControl.id);
     //save the callback to remove from area pipe from signal arrays because no method to remove
     const contextPipe = context => {
       //when clear in progress disable event

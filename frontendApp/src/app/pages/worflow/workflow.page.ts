@@ -45,6 +45,7 @@ export class WorkflowPage implements AfterViewInit {
 
       if (el) {
         this.workflow = new WorkflowEditor(el, this.injector);
+        void this.workflow.zoomOnNodes();
         this.workflow.name = this.getDefaultName();
         this.workflow.markAsSaved();
       }
