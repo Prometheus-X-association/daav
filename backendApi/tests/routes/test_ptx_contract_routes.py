@@ -393,9 +393,10 @@ class TestDataExchanges:
         assert (error.value.status_code, error.value.detail) == (403, "Can't retrieve data exchange history: refused")
 
     async def test_unexpected_error_is_a_500(self):
+        request = Mock()
         with routes_context(None), patch.object(ptx.requests, "get", side_effect=RuntimeError("pdc down")):
             with pytest.raises(HTTPException) as error:
-                await ptx.get_data_exchanges("connection-id", Mock(), USER)
+                await ptx.get_data_exchanges("connection-id", request, USER)
         assert (error.value.status_code, error.value.detail) == (500, "Internal server error: pdc down")
 
 
@@ -524,8 +525,9 @@ def read(path):
 class TestPdcInput:
 
     async def test_request_without_known_credentials_is_a_401(self, tmp_path):
+        pdc_input = PdcInput(tmp_path, [])
         with pytest.raises(HTTPException) as error:
-            await PdcInput(tmp_path, []).run()
+            await pdc_input.run()
         assert (error.value.status_code, error.value.detail) == (401, "No valid credentials found in headers")
 
     async def test_json_input_creates_a_dataset_for_the_user(self, tmp_path):

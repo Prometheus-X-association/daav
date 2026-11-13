@@ -558,13 +558,13 @@ async def get_use_case_contract(
 
     return all_use_case_contracts
 
-async def _orchestrated_service_chains(contracts, participant_id, timeout: int) -> list:
+async def _orchestrated_service_chains(contracts, participant_id, http_timeout: int) -> list:
     """Service chains of the contracts whose ecosystem is orchestrated by the participant."""
     result = []
     for contract in contracts:
         try:
             contract = PdcContract.model_validate(contract)
-            ecosystem = await asyncio.to_thread(pdc_service.fetch_ecosystem, contract.ecosystem, timeout=timeout) if contract.ecosystem else None
+            ecosystem = await asyncio.to_thread(pdc_service.fetch_ecosystem, contract.ecosystem, timeout=http_timeout) if contract.ecosystem else None
             if participant_id == ecosystem.orchestrator:
                 result.append({
                     "contract_id": contract.id,
