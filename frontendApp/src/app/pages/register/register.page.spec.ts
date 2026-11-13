@@ -29,14 +29,14 @@ describe('RegisterPage', () => {
   }));
 
   function touch(fieldName: string, value: string): void {
-    const field = component.registerForm.get(fieldName)!;
+    const field = component.registerForm.get(fieldName);
     field.setValue(value);
     field.markAsTouched();
   }
 
   describe('getFieldError', () => {
     it('should return null for a field that is not touched', () => {
-      component.registerForm.get('username')!.setValue('');
+      component.registerForm.get('username').setValue('');
 
       expect(component.getFieldError('username')).toBeNull();
     });
@@ -90,7 +90,7 @@ describe('RegisterPage', () => {
     });
 
     it('should report a password mismatch on the confirmation field', () => {
-      component.registerForm.get('password')!.setValue('Secret-123');
+      component.registerForm.get('password').setValue('Secret-123');
       touch('confirmPassword', 'Other-123');
 
       expect(component.getFieldError('confirmPassword')).toBe('Passwords do not match');
@@ -98,15 +98,15 @@ describe('RegisterPage', () => {
     });
 
     it('should report a required confirmation before the mismatch', () => {
-      component.registerForm.get('password')!.setValue('Secret-123');
+      component.registerForm.get('password').setValue('Secret-123');
       touch('confirmPassword', '');
 
       expect(component.getFieldError('confirmPassword')).toBe('Confirm Password is required');
     });
 
     it('should not report a mismatch on an untouched confirmation field', () => {
-      component.registerForm.get('password')!.setValue('Secret-123');
-      component.registerForm.get('confirmPassword')!.setValue('Other-123');
+      component.registerForm.get('password').setValue('Secret-123');
+      component.registerForm.get('confirmPassword').setValue('Other-123');
 
       expect(component.getFieldError('confirmPassword')).toBeNull();
     });
@@ -116,7 +116,7 @@ describe('RegisterPage', () => {
 
       expect(component.getFieldError('email')).toBeNull();
 
-      const lastName = component.registerForm.get('lastName')!;
+      const lastName = component.registerForm.get('lastName');
       lastName.markAsTouched();
       lastName.setErrors({ custom: true });
 

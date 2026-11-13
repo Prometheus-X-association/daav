@@ -52,7 +52,7 @@ describe('MongoOutput', () => {
 
   it('should add and remove collection controls', () => {
     const block = new MongoOutput('label', area);
-    block['addInputCollection']({ collections: ['one', 'two'] } as any, {} as any);
+    block['addInputCollection']({ collections: ['one', 'two'] }, {} as any);
 
     expect(block['collectionAutoCompleteControl']).toBeDefined();
     block.removeInputCollection();

@@ -22,7 +22,7 @@ describe('ElasticDashboardComponent', () => {
     component = fixture.componentInstance;
     component.dataset = new DatasetElasticSearch({
       id: 'ds1', name: 'es', type: 'elastic', url: 'http://es:9200/', user: 'elastic', ...datasetValues,
-    } as any);
+    });
     fixture.detectChanges();
   }
 

@@ -20,7 +20,7 @@ describe('TransformationComponent', () => {
   beforeEach(waitForAsync(() => {
     workflowSpy = jasmine.createSpyObj('WorkflowService', ['getWorkflows', 'deleteWorkflow', 'executeWorkflowJson'], {
       workflows: () => []
-    } as any);
+    });
     workflowSpy.getWorkflows.and.returnValue(of([]));
     workflowSpy.deleteWorkflow.and.returnValue(of(null));
     workflowSpy.executeWorkflowJson.and.returnValue(of({

@@ -177,13 +177,13 @@ describe('MergeTransform', () => {
 
     it('should create the next input when an indexed input is connected', () => {
       addInputs(1, 2);
-      const socket = instance.inputs['datasource_2']!.socket;
+      const socket = instance.inputs['datasource_2'].socket;
 
       change('datasource_2', 'connectioncreated');
 
       expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1', 'datasource_2', 'datasource_3']);
-      expect(instance.inputs['datasource_3']!.socket).toBe(socket);
-      expect(instance.inputs['datasource_3']!.label).toBe('DataSource 3');
+      expect(instance.inputs['datasource_3'].socket).toBe(socket);
+      expect(instance.inputs['datasource_3'].label).toBe('DataSource 3');
       expect(instance['buildDataset']).toHaveBeenCalledWith('connectioncreated');
     });
 
@@ -199,13 +199,13 @@ describe('MergeTransform', () => {
 
     it('should create the first indexed input with the primary socket when the source node is unknown', () => {
       (area.parent.getNode as jasmine.Spy).and.returnValue(undefined);
-      const socket = instance.inputs['datasource']!.socket;
+      const socket = instance.inputs['datasource'].socket;
 
       change('datasource', 'connectioncreated');
 
       expect(Object.keys(instance.inputs)).toEqual(['datasource', 'datasource_1']);
-      expect(instance.inputs['datasource_1']!.socket).toBe(socket);
-      expect(instance.inputs['datasource_1']!.label).toBe('DataSource 1');
+      expect(instance.inputs['datasource_1'].socket).toBe(socket);
+      expect(instance.inputs['datasource_1'].label).toBe('DataSource 1');
       expect(Object.keys(instance.outputs)).toEqual([]);
     });
 

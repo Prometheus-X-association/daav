@@ -52,7 +52,7 @@ describe('DataElasticBlock', () => {
     const mockWorkflowEditor: Partial<WorkflowNodeEditor<Schemes>> = {
       injector: TestBed.inject(Injector),
       getConnections: () => [],
-    } as any;
+    };
     Object.defineProperty(area, 'parent', { value: mockWorkflowEditor, writable: true, configurable: true });
   });
 

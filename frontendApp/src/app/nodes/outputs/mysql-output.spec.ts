@@ -52,7 +52,7 @@ describe('MysqlOutput', () => {
 
   it('should add and remove table controls', () => {
     const block = new MysqlOutput('label', area);
-    block['addInputTable']({ tables: ['one', 'two'] } as any, {} as any);
+    block['addInputTable']({ tables: ['one', 'two'] }, {} as any);
 
     expect(block['tableAutoCompleteControl']).toBeDefined();
     block.removeInputTable();

@@ -16,8 +16,8 @@ describe('DatasetsModalComponent', () => {
   beforeEach(waitForAsync(() => {
     datasetServiceSpy = jasmine.createSpyObj('DatasetService', ['addDataset', 'get', 'edit', 'uploadFile']);
     datasetServiceSpy.addDataset.and.returnValue(of({}));
-    datasetServiceSpy.get.and.returnValue(undefined as any);
-    datasetServiceSpy.edit.and.returnValue(undefined as any);
+    datasetServiceSpy.get.and.returnValue(undefined);
+    datasetServiceSpy.edit.and.returnValue(undefined);
     datasetServiceSpy.uploadFile.and.returnValue(of());
 
     TestBed.configureTestingModule({

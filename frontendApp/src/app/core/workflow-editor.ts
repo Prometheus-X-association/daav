@@ -204,9 +204,9 @@ export class WorkflowEditor {
                 ClassicPreset.Node
               >(
                 this.nodeEditor.getNode(source.nodeId),
-                source.key as never,
+                source.key,
                 this.nodeEditor.getNode(target.nodeId),
-                target.key as never
+                target.key
               )
             );
             console.log(sockets);
@@ -230,9 +230,9 @@ export class WorkflowEditor {
                   ClassicPreset.Node
                 >(
                   editor.getNode(source.nodeId),
-                  source.key as never,
+                  source.key,
                   editor.getNode(target.nodeId),
-                  target.key as never
+                  target.key
                 )
               );
               return true;

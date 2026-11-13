@@ -154,7 +154,7 @@ describe('CredentialsSectionComponent', () => {
     component.user = { id: 'user-1', config: { credentials: { key1: 'value1', key2: 'value2' } } } as any;
 
     await component.deleteCredential('key1');
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     const deleteButton = (options.buttons as any[]).find(button => button.role === 'destructive');
     await deleteButton.handler();
 

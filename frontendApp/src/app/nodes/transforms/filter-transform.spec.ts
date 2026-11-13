@@ -85,7 +85,7 @@ describe('FilterTransform', () => {
 
   it('should reset query when connection removed', () => {
     const block = new FilterTransform('label', area);
-    block['dataFilterControl'].query = { condition: 'and', rules: [{ field: 'x' }] } as any;
+    block['dataFilterControl'].query = { condition: 'and', rules: [{ field: 'x' }] };
     workflowParent.getConnections.and.returnValue([]);
 
     block['buildDataset']('connectionremoved');
@@ -153,7 +153,7 @@ describe('FilterTransform', () => {
 
   it('should set status to Complete when filter rules exist on close', () => {
     const block = new FilterTransform('label', area);
-    block['dataFilterControl'].query = { condition: 'and', rules: [{ field: 'x' }] } as any;
+    block['dataFilterControl'].query = { condition: 'and', rules: [{ field: 'x' }] };
 
     block.onFilterClose();
 
@@ -162,8 +162,8 @@ describe('FilterTransform', () => {
 
   it('should serialize filter data correctly', () => {
     const block = new FilterTransform('label', area);
-    block['dataFilterControl'].query = { condition: 'and', rules: [] } as any;
-    block['dataFilterControl'].datasets = [{ id: 'd1', name: 'Data', columns: [] } as any];
+    block['dataFilterControl'].query = { condition: 'and', rules: [] };
+    block['dataFilterControl'].datasets = [{ id: 'd1', name: 'Data', columns: [] }];
     block['dataSource'] = 'datasource';
 
     const serialized = block.data();
@@ -177,7 +177,7 @@ describe('FilterTransform', () => {
 
   it('should set status to Incomplete when filter rules are empty on close', () => {
     const block = new FilterTransform('label', area);
-    block['dataFilterControl'].query = { condition: 'and', rules: [] } as any;
+    block['dataFilterControl'].query = { condition: 'and', rules: [] };
 
     block.onFilterClose();
 

@@ -102,8 +102,8 @@ describe('DataMapperComponent', () => {
 
   it('should identify mapped columns and dataset names', () => {
     const column = { id: 'col1', name: 'Column 1', type: 'string' } as any;
-    component.datasets = [{ id: 'ds1', name: 'Dataset 1', columns: [] } as any];
-    component.mappings = [{ id: 'map1', sources: [column], targetName: 'Target 1' } as any];
+    component.datasets = [{ id: 'ds1', name: 'Dataset 1', columns: [] }];
+    component.mappings = [{ id: 'map1', sources: [column], targetName: 'Target 1' }];
 
     expect(component.isColumnMapped(column)).toBeTrue();
     expect(component.getDatasetName('ds1')).toBe('Dataset 1');

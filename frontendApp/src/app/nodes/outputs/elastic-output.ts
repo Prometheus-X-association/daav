@@ -57,7 +57,7 @@ export class ElasticOutput extends OutputDataBlock {
     this.showLoader(true);
     this.datasetService.getContentDataset(dataset, null, { index: null }).subscribe({
       next: (data) => {
-        this.addOptionControls(data.indices as string[] ?? [], null, dataset.index);
+        this.addOptionControls(data.indices ?? [], null, dataset.index);
         this.showLoader(false);
       },
       error: (err) => {

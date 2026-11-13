@@ -104,9 +104,7 @@ export class RenderComponent implements OnInit, OnChanges {
 
       this.cd.detectChanges();
 
-      // debugger;
       // create dashboard based on dataset type
-      // console.log(this.dashboardContainer.nativeElement);
       for(const e of this.dashboardContainer.nativeElement.children){
         if(e.id != "dashboard-container-anchor"){
           e.remove();

@@ -37,12 +37,12 @@ describe('RenderComponent', () => {
       dbNames: [],
       tableNames: [],
       displayedColumns: [],
-      fiche: { items: [], limit: 10, total: 0, current_page: 1 } as any,
+      fiche: { items: [], limit: 10, total: 0, current_page: 1 },
       selectedDataset: { name: 'Test Dataset', id: 'test-id' } as any,
       renderTabIndex: 0,
-      pagination: { perPage: 100, page: 1 } as any,
+      pagination: { perPage: 100, page: 1 },
       datasetParams: { database: '', table: '' }
-    } as any;
+    };
     fixture.detectChanges();
   }));
 

@@ -146,7 +146,7 @@ describe('DataMysqlBlock', () => {
 
   it('should create output and update status', () => {
     spyOn(area, 'update');
-    block.createOutput({ data: [] } as any, 'db', 'table', 'dataset-id');
+    block.createOutput({ data: [] }, 'db', 'table', 'dataset-id');
 
     expect(block.dataOutput.get('out')).toEqual(jasmine.objectContaining({
       datasetId: 'dataset-id',

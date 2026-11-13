@@ -186,7 +186,7 @@ export class CredentialsSectionComponent implements OnInit {
     this.loading = true;
 
     // PUT /auth/me updates the current user and refreshes it in the AuthService
-    const failure = await firstValueFrom(this.authService.updateProfile({ config: { ...this.user!.config, credentials } }))
+    const failure = await firstValueFrom(this.authService.updateProfile({ config: { ...this.user.config, credentials } }))
       .then(() => null, (error: Error) => error);
 
     await loading.dismiss();

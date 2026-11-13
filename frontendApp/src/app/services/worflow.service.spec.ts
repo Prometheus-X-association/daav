@@ -24,7 +24,7 @@ describe('WorkflowService', () => {
   });
 
   it('should fetch workflows and update signal', () => {
-    const workflows: Project[] = [{ id: '1', name: 'w1', revision: 'r1', schema: { nodes: [], connections: [], revision: null }, dataConnectors: [] } as any];
+    const workflows: Project[] = [{ id: '1', name: 'w1', revision: 'r1', schema: { nodes: [], connections: [], revision: null }, dataConnectors: [] }];
 
     service.getWorkflows().subscribe((result) => {
       expect(result).toEqual(workflows);

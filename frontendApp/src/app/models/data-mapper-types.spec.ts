@@ -140,7 +140,7 @@ describe('DataMapperUtils', () => {
     expect(DataMapperUtils.detectTypeFieldPandas('object', value, 'tel')).toBe('phone');
     const list = ['a@b.co'] as unknown as string;
     expect(DataMapperUtils.detectTypeFieldPandas('object', list, 'contacts')).toBe('email');
-    expect(DataMapperUtils.detectTypeFieldPandas('object', null as unknown as string, 'amount')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', null, 'amount')).toBe('string');
   });
 
   it('should detect the DataType from the value type', () => {

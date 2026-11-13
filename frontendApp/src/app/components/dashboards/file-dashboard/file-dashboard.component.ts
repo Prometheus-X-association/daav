@@ -39,8 +39,6 @@ export class FileDashboardComponent extends DashboardComponent implements OnInit
     this.datasetService.editDataset(this.dataset).subscribe({
       next: (updatedDataset) => {
         console.log('Dataset updated successfully:', updatedDataset);
-        // Optionnel : mettre à jour le dataset local avec la réponse du serveur
-        // this.dataset = updatedDataset;
       },
       error: (error) => {
         console.error('Error updating dataset:', error);

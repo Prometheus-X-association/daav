@@ -28,7 +28,7 @@ describe('MysqlDashboardComponent', () => {
   function create(datasetValues: any = {}) {
     fixture = TestBed.createComponent(MysqlDashboardComponent);
     component = fixture.componentInstance;
-    component.dataset = new DatasetMySQL({ id: 'ds1', name: 'db', type: 'mysql', host: 'db', ...datasetValues } as any);
+    component.dataset = new DatasetMySQL({ id: 'ds1', name: 'db', type: 'mysql', host: 'db', ...datasetValues });
     fixture.detectChanges();
   }
 

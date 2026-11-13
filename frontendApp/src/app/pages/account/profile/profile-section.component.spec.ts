@@ -75,7 +75,7 @@ describe('ProfileSectionComponent', () => {
 
   const deactivateButton = async () => {
     await component.onDeactivateAccount();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     return (options.buttons as any[]).find(button => button.role === 'destructive');
   };
 

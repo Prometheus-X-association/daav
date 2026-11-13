@@ -15,7 +15,7 @@ describe('NodeLoaderWidgetComponent', () => {
 
     fixture = TestBed.createComponent(NodeLoaderWidgetComponent);
     component = fixture.componentInstance;
-    component.data = { id: 'test-loader', loading: false } as any; // Mock input data
+    component.data = { id: 'test-loader', loading: false }; // Mock input data
     fixture.detectChanges();
   }));
 
@@ -25,7 +25,7 @@ describe('NodeLoaderWidgetComponent', () => {
 
   it('ngOnChanges should call detectChanges on cdr', () => {
     spyOn(component.cdr, 'detectChanges');
-    component.ngOnChanges({} as any);
+    component.ngOnChanges({});
     expect(component.cdr.detectChanges).toHaveBeenCalled();
   });
 });

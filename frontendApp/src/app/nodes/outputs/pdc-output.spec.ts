@@ -31,7 +31,7 @@ describe('PdcOutput', () => {
 
     injector = TestBed.inject(Injector);
     httpClient = TestBed.inject(HttpClient);
-    spyOn(httpClient, 'get').and.returnValue(of({ dataResources: [] }) as any);
+    spyOn(httpClient, 'get').and.returnValue(of({ dataResources: [] }));
 
     const container = document.createElement('div');
     area = new AreaPlugin<Schemes, never>(container);

@@ -6,7 +6,7 @@ import { AreaExtra, Schemes } from "src/app/core/workflow-editor";
 import { AreaPlugin } from "rete-area-plugin";
 import { InputDataBlock } from "../input/input-data-block";
 
-//@daavBlock('input')
+// Example of an input block: not registered with the daavBlock decorator, so it is not offered in the editor
 export class ExampleInput extends InputDataBlock {
   override getRevision(): string {
     throw new Error("Method not implemented.");

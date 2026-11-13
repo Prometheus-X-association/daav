@@ -63,7 +63,7 @@ describe('DatasetsComponent', () => {
 
   it('should keep the action icons side by side at the end of the row in the full width list', async () => {
     component.width = 'large';
-    (component.datasetService as any).datasetsSignal.set([{ id: '1', name: 'Dataset 1', type: 'mysql', host: 'localhost', database: 'db', table: 't' } as unknown as Dataset]);
+    (component.datasetService as any).datasetsSignal.set([{ id: '1', name: 'Dataset 1', type: 'mysql', host: 'localhost', database: 'db', table: 't' }]);
     fixture.nativeElement.style.display = 'block';
     fixture.nativeElement.style.width = '1600px';
     fixture.detectChanges();

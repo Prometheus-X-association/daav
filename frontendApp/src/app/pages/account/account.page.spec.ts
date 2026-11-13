@@ -59,7 +59,7 @@ describe('AccountPage', () => {
 
   it('should logout once confirmed', async () => {
     await component.onLogout();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     (options.buttons as any[]).find(button => button.role === 'destructive').handler();
 
     expect(authServiceSpy.logout).toHaveBeenCalled();
@@ -71,7 +71,7 @@ describe('AccountPage', () => {
     const consoleError = spyOn(console, 'error');
 
     await component.onLogout();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     (options.buttons as any[]).find(button => button.role === 'destructive').handler();
     await fixture.whenStable();
 

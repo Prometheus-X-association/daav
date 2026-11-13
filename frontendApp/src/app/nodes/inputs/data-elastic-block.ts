@@ -92,7 +92,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     this.showLoader(true);
     this.datasetService.getContentDataset(dataset, { perPage: PREVIEW_SIZE, page: 1 }, { index: null }).subscribe({
       next: (data) => {
-        this.addSelectIndex(data.indices as string[]);
+        this.addSelectIndex(data.indices);
         this.showLoader(false);
       },
       error: (err) => {

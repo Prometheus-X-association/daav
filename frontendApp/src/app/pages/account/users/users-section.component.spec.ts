@@ -77,7 +77,7 @@ describe('UsersSectionComponent', () => {
 
     component.deleteUser(users[1]);
     flush();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     (options.buttons as any[]).find(button => button.role === 'destructive').handler();
     flush();
 
@@ -93,7 +93,7 @@ describe('UsersSectionComponent', () => {
 
     component.deleteUser(users[1]);
     flush();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     (options.buttons as any[]).find(button => button.role === 'destructive').handler();
     flush();
 
@@ -104,7 +104,7 @@ describe('UsersSectionComponent', () => {
   it('should keep the password dialog open and warn when the passwords differ', fakeAsync(() => {
     component.changeUserPassword(users[1]);
     flush();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     const change = (options.buttons as any[]).find(button => button.text === 'Change');
 
     expect(change.handler({ newPassword: '12345678', confirmPassword: 'other' })).toBeFalse();
@@ -119,7 +119,7 @@ describe('UsersSectionComponent', () => {
 
     component.changeUserPassword(users[1]);
     flush();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     const change = (options.buttons as any[]).find(button => button.text === 'Change');
 
     expect(change.handler({ newPassword: '12345678', confirmPassword: '12345678' })).toBeTrue();
