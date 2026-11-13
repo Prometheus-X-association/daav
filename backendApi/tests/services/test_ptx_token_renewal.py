@@ -51,6 +51,19 @@ async def test_refresh_token_gives_new_tokens(service):
     dataset.save.assert_awaited_once()
 
 
+async def test_refresh_runs_outside_the_event_loop_thread(service):
+    dataset = connection()
+    threads = []
+
+    def fake_post(*args, **kwargs):
+        threads.append(threading.current_thread())
+        return pdc_response(content={"token": "new-token"})
+
+    with patch("app.services.dataset_service.requests.post", side_effect=fake_post):
+        assert await service.ensure_runtime_ptx_tokens(dataset) is True
+    assert threads[0] is not threading.current_thread()
+
+
 async def test_refresh_without_new_refresh_token_keeps_the_old_one(service):
     dataset = connection()
     with patch("app.services.dataset_service.requests.post", return_value=pdc_response(content={"token": "new-token"})):

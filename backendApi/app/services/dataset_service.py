@@ -13,7 +13,7 @@ from fastavro import reader
 from bson import ObjectId
 from datetime import datetime, timezone
 from sqlalchemy import create_engine
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Dict, Any
 import logging
 
 from app.enums.type_connection import TypeConnection
@@ -33,6 +33,13 @@ from app.config.security import SecurityConfig
 
 logger = logging.getLogger(__name__)
 
+ACCESS_DENIED = "Access denied"
+INTERNAL_SERVER_ERROR = "Internal server error"
+
+
+class PdcConnectionError(Exception):
+    """The PDC could not be reached or did not answer the login."""
+
 # Context variable to ensure isolation of PDC chain data
 pdc_chain_data_var: ContextVar[Optional[dict]] = ContextVar('pdc_chain_data', default=None)
 pdc_chain_headers_var: ContextVar[Optional[PdcChainHeaders]] = ContextVar('pdc_chain_headers', default=None)
@@ -45,7 +52,7 @@ class DatasetService(metaclass=SingletonMeta):
     def __init__(self):
         # Keep compatibility for migration
         self.config = {"connections": []}
-        self.pdcChainData: Union[PdcChainRequestData, str, List[Any], Dict[str, Any]] = None
+        self.pdcChainData: PdcChainRequestData | str | List[Any] | Dict[str, Any] = None
         self.pdcChainHeaders: PdcChainHeaders = None
         self.user_service = UserService()
         logger.info("DatasetService initialized")
@@ -105,7 +112,7 @@ class DatasetService(metaclass=SingletonMeta):
                 return datasets
             
         except Exception as e:
-            logger.error(f"Error in get_datasets: {e}", exc_info=True)
+            logger.exception(f"Error in get_datasets: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     async def get_dataset(self, id: str, user: Optional[User] = None) -> Dataset:
@@ -138,7 +145,7 @@ class DatasetService(metaclass=SingletonMeta):
                 can_access = self.user_service.can_access_dataset(user, id)
                 if not can_access:
                     logger.warning(f"User {user.username} denied access to dataset {id}")
-                    raise HTTPException(status_code=403, detail="Access denied")
+                    raise HTTPException(status_code=403, detail=ACCESS_DENIED)
                 logger.info(f"User {user.username} successfully accessed dataset: {dataset.name}")
             else:
                 logger.info(f"System successfully accessed dataset: {dataset.name}")
@@ -148,7 +155,7 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error retrieving dataset {id}: {e}", exc_info=True)
+            logger.exception(f"Error retrieving dataset {id}: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     async def delete_dataset(self, id: str, user: User) -> bool:
@@ -160,7 +167,7 @@ class DatasetService(metaclass=SingletonMeta):
             can_modify = self.user_service.can_modify_dataset(user, id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to delete dataset {id}")
-                raise HTTPException(status_code=403, detail="Access denied")
+                raise HTTPException(status_code=403, detail=ACCESS_DENIED)
             
             dataset = await Dataset.get(id, with_children=True)
             if not dataset:
@@ -185,7 +192,7 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error deleting dataset {id}: {e}", exc_info=True)
+            logger.exception(f"Error deleting dataset {id}: {e}")
             return False
 
     def _cleanup_file_dataset(self, dataset: FileDataset):
@@ -205,7 +212,7 @@ class DatasetService(metaclass=SingletonMeta):
                         shutil.rmtree(validated_folder)
                         logger.info(f"Successfully removed folder: {validated_folder}")
                 except Exception as e:
-                    logger.error(f"Security validation failed for folder cleanup {dataset.folder}: {e}")
+                    logger.exception(f"Security validation failed for folder cleanup {dataset.folder}: {e}")
                     return
                     
             elif dataset.filePath:
@@ -221,10 +228,10 @@ class DatasetService(metaclass=SingletonMeta):
                         os.remove(validated_file)
                         logger.info(f"Successfully removed file: {validated_file}")
                 except Exception as e:
-                    logger.error(f"Security validation failed for file cleanup {dataset.filePath}: {e}")
+                    logger.exception(f"Security validation failed for file cleanup {dataset.filePath}: {e}")
                     return
         except Exception as e:
-            logger.error(f"Error cleaning up files for dataset {dataset.name}: {e}", exc_info=True)
+            logger.exception(f"Error cleaning up files for dataset {dataset.name}: {e}")
 
     async def add_connection(self, connection: DatasetUnion, user: User) -> dict:
         """Add a new connection with ownership assignment"""
@@ -256,7 +263,7 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error adding connection {connection.name}: {e}", exc_info=True)
+            logger.exception(f"Error adding connection {connection.name}: {e}")
             raise HTTPException(status_code=500, detail="Failed to add connection")
 
     async def _connection_exists(self, connection: DatasetUnion, user: User) -> bool:
@@ -359,7 +366,7 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error processing file dataset {connection.name}: {e}", exc_info=True)
+            logger.exception(f"Error processing file dataset {connection.name}: {e}")
 
         return connection
 
@@ -373,7 +380,7 @@ class DatasetService(metaclass=SingletonMeta):
                 raise PermissionError(f"Access denied to path: {path}")
             return validated_path
         except Exception as e:
-            logger.error(f"Security validation failed for path {path}: {e}")
+            logger.exception(f"Security validation failed for path {path}: {e}")
             raise HTTPException(status_code=403, detail=error_detail)
 
     # Readers of the file formats whose columns and rows are counted in the dataset metadata
@@ -412,7 +419,7 @@ class DatasetService(metaclass=SingletonMeta):
                 connection.service_key = None
                 connection.secret_key = None
             except Exception as e:
-                logger.error(f"Error connecting to PDC: {e}")
+                logger.exception(f"Error connecting to PDC: {e}")
         
         return connection
 
@@ -430,29 +437,10 @@ class DatasetService(metaclass=SingletonMeta):
             return False
         base_url = connection.url.rstrip("/")
 
-        content = None
-        if connection.refreshToken:
-            try:
-                r = requests.post(
-                    base_url + "/login/refresh",
-                    json={"refreshToken": connection.refreshToken},
-                    timeout=30,
-                )
-                if r.status_code == 200 and "json" in r.headers.get("Content-Type", ""):
-                    content = r.json().get("content")
-                else:
-                    logger.warning(f"PTX token refresh returned status {r.status_code} for dataset {connection.id}")
-            except requests.RequestException as e:
-                logger.warning(f"PTX token refresh failed for dataset {connection.id}: {e}")
-
-        if not (isinstance(content, dict) and content.get("token")) and connection.service_key and connection.secret_key:
-            try:
-                jwt = self.connect_pdc(base_url, connection.service_key, connection.secret_key)
-                content = jwt.get("content") if isinstance(jwt, dict) else None
-            except Exception as e:
-                logger.warning(f"PTX relogin failed for dataset {connection.id}: {e}")
-
-        if not (isinstance(content, dict) and content.get("token")):
+        content = await asyncio.to_thread(self._refresh_ptx_tokens, base_url, connection)
+        if not self._has_token(content) and connection.service_key and connection.secret_key:
+            content = await asyncio.to_thread(self._login_ptx, base_url, connection)
+        if not self._has_token(content):
             return False
 
         connection.token = content["token"]
@@ -464,9 +452,40 @@ class DatasetService(metaclass=SingletonMeta):
             await connection.save()
         except Exception as e:
             # The renewed token is still usable for the current request.
-            logger.error(f"Failed to persist renewed PTX tokens for dataset {connection.id}: {e}", exc_info=True)
+            logger.exception(f"Failed to persist renewed PTX tokens for dataset {connection.id}: {e}")
         logger.info(f"Renewed PTX tokens for dataset {connection.id}")
         return True
+
+    @staticmethod
+    def _has_token(content) -> bool:
+        return isinstance(content, dict) and bool(content.get("token"))
+
+    def _refresh_ptx_tokens(self, base_url: str, connection: PTXDataset):
+        """Ask the PDC for new tokens with the stored refresh token. Returns the answer content, None on failure."""
+        if not connection.refreshToken:
+            return None
+        try:
+            r = requests.post(
+                base_url + "/login/refresh",
+                json={"refreshToken": connection.refreshToken},
+                timeout=30,
+            )
+        except requests.RequestException as e:
+            logger.warning(f"PTX token refresh failed for dataset {connection.id}: {e}")
+            return None
+        if r.status_code == 200 and "json" in r.headers.get("Content-Type", ""):
+            return r.json().get("content")
+        logger.warning(f"PTX token refresh returned status {r.status_code} for dataset {connection.id}")
+        return None
+
+    def _login_ptx(self, base_url: str, connection: PTXDataset):
+        """Log in to the PDC with the service and secret keys. Returns the answer content, None on failure."""
+        try:
+            jwt = self.connect_pdc(base_url, connection.service_key, connection.secret_key)
+        except Exception as e:
+            logger.warning(f"PTX relogin failed for dataset {connection.id}: {e}")
+            return None
+        return jwt.get("content") if isinstance(jwt, dict) else None
 
     def connect_pdc(self, url, service_key, secret_key):
         """Connect to PDC and return JWT"""
@@ -491,11 +510,11 @@ class DatasetService(metaclass=SingletonMeta):
                 
             return res
         except requests.RequestException as e:
-            logger.error(f"Network error connecting to PDC {url}: {e}", exc_info=True)
-            raise Exception(f"Failed to connect to PDC: {e}")
+            logger.exception(f"Network error connecting to PDC {url}: {e}")
+            raise PdcConnectionError(f"Failed to connect to PDC: {e}") from e
         except Exception as e:
-            logger.error(f"Error connecting to PDC {url}: {e}", exc_info=True)
-            raise Exception(e)
+            logger.exception(f"Error connecting to PDC {url}: {e}")
+            raise PdcConnectionError(str(e)) from e
 
     async def edit_dataset(self, dataset: DatasetUnion, user: User) -> bool:
         """Edit an existing dataset with permission check"""
@@ -506,7 +525,7 @@ class DatasetService(metaclass=SingletonMeta):
             can_modify = self.user_service.can_modify_dataset(user, dataset.id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to edit dataset {dataset.id}")
-                raise HTTPException(status_code=403, detail="Access denied")
+                raise HTTPException(status_code=403, detail=ACCESS_DENIED)
             
             existing = await Dataset.get(dataset.id, with_children=True)
             if not existing:
@@ -528,7 +547,7 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error editing dataset: {e}", exc_info=True)
+            logger.exception(f"Error editing dataset: {e}")
             raise HTTPException(status_code=500, detail="Failed to edit dataset")
     
     async def find_file_connection(self, folder: str, name: str = None) -> FileDataset:
@@ -544,7 +563,7 @@ class DatasetService(metaclass=SingletonMeta):
                     raise HTTPException(status_code=403, detail="Access denied to folder path")
                 folder = validated_folder
             except Exception as e:
-                logger.error(f"Security validation failed for folder {folder}: {e}")
+                logger.exception(f"Security validation failed for folder {folder}: {e}")
                 raise HTTPException(status_code=403, detail="Invalid or dangerous folder path")
         
         # Search for existing connection
@@ -600,16 +619,16 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except ConnectionFailure as err:
-            logger.error(f"MongoDB connection failed for dataset {dataset.name}: {err}")
+            logger.exception(f"MongoDB connection failed for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
                               detail=f"Database error: {err}")
         except PermissionError as err:
-            logger.error(f"MongoDB permission error for dataset {dataset.name}: {err}")
+            logger.exception(f"MongoDB permission error for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                               detail=f"Permission error: {err}")
         except Exception as e:
-            logger.error(f"Unexpected error querying MongoDB dataset {dataset.name}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Unexpected error querying MongoDB dataset {dataset.name}: {e}")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
         finally:
             if client:
                 client.close()
@@ -678,16 +697,16 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except mysql.connector.Error as err:
-            logger.error(f"MySQL error for dataset {dataset.name}: {err}")
+            logger.exception(f"MySQL error for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
                               detail=f"Database error: {err}")
         except PermissionError as err:
-            logger.error(f"MySQL permission error for dataset {dataset.name}: {err}")
+            logger.exception(f"MySQL permission error for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                               detail=f"Permission error: {err}")
         except Exception as e:
-            logger.error(f"Unexpected error querying MySQL dataset {dataset.name}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Unexpected error querying MySQL dataset {dataset.name}: {e}")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
         finally:
             if engine:
                 engine.dispose()
@@ -729,12 +748,12 @@ class DatasetService(metaclass=SingletonMeta):
             raise
 
         except PermissionError as err:
-            logger.error(f"Permission error reading file {path}: {err}")
+            logger.exception(f"Permission error reading file {path}: {err}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                               detail=f"Permission error: {err}")
         except Exception as e:
-            logger.error(f"Unexpected error reading file dataset {dataset.name}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Unexpected error reading file dataset {dataset.name}: {e}")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
     @staticmethod
     def _to_node_data(df: pd.DataFrame, name: str, pagination: Pagination = None,
@@ -847,7 +866,7 @@ class DatasetService(metaclass=SingletonMeta):
             }
             
         except Exception as e:
-            logger.error(f"Debug connection error: {e}", exc_info=True)
+            logger.exception(f"Debug connection error: {e}")
             raise
 
 
