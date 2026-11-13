@@ -416,6 +416,58 @@ class DatasetService(metaclass=SingletonMeta):
         
         return connection
 
+    async def ensure_runtime_ptx_tokens(self, connection: PTXDataset) -> bool:
+        """Renew the PTX access token of a connection after an auth failure.
+
+        Tries the PDC refresh endpoint with the stored refresh token first, then
+        falls back to a fresh login when service/secret keys are still available.
+        Persists the new tokens on success.
+
+        Returns:
+            True if a new access token was obtained, False otherwise.
+        """
+        if not connection.url:
+            return False
+        base_url = connection.url.rstrip("/")
+
+        content = None
+        if connection.refreshToken:
+            try:
+                r = requests.post(
+                    base_url + "/login/refresh",
+                    json={"refreshToken": connection.refreshToken},
+                    timeout=30,
+                )
+                if r.status_code == 200 and "json" in r.headers.get("Content-Type", ""):
+                    content = r.json().get("content")
+                else:
+                    logger.warning(f"PTX token refresh returned status {r.status_code} for dataset {connection.id}")
+            except requests.RequestException as e:
+                logger.warning(f"PTX token refresh failed for dataset {connection.id}: {e}")
+
+        if not (isinstance(content, dict) and content.get("token")) and connection.service_key and connection.secret_key:
+            try:
+                jwt = self.connect_pdc(base_url, connection.service_key, connection.secret_key)
+                content = jwt.get("content") if isinstance(jwt, dict) else None
+            except Exception as e:
+                logger.warning(f"PTX relogin failed for dataset {connection.id}: {e}")
+
+        if not (isinstance(content, dict) and content.get("token")):
+            return False
+
+        connection.token = content["token"]
+        connection.refreshToken = content.get("refreshToken") or connection.refreshToken
+        connection.service_key = None
+        connection.secret_key = None
+        try:
+            connection.updated_at = datetime.now(timezone.utc)
+            await connection.save()
+        except Exception as e:
+            # The renewed token is still usable for the current request.
+            logger.error(f"Failed to persist renewed PTX tokens for dataset {connection.id}: {e}", exc_info=True)
+        logger.info(f"Renewed PTX tokens for dataset {connection.id}")
+        return True
+
     def connect_pdc(self, url, service_key, secret_key):
         """Connect to PDC and return JWT"""
         try:
