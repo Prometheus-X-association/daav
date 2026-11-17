@@ -8,8 +8,13 @@
 }
 
 
+// Leave room on the left for the copy button
+.dataset-container .dataset-name {
+    --padding-start: 50px;
+}
+
 .iconPaste {
-    left: -25px;
+    left: 8px;
     top: 35px;
     position: absolute;
     margin: unset;
