@@ -1,5 +1,5 @@
 import { Injector } from "@angular/core";
-import { BaseSchemes, NodeEditor, Root, Scope } from "rete";
+import { BaseSchemes, NodeEditor, Root } from "rete";
 import { WorkflowEditor } from "./workflow-editor";
 
 

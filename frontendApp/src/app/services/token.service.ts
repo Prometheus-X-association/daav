@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Storage } from '@ionic/storage-angular';
 
 /**
@@ -11,23 +11,27 @@ import { Storage } from '@ionic/storage-angular';
   providedIn: 'root'
 })
 export class TokenService {
+  private readonly storage = inject(Storage);
+
   private accessToken: string | null = null;
   private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly REMEMBER_ME_KEY = 'remember_me';
-  private storageInitialized = false;
-
-  constructor(private storage: Storage) {
-    this.initStorage();
-  }
+  private storageReady: Promise<void> | null = null;
 
   /**
-   * Initialize Ionic Storage
+   * Initialize Ionic Storage on first use.
+   * The pending creation is shared, so concurrent callers create the storage only once,
+   * and a failed creation is retried on the next call.
    */
-  private async initStorage(): Promise<void> {
-    if (!this.storageInitialized) {
-      await this.storage.create();
-      this.storageInitialized = true;
-    }
+  private initStorage(): Promise<void> {
+    this.storageReady ??= this.storage.create().then(
+      () => undefined,
+      (error) => {
+        this.storageReady = null;
+        throw error;
+      }
+    );
+    return this.storageReady;
   }
 
   /**
@@ -130,7 +134,7 @@ export class TokenService {
       }
 
       const payload = parts[1];
-      const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      const decoded = atob(payload.replaceAll('-', '+').replaceAll('_', '/'));
       return JSON.parse(decoded);
     } catch (error) {
       console.error('Error decoding token:', error);
@@ -145,7 +149,7 @@ export class TokenService {
   isTokenExpired(token: string): boolean {
     try {
       const decoded = this.decodeToken(token);
-      if (!decoded || !decoded.exp) {
+      if (!decoded?.exp) {
         return true;
       }
 
@@ -154,6 +158,7 @@ export class TokenService {
 
       return expirationDate < now;
     } catch (error) {
+      console.error('Error checking token expiration:', error);
       return true;
     }
   }
@@ -165,12 +170,13 @@ export class TokenService {
   getTokenExpiration(token: string): Date | null {
     try {
       const decoded = this.decodeToken(token);
-      if (!decoded || !decoded.exp) {
+      if (!decoded?.exp) {
         return null;
       }
 
       return new Date(decoded.exp * 1000);
     } catch (error) {
+      console.error('Error reading token expiration:', error);
       return null;
     }
   }
@@ -185,7 +191,7 @@ export class TokenService {
 
     try {
       const decoded = this.decodeToken(this.accessToken);
-      if (!decoded || !decoded.exp) {
+      if (!decoded?.exp) {
         return true;
       }
 
@@ -196,6 +202,7 @@ export class TokenService {
       // Refresh if less than 5 minutes until expiration
       return (expirationDate.getTime() - now.getTime()) < fiveMinutes;
     } catch (error) {
+      console.error('Error checking token refresh:', error);
       return true;
     }
   }

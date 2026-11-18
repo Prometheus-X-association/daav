@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA, Component, Input } from '@angular/core';
 import { DatasetsComponent } from './datasets.component';
@@ -10,9 +10,7 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 // Stub du composant datasets-modal pour éviter le problème de propriété read-only
 @Component({
     selector: 'app-datasets-modal',
-    template: '',
-    // eslint-disable-next-line @angular-eslint/prefer-standalone
-    standalone: false
+    template: ''
 })
 class DatasetsModalStubComponent {
   @Input() dataset: Dataset | null = null;
@@ -25,10 +23,10 @@ describe('DatasetsComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    declarations: [DatasetsComponent, DatasetsModalStubComponent],
     schemas: [NO_ERRORS_SCHEMA],
-    imports: [IonicModule.forRoot()],
+    imports: [DatasetsComponent, DatasetsModalStubComponent],
     providers: [
+        provideIonicAngular(),
         { provide: LoadingService, useValue: jasmine.createSpyObj('LoadingService', ['show', 'hide']) },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
@@ -42,6 +40,46 @@ describe('DatasetsComponent', () => {
   it('should create', () => {
     fixture.detectChanges();
     expect(component).toBeTruthy();
+  });
+
+  it('should display the edit and delete icons at their full size', async () => {
+    (component.datasetService as any).datasetsSignal.set([{ id: '1', name: 'Dataset 1', type: 'file' } as Dataset]);
+    // The list is displayed in the narrow side menu: each action column is 10% of the row
+    fixture.nativeElement.style.display = 'block';
+    fixture.nativeElement.style.width = '300px';
+    fixture.detectChanges();
+
+    // The action buttons are revealed on hover and on keyboard focus (:focus-within): show them as the hover does
+    const containers: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.iconsContainer'));
+    containers.forEach((container) => container.style.display = 'flex');
+    await fixture.whenStable();
+
+    const icons: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.icon-button ion-icon'));
+    expect(icons).toHaveSize(2);
+    for (const icon of icons) {
+      expect(icon.getBoundingClientRect().width).toBeGreaterThanOrEqual(22);
+    }
+  });
+
+  it('should keep the action icons side by side at the end of the row in the full width list', async () => {
+    component.width = 'large';
+    (component.datasetService as any).datasetsSignal.set([{ id: '1', name: 'Dataset 1', type: 'mysql', host: 'localhost', database: 'db', table: 't' }]);
+    fixture.nativeElement.style.display = 'block';
+    fixture.nativeElement.style.width = '1600px';
+    fixture.detectChanges();
+
+    const containers: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.iconsContainer'));
+    containers.forEach((container) => container.style.display = 'flex');
+    await fixture.whenStable();
+
+    // The dataset button only gives up the width of the action columns, so its columns barely move
+    const datasetButton: HTMLElement = fixture.nativeElement.querySelector('.dataset-name');
+    const [edit, remove] = containers.map((container) => container.getBoundingClientRect());
+    expect(edit.width).toBe(48);
+    expect(remove.width).toBe(48);
+    expect(edit.left).toBe(datasetButton.getBoundingClientRect().right);
+    expect(remove.left).toBe(edit.right);
+    expect(datasetButton.getBoundingClientRect().width).toBe(1600 - 2 * 48);
   });
 
   it('should open modal and set editDataset', () => {

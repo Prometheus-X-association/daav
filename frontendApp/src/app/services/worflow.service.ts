@@ -1,7 +1,6 @@
-import { Injectable, signal, computed, Signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { catchError, Observable } from 'rxjs';
-import { tap } from 'rxjs';
+import { Observable , tap } from 'rxjs';
 import { Project } from '../models/interfaces/project';
 import { BaseService } from './base.service.service';
 
@@ -10,14 +9,12 @@ import { BaseService } from './base.service.service';
   providedIn: 'root'
 })
 export class WorkflowService extends BaseService {
-  private apiUrl = this.urlBack+"/workflows";
+  private readonly http = inject(HttpClient);
 
-  private workflowsSignals = signal<Project[]>([]);
+  private readonly apiUrl = this.urlBack+"/workflows";
+
+  private readonly workflowsSignals = signal<Project[]>([]);
   workflows = this.workflowsSignals.asReadonly();
-
-  constructor(private http: HttpClient) {
-    super();
-  }
 
   // Get all workflows
   getWorkflows(): Observable<Project[]> {

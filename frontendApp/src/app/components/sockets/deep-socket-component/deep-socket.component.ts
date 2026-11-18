@@ -1,12 +1,12 @@
-import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges} from '@angular/core';
+import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges, inject } from '@angular/core';
 
 @Component({
     selector: 'app-deep-socket-component',
     template: '',
     styleUrls: ['./deep-socket.component.scss'],
-    standalone: false
 })
 export class DeepSocketComponent  implements OnChanges {
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() data!: any;
   @Input() rendered!: any;
@@ -15,7 +15,7 @@ export class DeepSocketComponent  implements OnChanges {
     return this.data.name;
   }
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor() {
     this.cdr.detach();
   }
 

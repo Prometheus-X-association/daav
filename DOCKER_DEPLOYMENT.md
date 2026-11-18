@@ -16,10 +16,22 @@ The backend image runs on `python:3.13-slim` with Gunicorn and `WORKERS` Uvicorn
 
 **Before deploying to production**, change at least:
 - Set `JWT_SECRET_KEY` and `FIELD_ENCRYPTION_KEY`: they have no default value. If they are missing, temporary keys are generated in the `backend-secrets` volume and an error is logged at every start. Copy them with `docker compose exec backend cat /app/secrets/JWT_SECRET_KEY_TMP /app/secrets/FIELD_ENCRYPTION_KEY_TMP`, set them in `backendApi/.env` or `docker-compose.yml` and save them in a secrets vault — losing `FIELD_ENCRYPTION_KEY` makes the stored dataset credentials unreadable (see [SECURITY.md](docs/SECURITY.md#application-secrets))
-- MongoDB credentials (`MONGO_INITDB_ROOT_*` and `MONGODB_URL`, plus Mongo Express settings if used)
+- The MongoDB password: the stack does not start without the `secrets/mongo_root_password` file (Docker secret used by MongoDB, the backend and Mongo Express, whose login is `admin` / this password). Create it with `python3 -c "import secrets; print(secrets.token_urlsafe(24))" > secrets/mongo_root_password` (URL-safe characters only, readable by the containers: keep the default 644 permissions). It is only applied when the `mongodb-data` volume is created: see [Changing the MongoDB password](#changing-the-mongodb-password)
 - `CORS_ORIGINS` (backend) and `CORS_ORIGIN` (frontend) to your public domain
 - `FRONTEND_URL` and the `SMTP_*` variables if password reset by email is needed
-- The default application admin password (`admin` / `Admin123!`): the UI requires changing it at first login, do it before exposing the application
+- The initial application admin password: the stack does not start without the `secrets/admin_firstlaunch` file (Docker secret, mounted at `/run/secrets/admin_firstlaunch`). Create it with `mkdir -p secrets && python3 -c "import secrets; print(secrets.token_urlsafe(16) + '-Aa1')" > secrets/admin_firstlaunch` (it must be readable by uid 1000 and meet the password policy). It is only used when no user exists; the UI requires changing it at first login, do it before exposing the application
+
+### Changing the MongoDB password
+MongoDB only reads `secrets/mongo_root_password` when the `mongodb-data` volume is created. To change the password of an
+existing database — including databases created before the secrets were introduced, whose password is `admin123` —
+write the new password to the file, then apply it with the current password:
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(24))" > secrets/mongo_root_password
+docker-compose up -d mongodb
+docker-compose exec mongodb sh -c "mongosh -u admin -p '<current password>' --authenticationDatabase admin --quiet \
+  --eval \"db.getSiblingDB('admin').changeUserPassword('admin', '\$(cat /run/secrets/mongo_root_password)')\""
+docker-compose up -d
+```
 
 ### Frontend
 The frontend uses different environment configurations:
@@ -103,7 +115,7 @@ sudo kill -9 <PID>
 docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
 
 # Test authentication
-docker-compose exec mongodb mongosh -u admin -p admin123 --authenticationDatabase admin
+docker-compose exec mongodb sh -c 'mongosh -u admin -p "$(cat /run/secrets/mongo_root_password)" --authenticationDatabase admin'
 
 # Check MongoDB logs
 docker-compose logs mongodb
@@ -211,7 +223,7 @@ docker-compose up -d backend
 #### Backup and restore
 ```bash
 # Backup MongoDB data
-docker-compose exec mongodb mongodump --out /data/backup --authenticationDatabase admin -u admin -p admin123
+docker-compose exec mongodb sh -c 'mongodump --out /data/backup --authenticationDatabase admin -u admin -p "$(cat /run/secrets/mongo_root_password)"'
 
 # Backup volumes
 docker run --rm -v daav_mongodb-data:/data -v $(pwd):/backup alpine tar czf /backup/mongodb-backup.tar.gz /data

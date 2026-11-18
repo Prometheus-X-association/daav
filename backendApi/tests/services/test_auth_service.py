@@ -170,23 +170,8 @@ async def test_login_updates_last_login(auth_service_instance, test_user):
 
 
 @pytest.mark.asyncio
-async def test_login_with_default_password_requires_change(auth_service_instance, test_admin):
-    """Test that logging in with the default admin password requires a password change"""
-    assert test_admin.must_change_password is False
-    
-    with patch('app.services.auth_service.verify_password', return_value=True), \
-         patch('app.services.auth_service.create_access_token', return_value="access_token"), \
-         patch('app.services.auth_service.create_refresh_token', return_value="refresh_token"):
-        
-        await auth_service_instance.login("adminuser", "Admin123!")
-        
-        updated_admin = await User.get(test_admin.id)
-        assert updated_admin.must_change_password is True
-
-
-@pytest.mark.asyncio
-async def test_login_with_custom_password_does_not_require_change(auth_service_instance, test_user):
-    """Test that logging in with a non-default password does not require a password change"""
+async def test_login_does_not_require_change(auth_service_instance, test_user):
+    """Test that logging in does not set a pending password change by itself"""
     with patch('app.services.auth_service.verify_password', return_value=True), \
          patch('app.services.auth_service.create_access_token', return_value="access_token"), \
          patch('app.services.auth_service.create_refresh_token', return_value="refresh_token"):
@@ -325,28 +310,8 @@ async def test_get_current_user_invalid_token(auth_service_instance):
         assert exc_info.value.status_code == 401
 
 
-# ============================================
-# ADMIN VERIFICATION TESTS
-# ============================================
-
 @pytest.mark.asyncio
-async def test_verify_admin_success(auth_service_instance, test_admin):
-    """Test admin verification with admin user"""
-    result = await auth_service_instance.verify_admin(test_admin)
-    
-    assert result is True
-
-
 @pytest.mark.asyncio
-async def test_verify_admin_non_admin_user(auth_service_instance, test_user):
-    """Test admin verification with regular user"""
-    with pytest.raises(HTTPException) as exc_info:
-        await auth_service_instance.verify_admin(test_user)
-    
-    assert exc_info.value.status_code == 403
-    assert "Admin access required" in str(exc_info.value.detail)
-
-
 # ============================================
 # PASSWORD RESET TESTS
 # ============================================
@@ -357,9 +322,7 @@ async def test_forgot_password_success(auth_service_instance, test_user):
     with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock) as mock_send_email:
         mock_send_email.return_value = True
         
-        result = await auth_service_instance.forgot_password(test_user.email)
-        
-        assert result is True
+        assert await auth_service_instance.forgot_password(test_user.email) is None
         mock_send_email.assert_called_once()
         
         # Verify reset token was created
@@ -374,10 +337,7 @@ async def test_forgot_password_success(auth_service_instance, test_user):
 async def test_forgot_password_nonexistent_email(auth_service_instance):
     """Test forgot password with non-existent email (should not reveal)"""
     with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock) as mock_send_email:
-        result = await auth_service_instance.forgot_password("nonexistent@example.com")
-        
-        # Always returns True to prevent email enumeration
-        assert result is True
+        assert await auth_service_instance.forgot_password("nonexistent@example.com") is None
         # Email should not be sent
         mock_send_email.assert_not_called()
 
@@ -389,10 +349,8 @@ async def test_forgot_password_inactive_user(auth_service_instance, test_user):
     await test_user.save()
     
     with patch.object(auth_service_instance.email_service, 'send_password_reset_email', new_callable=AsyncMock) as mock_send_email:
-        result = await auth_service_instance.forgot_password(test_user.email)
-        
-        # Returns True to prevent account status enumeration
-        assert result is True
+        # Nothing tells the caller that the account is inactive
+        assert await auth_service_instance.forgot_password(test_user.email) is None
         # Email should not be sent
         mock_send_email.assert_not_called()
 
@@ -571,8 +529,7 @@ async def test_full_password_reset_flow(auth_service_instance, test_user):
         mock_send_email.return_value = True
         mock_hash.return_value = "hashed_token"
         
-        result = await auth_service_instance.forgot_password(test_user.email)
-        assert result is True
+        assert await auth_service_instance.forgot_password(test_user.email) is None
         
         # Step 2: Reset password using token
         mock_verify.return_value = True  # Token matches

@@ -3,29 +3,27 @@ import { OutputDataBlock } from "../output/output-data-block";
 import { AreaExtra, Schemes } from "src/app/core/workflow-editor";
 import { StatusNode } from "src/app/enums/status-node";
 import { ClassicPreset } from "rete";
-import { FlatObjectSocket, SimpleFieldSocket } from "src/app/core/sockets/sockets";
+import { FlatObjectSocket } from "src/app/core/sockets/sockets";
 import { Node } from "src/app/models/interfaces/node";
 import { daavBlock } from "../node-block";
 import { DatasetFile } from "src/app/models/dataset-file";
 import { MatSelectChange } from "@angular/material/select";
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import {
   InputAutoCompleteControl,
-  inputAutoCompleteControlI,
+  InputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
-import { FileContentResponse } from "src/app/models/dataset-content-response";
 import { Dataset } from "src/app/models/dataset";
-import { DatasetType } from "src/app/enums/dataset-type";
 
 
 @daavBlock('output')
 export class FileOutput extends OutputDataBlock {
   override width = 350;
   override height = 156;
-  private node: Node;
+  private readonly node: Node;
   delimiterControl: SelectControl;
   fileTypeControl: SelectControl;
   fileNameControl: InputAutoCompleteControl;
@@ -71,7 +69,7 @@ export class FileOutput extends OutputDataBlock {
   }
 
   addFileNameControl(node? : Node) {
-    let fileNameOptions: inputAutoCompleteControlI = {
+    let fileNameOptions: InputAutoCompleteControlI = {
       value: '',
       label: 'File Name',
       list: [],
@@ -89,31 +87,31 @@ export class FileOutput extends OutputDataBlock {
     );
 
     this.addControl('fileName', this.fileNameControl);
-    this.area.update('control', this.fileNameControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.fileNameControl.id);
+    void this.area.update('node', this.id);
   }
 
   addDelimiterControl(node? : Node) {
     if (this.delimiterControl) return;
-    const delimiterOptions: selectControlI = {
+    const delimiterOptions: SelectControlI = {
       value: ',',
       list: [
         { label: 'Comma (,)', value: ',' },
         { label: 'Semicolon (;)', value: ';' },
-        { label: 'Tab (\\t)', value: '\t' },
+        { label: String.raw`Tab (\t)`, value: '\t' },
       ],
       none: false,
       label: 'Delimiter',
     };
     this.delimiterControl = new SelectControl(node?.data?.delimiterControl?node.data.delimiterControl : delimiterOptions);
     this.addControl('delimiter', this.delimiterControl);
-    this.area.update('control', this.delimiterControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.delimiterControl.id);
+    void this.area.update('node', this.id);
   }
 
   addFileTypeControl(type? : string) {
-    const fileTypeOptions: selectControlI = {
-      value: type?type : 'csv',
+    const fileTypeOptions: SelectControlI = {
+      value: type || 'csv',
       list: [
         { label: 'CSV', value: 'csv' },
         { label: 'JSON', value: 'json' },
@@ -124,15 +122,15 @@ export class FileOutput extends OutputDataBlock {
     };
     this.fileTypeControl = new SelectControl(fileTypeOptions,this.fileControlChange.bind(this));
     this.addControl('fileType', this.fileTypeControl);
-    this.area.update('control', this.fileTypeControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.fileTypeControl.id);
+    void this.area.update('node', this.id);
     if (fileTypeOptions.value === 'csv') {
       this.addDelimiterControl();
     }
   }
 
     addFileExistControl(node? : Node) {
-    const fileTypeOptions: selectControlI = {
+    const fileTypeOptions: SelectControlI = {
       value: 'replace',
       list: [
         { label: 'Replace', value: 'replace' },
@@ -143,8 +141,8 @@ export class FileOutput extends OutputDataBlock {
     };
     this.fileExistControl = new SelectControl(node?.data?.fileExist ? node.data.fileExist: fileTypeOptions,this.fileControlChange.bind(this));
     this.addControl('fileExist', this.fileExistControl);
-    this.area.update('control', this.fileExistControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.fileExistControl.id);
+    void this.area.update('node', this.id);
   }
 
   /**
@@ -215,7 +213,7 @@ export class FileOutput extends OutputDataBlock {
     this.fileNameControl = null;
     this.fileTypeControl = null;
     this.fileExistControl = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
 
     if (event.value) {
       const dataset = this.datasetService
@@ -241,7 +239,7 @@ export class FileOutput extends OutputDataBlock {
     } else {
       this.removeControl('delimiter');
       this.delimiterControl = null;
-      this.area.update('node', this.id);
+      void this.area.update('node', this.id);
     }
   }
 
@@ -270,8 +268,8 @@ export class FileOutput extends OutputDataBlock {
           }
 
           // Update the view
-          this.area.update('control', this.selectControl.id);
-          this.area.update('node', this.id);
+          void this.area.update('control', this.selectControl.id);
+          void this.area.update('node', this.id);
         }
       });
     }

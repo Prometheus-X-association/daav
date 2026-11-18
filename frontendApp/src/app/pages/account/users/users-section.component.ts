@@ -1,9 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AlertController, ToastController } from '@ionic/angular';
+import { AlertController, ToastController, IonBadge, IonButton, IonIcon, IonNote, IonSpinner } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { eyeOffOutline, eyeOutline, keyOutline, peopleOutline, personAddOutline, refreshOutline, trashOutline } from 'ionicons/icons';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 import { formatAccountDate } from '../account-utils';
+import { UpperCasePipe } from '@angular/common';
+import { Observable } from 'rxjs';
 
 /**
  * Account page section: user management (Admin only)
@@ -12,18 +16,20 @@ import { formatAccountDate } from '../account-utils';
     selector: 'app-users-section',
     templateUrl: './users-section.component.html',
     styleUrls: ['./users-section.component.scss'],
-    standalone: false
+    imports: [IonBadge, IonButton, IonIcon, IonNote, IonSpinner, UpperCasePipe]
 })
 export class UsersSectionComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
+  private readonly router = inject(Router);
+
   allUsers: User[] = [];
   loadingUsers = false;
 
-  constructor(
-    private authService: AuthService,
-    private toastController: ToastController,
-    private alertController: AlertController,
-    private router: Router
-  ) {}
+  constructor() {
+    addIcons({ eyeOffOutline, eyeOutline, keyOutline, peopleOutline, personAddOutline, refreshOutline, trashOutline });
+  }
 
   ngOnInit() {
     this.loadAllUsers();
@@ -52,9 +58,9 @@ export class UsersSectionComponent implements OnInit {
         this.allUsers = users;
         this.loadingUsers = false;
       },
-      error: async (error) => {
+      error: (error) => {
         this.loadingUsers = false;
-        await this.showToast('Failed to load users: ' + error.message, 'danger');
+        void this.showToast('Failed to load users: ' + error.message, 'danger');
       }
     });
   }
@@ -82,15 +88,11 @@ export class UsersSectionComponent implements OnInit {
           text: 'Deactivate',
           role: 'destructive',
           handler: (data) => {
-            this.authService.deactivateUser(user.id, data.reason).subscribe({
-              next: async () => {
-                await this.showToast(`User ${user.username} deactivated successfully`, 'success');
-                this.loadAllUsers();
-              },
-              error: async (error) => {
-                await this.showToast('Failed to deactivate user: ' + error.message, 'danger');
-              }
-            });
+            this.runUserAction(
+              this.authService.deactivateUser(user.id, data.reason),
+              `User ${user.username} deactivated successfully`,
+              'Failed to deactivate user: '
+            );
           }
         }
       ]
@@ -114,15 +116,11 @@ export class UsersSectionComponent implements OnInit {
         {
           text: 'Activate',
           handler: () => {
-            this.authService.activateUser(user.id).subscribe({
-              next: async () => {
-                await this.showToast(`User ${user.username} activated successfully`, 'success');
-                this.loadAllUsers();
-              },
-              error: async (error) => {
-                await this.showToast('Failed to activate user: ' + error.message, 'danger');
-              }
-            });
+            this.runUserAction(
+              this.authService.activateUser(user.id),
+              `User ${user.username} activated successfully`,
+              'Failed to activate user: '
+            );
           }
         }
       ]
@@ -147,15 +145,11 @@ export class UsersSectionComponent implements OnInit {
           text: 'Delete',
           role: 'destructive',
           handler: () => {
-            this.authService.deleteUser(user.id).subscribe({
-              next: async () => {
-                await this.showToast(`User ${user.username} deleted successfully`, 'success');
-                this.loadAllUsers();
-              },
-              error: async (error) => {
-                await this.showToast('Failed to delete user: ' + error.message, 'danger');
-              }
-            });
+            this.runUserAction(
+              this.authService.deleteUser(user.id),
+              `User ${user.username} deleted successfully`,
+              'Failed to delete user: '
+            );
           }
         }
       ]
@@ -195,23 +189,21 @@ export class UsersSectionComponent implements OnInit {
           text: 'Change',
           handler: (data) => {
             if (!data.newPassword || data.newPassword.length < 8) {
-              this.showToast('Password must be at least 8 characters', 'warning');
+              void this.showToast('Password must be at least 8 characters', 'warning');
               return false;
             }
             if (data.newPassword !== data.confirmPassword) {
-              this.showToast('Passwords do not match', 'warning');
+              void this.showToast('Passwords do not match', 'warning');
               return false;
             }
 
             // Use updateUser to change password via PUT /auth/users/{id}
-            this.authService.updateUser(user.id, { password: data.newPassword }).subscribe({
-              next: async () => {
-                await this.showToast(`Password changed successfully for ${user.username}`, 'success');
-              },
-              error: async (error) => {
-                await this.showToast('Failed to change password: ' + error.message, 'danger');
-              }
-            });
+            this.runUserAction(
+              this.authService.updateUser(user.id, { password: data.newPassword }),
+              `Password changed successfully for ${user.username}`,
+              'Failed to change password: ',
+              false
+            );
             return true;
           }
         }
@@ -222,22 +214,43 @@ export class UsersSectionComponent implements OnInit {
   }
 
   /**
-   * Navigate to create user (register page)
+   * Run an action on a user and report its result, then reload the users if requested
    */
-  createNewUser() {
-    this.router.navigate(['/register']);
+  private runUserAction(action: Observable<unknown>, successMessage: string, errorPrefix: string, reloadUsers = true) {
+    action.subscribe({
+      next: () => {
+        void this.showToast(successMessage, 'success');
+        if (reloadUsers) {
+          this.loadAllUsers();
+        }
+      },
+      error: (error) => {
+        void this.showToast(errorPrefix + error.message, 'danger');
+      }
+    });
   }
 
   /**
-   * Show toast message
+   * Navigate to create user (register page)
+   */
+  createNewUser() {
+    void this.router.navigate(['/register']);
+  }
+
+  /**
+   * Show toast message, a failure is only logged (the toasts are not awaited)
    */
   private async showToast(message: string, color: string = 'primary') {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      color,
-      position: 'top'
-    });
-    await toast.present();
+    try {
+      const toast = await this.toastController.create({
+        message,
+        duration: 3000,
+        color,
+        position: 'top'
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('Failed to show toast:', error);
+    }
   }
 }

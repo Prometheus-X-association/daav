@@ -14,12 +14,8 @@ ion-list {
     .options-container {
         display: none;
     }
-    // Actions are revealed on hover and on keyboard focus
-    &:hover>.dataset-name,
-    &:focus-within>.dataset-name {
-      width : 70%! important;
-    }
-
+    // Actions are revealed on hover and on keyboard focus: the dataset button gives up only
+    // the width of the action columns (it takes the remaining space, see .dataset-name)
     &:hover>.iconsContainer,
     &:focus-within>.iconsContainer {
         display: flex;
@@ -37,7 +33,7 @@ ion-list {
 
 .dataset-container:nth-of-type(odd) {
     &::part(native) {
-        background-color: var(--grayLight) !important;
+        background-color: var(--grayLight);
     }
 }
 
@@ -46,7 +42,7 @@ ion-list {
     transition: var(--custom-transition);
 
     &:hover {
-        background-color: var(--bluePtxLight) !important;
+        background-color: var(--bluePtxLight);
     }
 }
 
@@ -56,7 +52,8 @@ ion-list {
     font-weight: 650;
     --background-hover: transparent;
     --background-hover-opacity: 1;
-    width: 100%;
+    flex: 1 1 0;
+    min-width: 0;
     margin: 0px;
     height: 100%;
 
@@ -68,9 +65,9 @@ ion-list {
     .dataset-info-container {
         width: 15%;
         max-width: 200px;
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: flex-start !important;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
         padding: 10px 0px;
         margin-right: 40px;
 
@@ -85,10 +82,10 @@ ion-list {
 }
 
 .datasets-infos-container {
-    width: 100% !important;
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: flex-start !important;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
 
     &.large .dataset-info {
         overflow: hidden;
@@ -104,41 +101,37 @@ ion-list {
 }
 
 .active-dataset {
-    background-color: var(--bluePtx) !important;
+    background-color: var(--bluePtx);
     --background-hover: var(--bluePtx);
-    color: var(--white) !important;
+    color: var(--white);
 
     &::part(native) {
-        background-color: var(--bluePtx) !important;
+        background-color: var(--bluePtx);
         --background-hover: var(--bluePtx);
-        color: var(--white) !important;
+        color: var(--white);
     }
 
     .dataset-info {
-        color: var(--white) !important;
+        color: var(--white);
     }
 }
 
 // Change and delete icons ---------------------------------------------------------
 .iconsContainer {
-    margin-left: auto;
+    // Fixed width: a share of the row would spread the icons apart and squeeze the dataset
+    // columns in the full width list
+    flex: 0 0 48px;
     height: 100%;
     display: none;
     cursor: pointer;
     transition: var(--custom-transition);
-    width: 10%;
-    max-width: 80px;
-
-    &:last-of-type {
-        //padding-right: 15px;
-    }
 
     &:hover,
     &:focus-within {
         background-color: var(--darkPtx);
 
         ion-icon {
-            color: var(--white) !important;
+            color: var(--white);
         }
     }
 }
@@ -163,7 +156,9 @@ ion-list {
 
 ion-icon {
     font-size: 22px;
-    margin: 0px 15px;
+    // ion-icon has "contain: strict": in the flex .icon-button it would shrink, down to nothing
+    // with a horizontal margin. The button already centers it in the whole action column.
+    flex-shrink: 0;
     color: var(--darkPtx);
     transition: var(--custom-transition);
 }

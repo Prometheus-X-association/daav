@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { LoadingController, ToastController } from '@ionic/angular';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { LoadingController, ToastController, IonButton, IonInput, IonInputPasswordToggle, IonSpinner } from '@ionic/angular/standalone';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 
 /**
@@ -10,18 +11,16 @@ import { AuthService } from '../../../services/auth.service';
     selector: 'app-security-section',
     templateUrl: './security-section.component.html',
     styleUrls: ['./security-section.component.scss'],
-    standalone: false
+    imports: [FormsModule, ReactiveFormsModule, IonButton, IonInput, IonInputPasswordToggle, IonSpinner]
 })
 export class SecuritySectionComponent implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly toastController = inject(ToastController);
+  private readonly loadingController = inject(LoadingController);
+
   changePasswordForm!: FormGroup;
   loading = false;
-
-  constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private toastController: ToastController,
-    private loadingController: LoadingController
-  ) {}
 
   ngOnInit() {
     this.changePasswordForm = this.formBuilder.group({
@@ -57,19 +56,19 @@ export class SecuritySectionComponent implements OnInit {
 
     this.loading = true;
 
-    this.authService.changePassword(currentPassword, newPassword).subscribe({
-      next: async () => {
-        await loading.dismiss();
-        this.loading = false;
-        this.changePasswordForm.reset();
-        await this.showToast('Password changed successfully', 'success');
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
-        await this.showToast(error.message || 'Failed to change password', 'danger');
-      }
-    });
+    const failure = await firstValueFrom(this.authService.changePassword(currentPassword, newPassword))
+      .then(() => null, (error: Error) => error);
+
+    await loading.dismiss();
+    this.loading = false;
+
+    if (failure) {
+      await this.showToast(failure.message || 'Failed to change password', 'danger');
+      return;
+    }
+
+    this.changePasswordForm.reset();
+    await this.showToast('Password changed successfully', 'success');
   }
 
   /**

@@ -149,3 +149,24 @@ class TestSecurityMiddleware:
 
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
+def test_cors_headers_on_security_middleware_errors():
+    """CORSMiddleware is the outermost middleware of the application, so the errors returned by
+    SecurityMiddleware still carry the CORS headers and are readable by the frontend"""
+    from fastapi.middleware.cors import CORSMiddleware
+    from app.main import app
+    from app.config.settings import settings
+
+    # user_middleware lists the middlewares from the outermost to the innermost
+    assert app.user_middleware[0].cls is CORSMiddleware
+
+    if not settings.security_enabled:
+        pytest.skip("SecurityMiddleware disabled")
+    origin = settings.cors_origins[0]
+    oversized = str(10 * settings.max_file_size + 1)
+    # Without the context manager, the lifespan (database connection) does not run
+    response = TestClient(app).post("/health", headers={"Origin": origin, "Content-Length": oversized}, content=b"")
+
+    assert response.status_code == 413
+    assert response.headers.get("access-control-allow-origin") == origin

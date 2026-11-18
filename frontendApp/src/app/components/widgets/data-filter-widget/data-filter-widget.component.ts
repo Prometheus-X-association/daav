@@ -1,7 +1,10 @@
-import { ChangeDetectorRef, Component, Input } from "@angular/core";
+import { ChangeDetectorRef, Component, Input, inject } from "@angular/core";
 import { OverlayEventDetail } from "@ionic/core";
 import { ClassicPreset } from "rete";
 import { DatasetMapper } from "src/app/models/data-mapper-types";
+import { IonButton, IonContent, IonHeader, IonModal, IonTitle } from "@ionic/angular/standalone";
+import { DataFilterComponent } from "../../data-filter/data-filter.component";
+import { HasDatasetsPipe } from "../../../models/data-mapper-types";
 
 export class DataFilterControl extends ClassicPreset.Control{
   public buttonDisabled = false;
@@ -28,17 +31,12 @@ export class DataFilterControl extends ClassicPreset.Control{
 @Component({
     selector: 'app-data-filter-widget',
     templateUrl: './data-filter-widget.component.html',
-    styleUrls: ['./data-filter-widget.component.scss'],
-    standalone: false
+    imports: [IonButton, IonContent, IonHeader, IonModal, IonTitle, DataFilterComponent, HasDatasetsPipe]
 })
 export class DataFilterWidgetComponent{
   @Input() data: DataFilterControl;
   isModalOpen = false;
-  cdr: ChangeDetectorRef;
-
-  constructor(cdr: ChangeDetectorRef){
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
 
   onWillDismiss(event: Event){
     const ev = event as CustomEvent<OverlayEventDetail<string>>;

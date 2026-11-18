@@ -1,19 +1,24 @@
-import { Component, Input, Output, EventEmitter, ViewChild, output } from '@angular/core';
-// import { Observable } from 'rxjs';
+import { Component, Input, Output, EventEmitter, ViewChild, inject } from '@angular/core';
 import { Dataset } from 'src/app/models/dataset';
-import { DataRenderTypes } from 'src/app/models/data-render-types';
 import { DatasetService } from 'src/app/services/dataset.service';
 import { DatasetsModalComponent } from '../../datasets-modal/datasets-modal.component';
 import { LoadingService } from 'src/app/services/loading.service';
+import { IonButton, IonIcon, IonItem, IonList } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { createOutline, trashOutline } from 'ionicons/icons';
+import { NgClass } from '@angular/common';
 
 @Component({
     selector: 'app-datasets',
     templateUrl: './datasets.component.html',
     styleUrls: ['./datasets.component.scss'],
-    standalone: false
+    imports: [IonButton, IonIcon, IonItem, IonList, NgClass, DatasetsModalComponent]
 })
 
 export class DatasetsComponent {
+  datasetService = inject(DatasetService);
+  loadingService = inject(LoadingService);
+
   editDataset:Dataset;
 
   @ViewChild("datasetModal", { static: false }) datasetModal: DatasetsModalComponent;
@@ -21,7 +26,9 @@ export class DatasetsComponent {
   @Output() selectedDataset = new EventEmitter<Dataset>();
   dataset: Dataset;
 
-  constructor(public datasetService : DatasetService, public loadingService : LoadingService) {}
+  constructor() {
+    addIcons({ createOutline, trashOutline });
+  }
 
   openModal(dataset: Dataset){
     this.editDataset = dataset;

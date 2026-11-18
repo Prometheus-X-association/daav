@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 
 import { NodeLoaderWidgetComponent } from './node-loader-widget.component';
 
@@ -9,13 +9,13 @@ describe('NodeLoaderWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ NodeLoaderWidgetComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [NodeLoaderWidgetComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(NodeLoaderWidgetComponent);
     component = fixture.componentInstance;
-    component.data = { id: 'test-loader', loading: false } as any; // Mock input data
+    component.data = { id: 'test-loader', loading: false }; // Mock input data
     fixture.detectChanges();
   }));
 
@@ -25,7 +25,7 @@ describe('NodeLoaderWidgetComponent', () => {
 
   it('ngOnChanges should call detectChanges on cdr', () => {
     spyOn(component.cdr, 'detectChanges');
-    component.ngOnChanges({} as any);
+    component.ngOnChanges({});
     expect(component.cdr.detectChanges).toHaveBeenCalled();
   });
 });

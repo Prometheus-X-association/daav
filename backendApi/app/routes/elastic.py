@@ -4,9 +4,9 @@ Index deletion is deliberately not exposed.
 """
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
 from app.middleware.auth import CurrentUser
@@ -16,6 +16,7 @@ from app.services.dataset_service import DatasetService
 from app.services.elastic_service import ElasticService
 from app.services.user_service import UserService
 from app.utils.utils import generate_pandas_schema
+from app.routes.responses import error_responses
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/datasets", tags=["elasticsearch"],
@@ -65,21 +66,25 @@ async def _get_elastic_dataset(dataset_id: str, user) -> ElasticDataset:
     return dataset
 
 
-@router.get("/{dataset_id}/elastic/info")
+@router.get("/{dataset_id}/elastic/info", responses=error_responses(400))
 async def cluster_info(dataset_id: str, current_user: CurrentUser) -> Dict[str, Any]:
     """Cluster name, version and health"""
     dataset = await _get_elastic_dataset(dataset_id, current_user)
     return await asyncio.to_thread(elastic_service.info, dataset)
 
 
-@router.get("/{dataset_id}/elastic/indices")
-async def list_indices(dataset_id: str, current_user: CurrentUser, includeHidden: bool = False) -> List[Dict[str, Any]]:
+@router.get("/{dataset_id}/elastic/indices", responses=error_responses(400))
+async def list_indices(
+    dataset_id: str,
+    current_user: CurrentUser,
+    include_hidden: Annotated[bool, Query(alias="includeHidden")] = False,
+) -> List[Dict[str, Any]]:
     """Indices visible with the dataset credentials, with document count, size and aliases"""
     dataset = await _get_elastic_dataset(dataset_id, current_user)
-    return await asyncio.to_thread(elastic_service.list_indices, dataset, includeHidden)
+    return await asyncio.to_thread(elastic_service.list_indices, dataset, include_hidden)
 
 
-@router.get("/{dataset_id}/elastic/indices/{index}/mapping")
+@router.get("/{dataset_id}/elastic/indices/{index}/mapping", responses=error_responses(400, 422))
 async def get_mapping(dataset_id: str, index: str, current_user: CurrentUser) -> Dict[str, Any]:
     try:
         _validate_es_index(index)
@@ -89,11 +94,11 @@ async def get_mapping(dataset_id: str, index: str, current_user: CurrentUser) ->
     return await asyncio.to_thread(elastic_service.get_mapping, dataset, index)
 
 
-@router.post("/{dataset_id}/elastic/indices", status_code=status.HTTP_201_CREATED)
+@router.post("/{dataset_id}/elastic/indices", status_code=status.HTTP_201_CREATED, responses=error_responses(400, 403))
 async def create_index(dataset_id: str, request: CreateIndexRequest, current_user: CurrentUser) -> Dict[str, Any]:
     """Create an index (owner only)"""
     dataset = await _get_elastic_dataset(dataset_id, current_user)
-    if not await user_service.can_modify_dataset(current_user, dataset_id):
+    if not user_service.can_modify_dataset(current_user, dataset_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     await asyncio.to_thread(elastic_service.create_index, dataset, request.index,
                             request.mappings, request.settings)
@@ -101,7 +106,7 @@ async def create_index(dataset_id: str, request: CreateIndexRequest, current_use
     return {"index": request.index, "created": True}
 
 
-@router.post("/{dataset_id}/elastic/query")
+@router.post("/{dataset_id}/elastic/query", responses=error_responses(400))
 async def query_index(dataset_id: str, request: QueryRequest, current_user: CurrentUser) -> QueryResponse:
     """Run a query and return one page of documents with the total number of matches"""
     dataset = await _get_elastic_dataset(dataset_id, current_user)
@@ -112,7 +117,7 @@ async def query_index(dataset_id: str, request: QueryRequest, current_user: Curr
     return QueryResponse(total=total, data=data)
 
 
-@router.post("/{dataset_id}/elastic/sample")
+@router.post("/{dataset_id}/elastic/sample", responses=error_responses(400))
 async def sample(dataset_id: str, request: QueryRequest, current_user: CurrentUser) -> NodeDataPandasDf:
     """Sample of a query as node data, used to preview the Elasticsearch input node"""
     dataset = await _get_elastic_dataset(dataset_id, current_user)

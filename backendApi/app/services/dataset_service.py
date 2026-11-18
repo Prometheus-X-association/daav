@@ -1,5 +1,6 @@
 # dataset_service.py
 
+import asyncio
 from contextvars import ContextVar
 import os
 import json
@@ -12,7 +13,7 @@ from fastavro import reader
 from bson import ObjectId
 from datetime import datetime, timezone
 from sqlalchemy import create_engine
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Dict, Any
 import logging
 
 from app.enums.type_connection import TypeConnection
@@ -32,6 +33,13 @@ from app.config.security import SecurityConfig
 
 logger = logging.getLogger(__name__)
 
+ACCESS_DENIED = "Access denied"
+INTERNAL_SERVER_ERROR = "Internal server error"
+
+
+class PdcConnectionError(Exception):
+    """The PDC could not be reached or did not answer the login."""
+
 # Context variable to ensure isolation of PDC chain data
 pdc_chain_data_var: ContextVar[Optional[dict]] = ContextVar('pdc_chain_data', default=None)
 pdc_chain_headers_var: ContextVar[Optional[PdcChainHeaders]] = ContextVar('pdc_chain_headers', default=None)
@@ -44,7 +52,7 @@ class DatasetService(metaclass=SingletonMeta):
     def __init__(self):
         # Keep compatibility for migration
         self.config = {"connections": []}
-        self.pdcChainData: Union[PdcChainRequestData, str, List[Any], Dict[str, Any]] = None
+        self.pdcChainData: PdcChainRequestData | str | List[Any] | Dict[str, Any] = None
         self.pdcChainHeaders: PdcChainHeaders = None
         self.user_service = UserService()
         logger.info("DatasetService initialized")
@@ -104,7 +112,7 @@ class DatasetService(metaclass=SingletonMeta):
                 return datasets
             
         except Exception as e:
-            logger.error(f"Error in get_datasets: {e}", exc_info=True)
+            logger.exception(f"Error in get_datasets: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     async def get_dataset(self, id: str, user: Optional[User] = None) -> Dataset:
@@ -134,10 +142,10 @@ class DatasetService(metaclass=SingletonMeta):
 
             # Only check permissions if user is provided
             if user:
-                can_access = await self.user_service.can_access_dataset(user, id)
+                can_access = self.user_service.can_access_dataset(user, id)
                 if not can_access:
                     logger.warning(f"User {user.username} denied access to dataset {id}")
-                    raise HTTPException(status_code=403, detail="Access denied")
+                    raise HTTPException(status_code=403, detail=ACCESS_DENIED)
                 logger.info(f"User {user.username} successfully accessed dataset: {dataset.name}")
             else:
                 logger.info(f"System successfully accessed dataset: {dataset.name}")
@@ -147,7 +155,7 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error retrieving dataset {id}: {e}", exc_info=True)
+            logger.exception(f"Error retrieving dataset {id}: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     async def delete_dataset(self, id: str, user: User) -> bool:
@@ -156,10 +164,10 @@ class DatasetService(metaclass=SingletonMeta):
             logger.info(f"User {user.username} attempting to delete dataset with ID: {id}")
             
             # Check permission using user_service
-            can_modify = await self.user_service.can_modify_dataset(user, id)
+            can_modify = self.user_service.can_modify_dataset(user, id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to delete dataset {id}")
-                raise HTTPException(status_code=403, detail="Access denied")
+                raise HTTPException(status_code=403, detail=ACCESS_DENIED)
             
             dataset = await Dataset.get(id, with_children=True)
             if not dataset:
@@ -184,7 +192,7 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error deleting dataset {id}: {e}", exc_info=True)
+            logger.exception(f"Error deleting dataset {id}: {e}")
             return False
 
     def _cleanup_file_dataset(self, dataset: FileDataset):
@@ -204,7 +212,7 @@ class DatasetService(metaclass=SingletonMeta):
                         shutil.rmtree(validated_folder)
                         logger.info(f"Successfully removed folder: {validated_folder}")
                 except Exception as e:
-                    logger.error(f"Security validation failed for folder cleanup {dataset.folder}: {e}")
+                    logger.exception(f"Security validation failed for folder cleanup {dataset.folder}: {e}")
                     return
                     
             elif dataset.filePath:
@@ -220,10 +228,10 @@ class DatasetService(metaclass=SingletonMeta):
                         os.remove(validated_file)
                         logger.info(f"Successfully removed file: {validated_file}")
                 except Exception as e:
-                    logger.error(f"Security validation failed for file cleanup {dataset.filePath}: {e}")
+                    logger.exception(f"Security validation failed for file cleanup {dataset.filePath}: {e}")
                     return
         except Exception as e:
-            logger.error(f"Error cleaning up files for dataset {dataset.name}: {e}", exc_info=True)
+            logger.exception(f"Error cleaning up files for dataset {dataset.name}: {e}")
 
     async def add_connection(self, connection: DatasetUnion, user: User) -> dict:
         """Add a new connection with ownership assignment"""
@@ -241,7 +249,7 @@ class DatasetService(metaclass=SingletonMeta):
                 connection = self._process_file_dataset(connection)
             elif isinstance(connection, PTXDataset):
                 logger.debug(f"Processing PTX dataset: {connection.name}")
-                connection = self._process_ptx_dataset(connection)
+                connection = await asyncio.to_thread(self._process_ptx_dataset, connection)
             
             # Save dataset first
             await connection.insert()
@@ -252,8 +260,10 @@ class DatasetService(metaclass=SingletonMeta):
             logger.info(f"User {user.username} successfully added connection: {connection.name} (Type: {connection.type})")
             return {"status": "Connection added"}
             
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Error adding connection {connection.name}: {e}", exc_info=True)
+            logger.exception(f"Error adding connection {connection.name}: {e}")
             raise HTTPException(status_code=500, detail="Failed to add connection")
 
     async def _connection_exists(self, connection: DatasetUnion, user: User) -> bool:
@@ -324,72 +334,75 @@ class DatasetService(metaclass=SingletonMeta):
     def _process_file_dataset(self, connection: FileDataset) -> FileDataset:
         """Process a file dataset to extract metadata"""
         try:
-            if connection.filePath:
-                # SECURITY: Validate file path before processing
-                try:
-                    validated_path = PathSecurityValidator.validate_file_path(connection.filePath)
-                    allowed_dirs = SecurityConfig.get_allowed_base_directories()
-                    if not FileAccessController.can_read_file(validated_path, allowed_dirs):
-                        logger.error(f"Access denied to file path: {connection.filePath}")
-                        raise HTTPException(status_code=403, detail="Access denied to file path")
-                    connection.filePath = validated_path
-                except Exception as e:
-                    logger.error(f"Security validation failed for file path {connection.filePath}: {e}")
-                    raise HTTPException(status_code=403, detail="Invalid or dangerous file path")
-                
-                if os.path.exists(connection.filePath):
-                    logger.debug(f"Processing file metadata for: {connection.filePath}")
-                    stats = os.stat(connection.filePath)
-                file_size = stats.st_size
-                
-                logger.debug(f"File size: {file_size} bytes for {connection.filePath}")
-                
-                # Calculate column and row count by file type
-                column_count = "0"
-                row_count = "0"
-                
-                try:
-                    if connection.filePath.endswith('.csv'):
-                        df = pd.read_csv(connection.filePath, 
-                                       header=int(connection.csvHeader), 
-                                       delimiter=connection.csvDelimiter or ',')
-                        column_count = str(len(df.columns))
-                        row_count = str(len(df))
-                    elif connection.filePath.endswith('.json'):
-                        df = pd.read_json(connection.filePath)
-                        column_count = str(df.shape[1])
-                        row_count = str(df.shape[0])
-                    elif connection.filePath.endswith(('.xlsx', '.xls')):
-                        df = pd.read_excel(connection.filePath)
-                        column_count = str(df.shape[1])
-                        row_count = str(df.shape[0])
-                    elif connection.filePath.endswith('.parquet'):
-                        df = pd.read_parquet(connection.filePath)
-                        column_count = str(df.shape[1])
-                        row_count = str(df.shape[0])
-                    # Add more file types as needed
-                            
-                except Exception as e:
-                    logger.warning(f"Error processing file metadata: {e}")
-                
-                from app.models.interface.dataset_interface import DatasetMetadata
-                connection.metadata = DatasetMetadata(
-                    fileSize=str(convert_size(stats.st_size)),
-                    fileType=connection.filePath.rsplit('.', 1)[1] if '.' in connection.filePath else 'unknown',
-                    modifTime=str(datetime.fromtimestamp(stats.st_mtime, tz=timezone.utc)).rsplit('.', 1)[0],
-                    accessTime=str(datetime.fromtimestamp(stats.st_atime, tz=timezone.utc)).rsplit('.', 1)[0],
-                    columnCount=column_count,
-                    rowCount=row_count
-                )
-                
-                logger.info(f"Successfully processed file dataset metadata for: {connection.filePath}")
-            else:
+            if not connection.filePath:
                 logger.warning(f"File not found or path not specified for dataset: {connection.name}")
-                
+                return connection
+
+            # SECURITY: Validate file path before processing
+            connection.filePath = self._validated_readable_path(connection.filePath, "Invalid or dangerous file path")
+
+            if not os.path.exists(connection.filePath):
+                logger.warning(f"File not found for dataset: {connection.name}")
+                return connection
+
+            logger.debug(f"Processing file metadata for: {connection.filePath}")
+            stats = os.stat(connection.filePath)
+            logger.debug(f"File size: {stats.st_size} bytes for {connection.filePath}")
+
+            column_count, row_count = self._count_columns_rows(connection)
+
+            from app.models.interface.dataset_interface import DatasetMetadata
+            connection.metadata = DatasetMetadata(
+                fileSize=str(convert_size(stats.st_size)),
+                fileType=connection.filePath.rsplit('.', 1)[1] if '.' in connection.filePath else 'unknown',
+                modifTime=str(datetime.fromtimestamp(stats.st_mtime, tz=timezone.utc)).rsplit('.', 1)[0],
+                accessTime=str(datetime.fromtimestamp(stats.st_atime, tz=timezone.utc)).rsplit('.', 1)[0],
+                columnCount=column_count,
+                rowCount=row_count
+            )
+
+            logger.info(f"Successfully processed file dataset metadata for: {connection.filePath}")
+
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Error processing file dataset {connection.name}: {e}", exc_info=True)
-        
+            logger.exception(f"Error processing file dataset {connection.name}: {e}")
+
         return connection
+
+    @staticmethod
+    def _validated_readable_path(path: str, error_detail: str) -> str:
+        """Validate a path and check that it is in an allowed directory; 403 with error_detail otherwise."""
+        try:
+            validated_path = PathSecurityValidator.validate_file_path(path)
+            allowed_dirs = SecurityConfig.get_allowed_base_directories()
+            if not FileAccessController.can_read_file(validated_path, allowed_dirs):
+                raise PermissionError(f"Access denied to path: {path}")
+            return validated_path
+        except Exception as e:
+            logger.exception(f"Security validation failed for path {path}: {e}")
+            raise HTTPException(status_code=403, detail=error_detail)
+
+    # Readers of the file formats whose columns and rows are counted in the dataset metadata
+    _METADATA_READERS = (
+        ('.csv', lambda connection: pd.read_csv(connection.filePath,
+                                                header=int(connection.csvHeader),
+                                                delimiter=connection.csvDelimiter or ',')),
+        ('.json', lambda connection: pd.read_json(connection.filePath)),
+        (('.xlsx', '.xls'), lambda connection: pd.read_excel(connection.filePath)),
+        ('.parquet', lambda connection: pd.read_parquet(connection.filePath)),
+    )
+
+    def _count_columns_rows(self, connection: FileDataset) -> tuple:
+        """(column count, row count) of a file as strings; ("0", "0") for other formats or if it cannot be read."""
+        try:
+            for extensions, read in self._METADATA_READERS:
+                if connection.filePath.endswith(extensions):
+                    df = read(connection)
+                    return str(df.shape[1]), str(df.shape[0])
+        except Exception as e:
+            logger.warning(f"Error processing file metadata: {e}")
+        return "0", "0"
 
     def _process_ptx_dataset(self, connection: PTXDataset) -> PTXDataset:
         """Process a PTX dataset to get tokens"""
@@ -406,9 +419,73 @@ class DatasetService(metaclass=SingletonMeta):
                 connection.service_key = None
                 connection.secret_key = None
             except Exception as e:
-                logger.error(f"Error connecting to PDC: {e}")
+                logger.exception(f"Error connecting to PDC: {e}")
         
         return connection
+
+    async def ensure_runtime_ptx_tokens(self, connection: PTXDataset) -> bool:
+        """Renew the PTX access token of a connection after an auth failure.
+
+        Tries the PDC refresh endpoint with the stored refresh token first, then
+        falls back to a fresh login when service/secret keys are still available.
+        Persists the new tokens on success.
+
+        Returns:
+            True if a new access token was obtained, False otherwise.
+        """
+        if not connection.url:
+            return False
+        base_url = connection.url.rstrip("/")
+
+        content = await asyncio.to_thread(self._refresh_ptx_tokens, base_url, connection)
+        if not self._has_token(content) and connection.service_key and connection.secret_key:
+            content = await asyncio.to_thread(self._login_ptx, base_url, connection)
+        if not self._has_token(content):
+            return False
+
+        connection.token = content["token"]
+        connection.refreshToken = content.get("refreshToken") or connection.refreshToken
+        connection.service_key = None
+        connection.secret_key = None
+        try:
+            connection.updated_at = datetime.now(timezone.utc)
+            await connection.save()
+        except Exception as e:
+            # The renewed token is still usable for the current request.
+            logger.exception(f"Failed to persist renewed PTX tokens for dataset {connection.id}: {e}")
+        logger.info(f"Renewed PTX tokens for dataset {connection.id}")
+        return True
+
+    @staticmethod
+    def _has_token(content) -> bool:
+        return isinstance(content, dict) and bool(content.get("token"))
+
+    def _refresh_ptx_tokens(self, base_url: str, connection: PTXDataset):
+        """Ask the PDC for new tokens with the stored refresh token. Returns the answer content, None on failure."""
+        if not connection.refreshToken:
+            return None
+        try:
+            r = requests.post(
+                base_url + "/login/refresh",
+                json={"refreshToken": connection.refreshToken},
+                timeout=30,
+            )
+        except requests.RequestException as e:
+            logger.warning(f"PTX token refresh failed for dataset {connection.id}: {e}")
+            return None
+        if r.status_code == 200 and "json" in r.headers.get("Content-Type", ""):
+            return r.json().get("content")
+        logger.warning(f"PTX token refresh returned status {r.status_code} for dataset {connection.id}")
+        return None
+
+    def _login_ptx(self, base_url: str, connection: PTXDataset):
+        """Log in to the PDC with the service and secret keys. Returns the answer content, None on failure."""
+        try:
+            jwt = self.connect_pdc(base_url, connection.service_key, connection.secret_key)
+        except Exception as e:
+            logger.warning(f"PTX relogin failed for dataset {connection.id}: {e}")
+            return None
+        return jwt.get("content") if isinstance(jwt, dict) else None
 
     def connect_pdc(self, url, service_key, secret_key):
         """Connect to PDC and return JWT"""
@@ -433,11 +510,11 @@ class DatasetService(metaclass=SingletonMeta):
                 
             return res
         except requests.RequestException as e:
-            logger.error(f"Network error connecting to PDC {url}: {e}", exc_info=True)
-            raise Exception(f"Failed to connect to PDC: {e}")
+            logger.exception(f"Network error connecting to PDC {url}: {e}")
+            raise PdcConnectionError(f"Failed to connect to PDC: {e}") from e
         except Exception as e:
-            logger.error(f"Error connecting to PDC {url}: {e}", exc_info=True)
-            raise Exception(e)
+            logger.exception(f"Error connecting to PDC {url}: {e}")
+            raise PdcConnectionError(str(e)) from e
 
     async def edit_dataset(self, dataset: DatasetUnion, user: User) -> bool:
         """Edit an existing dataset with permission check"""
@@ -445,10 +522,10 @@ class DatasetService(metaclass=SingletonMeta):
             logger.info(f"User {user.username} editing dataset: {dataset.id}")
             
             # Check permission using user_service
-            can_modify = await self.user_service.can_modify_dataset(user, dataset.id)
+            can_modify = self.user_service.can_modify_dataset(user, dataset.id)
             if not can_modify:
                 logger.warning(f"User {user.username} denied permission to edit dataset {dataset.id}")
-                raise HTTPException(status_code=403, detail="Access denied")
+                raise HTTPException(status_code=403, detail=ACCESS_DENIED)
             
             existing = await Dataset.get(dataset.id, with_children=True)
             if not existing:
@@ -461,7 +538,7 @@ class DatasetService(metaclass=SingletonMeta):
 
             if isinstance(dataset, PTXDataset):
                 if dataset.service_key and dataset.secret_key:
-                    dataset = self._process_ptx_dataset(dataset)
+                    dataset = await asyncio.to_thread(self._process_ptx_dataset, dataset)
 
             dataset.updated_at = datetime.now(timezone.utc)
             await dataset.replace()
@@ -470,7 +547,7 @@ class DatasetService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error editing dataset: {e}", exc_info=True)
+            logger.exception(f"Error editing dataset: {e}")
             raise HTTPException(status_code=500, detail="Failed to edit dataset")
     
     async def find_file_connection(self, folder: str, name: str = None) -> FileDataset:
@@ -486,7 +563,7 @@ class DatasetService(metaclass=SingletonMeta):
                     raise HTTPException(status_code=403, detail="Access denied to folder path")
                 folder = validated_folder
             except Exception as e:
-                logger.error(f"Security validation failed for folder {folder}: {e}")
+                logger.exception(f"Security validation failed for folder {folder}: {e}")
                 raise HTTPException(status_code=403, detail="Invalid or dangerous folder path")
         
         # Search for existing connection
@@ -512,7 +589,7 @@ class DatasetService(metaclass=SingletonMeta):
         await connection.insert()
         return connection
 
-    def getDfMongoContent(self, dataset: MongoDataset, datasetParams: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
+    def getDfMongoContent(self, dataset: MongoDataset, dataset_params: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve MongoDB dataset content"""
         from pymongo.mongo_client import MongoClient
         from pymongo.errors import ConnectionFailure
@@ -524,63 +601,60 @@ class DatasetService(metaclass=SingletonMeta):
             logger.info(f"Connecting to MongoDB dataset: {dataset.name}")
             logger.debug(f"MongoDB URI: {dataset.uri[:20]}... (truncated for security)")
             
-            client = MongoClient(dataset.uri)
-            db = client[dataset.database] if dataset.database else client[datasetParams.database]
-            col = db[dataset.collection] if dataset.collection else db[datasetParams.table]
-            
-            if db is not None and col is not None:
-                logger.debug(f"Querying collection: {col.name} in database: {db.name}")
-                
-                cursor = col.find({})
-                total_docs = col.count_documents({})
-                logger.info(f"Found {total_docs} documents in collection")
-                
-                if pagination and pagination.page and pagination.perPage:
-                    skip = (pagination.page - 1) * pagination.perPage
-                    cursor = cursor.skip(skip).limit(pagination.perPage)
-                    logger.debug(f"Applied pagination: skip={skip}, limit={pagination.perPage}")
-                
-                df = pd.DataFrame(list(cursor))
-                logger.info(f"Successfully retrieved {len(df)} records from MongoDB")
-                
-                schema = generate_pandas_schema(df)
-                node_data = NodeDataPandasDf(
-                    nodeSchema=schema,
-                    name=dataset.collection if dataset.collection else datasetParams.table
-                )
-                
-                if pagination:
-                    node_data.dataExample = df.iloc[:pagination.perPage] if pagination.perPage else df
-                else:
-                    node_data.data = df
-                    
-                return node_data
-            else:
+            database_name = dataset.database or dataset_params.database
+            collection_name = dataset.collection or dataset_params.table
+            if not database_name or not collection_name:
                 logger.error("Database and collection must be specified")
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                   detail="Database and collection must be specified")
-                                  
+
+            client = MongoClient(dataset.uri)
+            db = client[database_name]
+            col = db[collection_name]
+            logger.debug(f"Querying collection: {col.name} in database: {db.name}")
+            df = self._read_mongo_df(col, pagination)
+            example = df.iloc[:pagination.perPage] if pagination and pagination.perPage else None
+            return self._to_node_data(df, collection_name, pagination, example)
+
+        except HTTPException:
+            raise
         except ConnectionFailure as err:
-            logger.error(f"MongoDB connection failed for dataset {dataset.name}: {err}")
+            logger.exception(f"MongoDB connection failed for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
                               detail=f"Database error: {err}")
         except PermissionError as err:
-            logger.error(f"MongoDB permission error for dataset {dataset.name}: {err}")
+            logger.exception(f"MongoDB permission error for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                               detail=f"Permission error: {err}")
         except Exception as e:
-            logger.error(f"Unexpected error querying MongoDB dataset {dataset.name}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Unexpected error querying MongoDB dataset {dataset.name}: {e}")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
         finally:
             if client:
                 client.close()
                 logger.debug("MongoDB connection closed")
 
-    def getDfElasticContent(self, dataset: ElasticDataset, datasetParams: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
+    @staticmethod
+    def _read_mongo_df(col, pagination: Pagination = None) -> pd.DataFrame:
+        """Documents of a collection (of the requested page) as a DataFrame."""
+        cursor = col.find({})
+        total_docs = col.count_documents({})
+        logger.info(f"Found {total_docs} documents in collection")
+
+        if pagination and pagination.page and pagination.perPage:
+            skip = (pagination.page - 1) * pagination.perPage
+            cursor = cursor.skip(skip).limit(pagination.perPage)
+            logger.debug(f"Applied pagination: skip={skip}, limit={pagination.perPage}")
+
+        df = pd.DataFrame(list(cursor))
+        logger.info(f"Successfully retrieved {len(df)} records from MongoDB")
+        return df
+
+    def getDfElasticContent(self, dataset: ElasticDataset, dataset_params: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve Elasticsearch index content as a DataFrame (a sample when pagination is given)"""
         from app.services.elastic_service import ElasticService
 
-        index = dataset.index or datasetParams.index or datasetParams.table
+        index = dataset.index or dataset_params.index or dataset_params.table
         if not index:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="An Elasticsearch index must be specified")
@@ -598,175 +672,168 @@ class DatasetService(metaclass=SingletonMeta):
             node_data.data = df
         return node_data
 
-    def getDfMysqlContent(self, dataset: MysqlDataset, datasetParams: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
+    def getDfMysqlContent(self, dataset: MysqlDataset, dataset_params: DatasetParams, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve MySQL dataset content"""
         engine = None
         try:
             logger.info(f"Connecting to MySQL dataset: {dataset.name}")
-            logger.debug(f"MySQL host: {dataset.host}, database: {dataset.database or datasetParams.database}")
+            logger.debug(f"MySQL host: {dataset.host}, database: {dataset.database or dataset_params.database}")
             
-            database = datasetParams.database if datasetParams.database else dataset.database
-            table = datasetParams.table if datasetParams.table else dataset.table
-            
-            if database and table:
-                connection_string = f"mysql+mysqlconnector://{dataset.user}:***@{dataset.host}/{database}"
-                logger.debug(f"MySQL connection string: {connection_string}")
-                
-                engine = create_engine(f"mysql+mysqlconnector://{dataset.user}:{dataset.password}@{dataset.host}/{database}")
-                
-                if pagination and pagination.page and pagination.perPage:
-                    offset = (pagination.page - 1) * pagination.perPage
-                    query = f"SELECT * FROM {table} LIMIT {pagination.perPage} OFFSET {offset}"
-                    logger.debug(f"MySQL query with pagination: {query}")
-                else:
-                    query = f"SELECT * FROM {table}"
-                    logger.debug(f"MySQL query: {query}")
-                
-                result_dataFrame = pd.read_sql(query, engine)
-                logger.info(f"Successfully retrieved {len(result_dataFrame)} records from MySQL")
-                
-                schema = generate_pandas_schema(result_dataFrame)    
-                node_data = NodeDataPandasDf(
-                    nodeSchema=schema,
-                    name=dataset.name
-                )
-                if pagination:
-                    node_data.dataExample = result_dataFrame
-                else:
-                    node_data.data = result_dataFrame
-                return node_data
-            else:
+            database = dataset_params.database if dataset_params.database else dataset.database
+            table = dataset_params.table if dataset_params.table else dataset.table
+            if not (database and table):
                 logger.error(f"Database and table must be specified for dataset: {dataset.name}")
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
                                   detail="Database and table must be specified")
-                
+
+            connection_string = f"mysql+mysqlconnector://{dataset.user}:***@{dataset.host}/{database}"
+            logger.debug(f"MySQL connection string: {connection_string}")
+            engine = create_engine(f"mysql+mysqlconnector://{dataset.user}:{dataset.password}@{dataset.host}/{database}")
+
+            result_data_frame = pd.read_sql(self._paginated_query(table, pagination), engine)
+            logger.info(f"Successfully retrieved {len(result_data_frame)} records from MySQL")
+            return self._to_node_data(result_data_frame, dataset.name, pagination)
+
+        except HTTPException:
+            raise
         except mysql.connector.Error as err:
-            logger.error(f"MySQL error for dataset {dataset.name}: {err}")
+            logger.exception(f"MySQL error for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
                               detail=f"Database error: {err}")
         except PermissionError as err:
-            logger.error(f"MySQL permission error for dataset {dataset.name}: {err}")
+            logger.exception(f"MySQL permission error for dataset {dataset.name}: {err}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                               detail=f"Permission error: {err}")
         except Exception as e:
-            logger.error(f"Unexpected error querying MySQL dataset {dataset.name}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Unexpected error querying MySQL dataset {dataset.name}: {e}")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
         finally:
             if engine:
                 engine.dispose()
                 logger.debug("MySQL connection disposed")
 
+    @staticmethod
+    def _paginated_query(table: str, pagination: Pagination = None) -> str:
+        """SELECT of the whole table, or of the requested page."""
+        if pagination and pagination.page and pagination.perPage:
+            offset = (pagination.page - 1) * pagination.perPage
+            query = f"SELECT * FROM {table} LIMIT {pagination.perPage} OFFSET {offset}"
+            logger.debug(f"MySQL query with pagination: {query}")
+        else:
+            query = f"SELECT * FROM {table}"
+            logger.debug(f"MySQL query: {query}")
+        return query
+
     def getDfFileContentData(self, dataset: FileDataset, pagination: Pagination = None) -> NodeDataPandasDf:
         """Retrieve file dataset content"""
         try:
             logger.info(f"Reading file dataset: {dataset.name}")
-        
+
             path = dataset.folder if dataset.folder else dataset.filePath
             logger.debug(f"Path: {path}")
-            
+
             # SECURITY: Validate file path to prevent path traversal attacks
             if not path:
                 raise HTTPException(status_code=400, detail="File path is required")
-            
-            try:
-                validated_path = PathSecurityValidator.validate_file_path(path)
-                # Additional check: verify path is within allowed directories
-                allowed_dirs = SecurityConfig.get_allowed_base_directories()
-                if not FileAccessController.can_read_file(validated_path, allowed_dirs):
-                    raise HTTPException(status_code=403, detail=f"Access denied to path: {path}")
-                path = validated_path
-            except Exception as e:
-                logger.error(f"Security validation failed for path {path}: {e}")
-                raise HTTPException(status_code=403, detail="Access denied: Invalid or dangerous file path")
-                            
-            # Handle folder case
-            if dataset.folder and dataset.folder != None:
-                logger.debug("Processing folder dataset")
-                if not os.path.exists(dataset.folder):
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Folder not found: {dataset.folder}")
-                if not os.path.isdir(dataset.folder):
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a directory: {dataset.folder}")
-                data = folder(path, pagination)
-                if isinstance(data, list):
-                    df = pd.DataFrame(data)
-                else:
-                    df = pd.DataFrame(data.data)
+            path = self._validated_readable_path(path, "Access denied: Invalid or dangerous file path")
+
+            if dataset.folder:
+                df = self._read_folder_df(dataset.folder, path, pagination)
             else:
-                if not path or not os.path.exists(path):
-                    logger.error(f"File not found: {path}")
-                    raise HTTPException(status_code=404, detail="File not found")
-                # Handle file case
-                file_size = os.path.getsize(path)
-                logger.debug(f"File size: {file_size} bytes")
-                
-                # CSV has special pagination handling (read-time optimization)
-                if path.endswith('.csv'):
-                    logger.debug("Reading CSV file")
-                    if pagination and pagination.page and pagination.perPage:
-                        skiprows = (pagination.page - 1) * pagination.perPage
-                        logger.debug(f"CSV pagination: skiprows={skiprows}, nrows={pagination.perPage}")
-                        df = pd.read_csv(path, 
-                                        header=int(dataset.csvHeader) if dataset.csvHeader is not None else 0,
-                                        delimiter=dataset.csvDelimiter or ',',
-                                        skiprows=range(1, skiprows + 1) if skiprows > 0 else None,
-                                        nrows=pagination.perPage)
-                    else:
-                        df = pd.read_csv(path, 
-                                        header=int(dataset.csvHeader) if dataset.csvHeader is not None else 0,
-                                        delimiter=dataset.csvDelimiter or ',')
-                
-                # All other formats: read first, then paginate
-                elif path.endswith('.json'):
-                    logger.debug("Reading JSON file")
-                    df = pd.read_json(path)
-                elif path.endswith(('.xlsx', '.xls')):
-                    logger.debug("Reading Excel file")
-                    df = pd.read_excel(path)
-                elif path.endswith('.tsv'):
-                    logger.debug("Reading TSV file")
-                    df = pd.read_csv(path, header=int(dataset.csvHeader), sep='\t')
-                elif path.endswith('.parquet'):
-                    logger.debug("Reading Parquet file")
-                    df = pd.read_parquet(path)
-                elif path.endswith('.avro'):
-                    logger.debug("Reading Avro file")
-                    with open(path, 'rb') as fichier:
-                        df = pd.DataFrame(reader(fichier))
-                else:
-                    logger.error(f"Unsupported file format: {path}")
-                    raise HTTPException(status_code=400, detail="Unsupported file format")
-                
-                # Apply pagination for all non-CSV formats (post-read pagination)
-                if not path.endswith('.csv') and pagination:
-                    start_idx = (pagination.page - 1) * pagination.perPage
-                    end_idx = start_idx + pagination.perPage
-                    logger.debug(f"Post-read pagination: start={start_idx}, end={end_idx}")
-                    df = df.iloc[start_idx:end_idx]
-            
+                df = self._read_file_df(dataset, path, pagination)
+
             logger.info(f"Successfully read {len(df)} records from file: {path}")
-            
-            schema = generate_pandas_schema(df)
-            node_data = NodeDataPandasDf(
-                nodeSchema=schema,
-                name=dataset.name or os.path.basename(path)
-            )
-            
-            if pagination:
-                node_data.dataExample = df
-            else:
-                node_data.data = df
-                
-            return node_data
+            return self._to_node_data(df, dataset.name or os.path.basename(path), pagination)
         except HTTPException:
             raise
 
         except PermissionError as err:
-            logger.error(f"Permission error reading file {path}: {err}")
+            logger.exception(f"Permission error reading file {path}: {err}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                               detail=f"Permission error: {err}")
         except Exception as e:
-            logger.error(f"Unexpected error reading file dataset {dataset.name}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Unexpected error reading file dataset {dataset.name}: {e}")
+            raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+
+    @staticmethod
+    def _to_node_data(df: pd.DataFrame, name: str, pagination: Pagination = None,
+                      example: pd.DataFrame = None) -> NodeDataPandasDf:
+        """Node data of a DataFrame: its sample (example, by default the DataFrame) when paginated, else its data."""
+        node_data = NodeDataPandasDf(
+            nodeSchema=generate_pandas_schema(df),
+            name=name
+        )
+        if pagination:
+            node_data.dataExample = df if example is None else example
+        else:
+            node_data.data = df
+        return node_data
+
+    @staticmethod
+    def _read_folder_df(folder_path: str, validated_path: str, pagination: Pagination = None) -> pd.DataFrame:
+        logger.debug("Processing folder dataset")
+        if not os.path.exists(folder_path):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Folder not found: {folder_path}")
+        if not os.path.isdir(folder_path):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Path is not a directory: {folder_path}")
+        data = folder(validated_path, pagination)
+        return pd.DataFrame(data if isinstance(data, list) else data.data)
+
+    # Readers of the non-CSV file formats, read entirely then paginated
+    _DF_READERS = (
+        ('.json', lambda dataset, path: pd.read_json(path)),
+        (('.xlsx', '.xls'), lambda dataset, path: pd.read_excel(path)),
+        ('.tsv', lambda dataset, path: pd.read_csv(
+            path, header=int(dataset.csvHeader) if dataset.csvHeader is not None else 0, sep='\t')),
+        ('.parquet', lambda dataset, path: pd.read_parquet(path)),
+        ('.avro', lambda dataset, path: DatasetService._read_avro_df(path)),
+    )
+
+    @staticmethod
+    def _read_avro_df(path: str) -> pd.DataFrame:
+        with open(path, 'rb') as fichier:
+            return pd.DataFrame(reader(fichier))
+
+    def _read_file_df(self, dataset: FileDataset, path: str, pagination: Pagination = None) -> pd.DataFrame:
+        if not os.path.exists(path):
+            logger.error(f"File not found: {path}")
+            raise HTTPException(status_code=404, detail="File not found")
+        logger.debug(f"File size: {os.path.getsize(path)} bytes")
+
+        # CSV has special pagination handling (read-time optimization)
+        if path.endswith('.csv'):
+            return self._read_csv_df(dataset, path, pagination)
+
+        # All other formats: read first, then paginate
+        for extensions, read in self._DF_READERS:
+            if path.endswith(extensions):
+                return self._paginate_df(read(dataset, path), pagination)
+        logger.error(f"Unsupported file format: {path}")
+        raise HTTPException(status_code=400, detail="Unsupported file format")
+
+    @staticmethod
+    def _read_csv_df(dataset: FileDataset, path: str, pagination: Pagination = None) -> pd.DataFrame:
+        header = int(dataset.csvHeader) if dataset.csvHeader is not None else 0
+        delimiter = dataset.csvDelimiter or ','
+        if pagination and pagination.page and pagination.perPage:
+            skiprows = (pagination.page - 1) * pagination.perPage
+            logger.debug(f"CSV pagination: skiprows={skiprows}, nrows={pagination.perPage}")
+            return pd.read_csv(path,
+                               header=header,
+                               delimiter=delimiter,
+                               skiprows=range(1, skiprows + 1) if skiprows > 0 else None,
+                               nrows=pagination.perPage)
+        return pd.read_csv(path, header=header, delimiter=delimiter)
+
+    @staticmethod
+    def _paginate_df(df: pd.DataFrame, pagination: Pagination = None) -> pd.DataFrame:
+        """The rows of the requested page (all rows without pagination)."""
+        if not pagination:
+            return df
+        start_idx = (pagination.page - 1) * pagination.perPage
+        end_idx = start_idx + pagination.perPage
+        logger.debug(f"Post-read pagination: start={start_idx}, end={end_idx}")
+        return df.iloc[start_idx:end_idx]
 
     async def debug_database_connection(self):
         """Debug method to check database connection and collection"""
@@ -799,7 +866,7 @@ class DatasetService(metaclass=SingletonMeta):
             }
             
         except Exception as e:
-            logger.error(f"Debug connection error: {e}", exc_info=True)
+            logger.exception(f"Debug connection error: {e}")
             raise
 
 

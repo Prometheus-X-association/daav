@@ -9,6 +9,7 @@
     },
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
     "esModuleInterop": true,
     "strict": false,
     "noImplicitOverride": true,
@@ -22,10 +23,6 @@
     "importHelpers": true,
     "target": "es2022",
     "module": "es2022",
-    "lib": [
-      "es2019",
-      "dom"
-    ],
     "useDefineForClassFields": false,
     "strictPropertyInitialization": false
   },

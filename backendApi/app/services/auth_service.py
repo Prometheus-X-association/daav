@@ -15,12 +15,15 @@ from app.utils.auth_utils import (
     verify_token_type,
     ensure_utc_aware
 )
-from app.services.user_service import UserService, DEFAULT_ADMIN_PASSWORD
+from app.services.user_service import UserService
 from app.services.email_service import EmailService
 from app.config.settings import settings
 from app.utils.singleton import SingletonMeta
 
 logger = logging.getLogger(__name__)
+
+USER_NOT_FOUND = "User not found"
+USER_INACTIVE = "User account is inactive"
 
 
 class AuthService(metaclass=SingletonMeta):
@@ -64,7 +67,7 @@ class AuthService(metaclass=SingletonMeta):
             return user
         
         except Exception as e:
-            logger.error(f"Error during authentication: {e}", exc_info=True)
+            logger.exception(f"Error during authentication: {e}")
             return None
     
     async def login(self, username: str, password: str) -> Token:
@@ -92,13 +95,6 @@ class AuthService(metaclass=SingletonMeta):
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 
-            # Accounts still using the default admin password (e.g. created before this flag
-            # existed) must change it before accessing the application
-            if not user.must_change_password and password == DEFAULT_ADMIN_PASSWORD:
-                user.must_change_password = True
-                await user.save()
-                logger.warning(f"User {user.username} logged in with the default password, password change required")
-
             # Update last login
             await self.user_service.update_last_login(user.id)
 
@@ -109,7 +105,7 @@ class AuthService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error during login: {e}", exc_info=True)
+            logger.exception(f"Error during login: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Login failed"
@@ -179,14 +175,14 @@ class AuthService(metaclass=SingletonMeta):
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User not found",
+                    detail=USER_NOT_FOUND,
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             
             if not user.is_active:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User account is inactive",
+                    detail=USER_INACTIVE,
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 
@@ -199,7 +195,7 @@ class AuthService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error refreshing token: {e}", exc_info=True)
+            logger.exception(f"Error refreshing token: {e}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not refresh token",
@@ -232,14 +228,14 @@ class AuthService(metaclass=SingletonMeta):
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User not found",
+                    detail=USER_NOT_FOUND,
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             
             if not user.is_active:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User account is inactive",
+                    detail=USER_INACTIVE,
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 
@@ -250,45 +246,22 @@ class AuthService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error getting current user: {e}", exc_info=True)
+            logger.exception(f"Error getting current user: {e}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
     
-    async def verify_admin(self, user: User) -> bool:
-        """
-        Verify if user is admin
-        
-        Args:
-            user: User to verify
-            
-        Returns:
-            bool: True if user is admin
-            
-        Raises:
-            HTTPException: If user is not admin
-        """
-        from app.enums.user_role import UserRole
-        
-        if user.role != UserRole.ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required"
-            )
-        
-        return True
-    
-    async def forgot_password(self, email: str) -> bool:
+    async def forgot_password(self, email: str) -> None:
         """
         Initiate password reset process
         
         Args:
             email: User email address
             
-        Returns:
-            bool: True if reset email sent (always returns True to prevent email enumeration)
+        Returns nothing and never raises, whether the email exists or not, so that callers cannot reveal
+        which accounts exist (email enumeration).
         """
         try:
             # Find user by email
@@ -297,11 +270,11 @@ class AuthService(metaclass=SingletonMeta):
             if not user:
                 # Don't reveal if email exists or not (security)
                 logger.warning(f"Password reset requested for non-existent email: {email}")
-                return True
+                return
             
             if not user.is_active:
                 logger.warning(f"Password reset requested for inactive account: {email}")
-                return True
+                return
             
             # Generate reset token
             reset_token = secrets.token_urlsafe(32)
@@ -336,12 +309,10 @@ class AuthService(metaclass=SingletonMeta):
             else:
                 logger.error(f"Failed to send password reset email to: {email}")
             
-            return True
         
         except Exception as e:
-            logger.error(f"Error in forgot_password: {e}", exc_info=True)
-            # Always return True to prevent email enumeration
-            return True
+            logger.exception(f"Error in forgot_password: {e}")
+            # Never fail, to prevent email enumeration
     
     async def reset_password(self, token: str, new_password: str) -> bool:
         """
@@ -392,13 +363,13 @@ class AuthService(metaclass=SingletonMeta):
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
+                    detail=USER_NOT_FOUND
                 )
             
             if not user.is_active:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="User account is inactive"
+                    detail=USER_INACTIVE
                 )
             
             # Validate password complexity for all call paths (route and direct service use)
@@ -427,7 +398,7 @@ class AuthService(metaclass=SingletonMeta):
                 detail=str(e)
             )
         except Exception as e:
-            logger.error(f"Error resetting password: {e}", exc_info=True)
+            logger.exception(f"Error resetting password: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to reset password"

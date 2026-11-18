@@ -1,8 +1,8 @@
-import { Injectable, Injector } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, firstValueFrom, throwError } from 'rxjs';
+import { catchError, tap, switchMap } from 'rxjs/operators';
 import {
   User,
   Token,
@@ -25,18 +25,18 @@ import { BaseService } from './base.service.service';
   providedIn: 'root'
 })
 export class AuthService {
-  private currentUserSubject: BehaviorSubject<User | null>;
+  private readonly http = inject(HttpClient);
+  private readonly tokenService = inject(TokenService);
+  private readonly baseService = inject(BaseService);
+  private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
+
+  private readonly currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
   private refreshTokenPromise: Promise<string | null> | null = null;
   private tokenRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
-  constructor(
-    private http: HttpClient,
-    private tokenService: TokenService,
-    private baseService: BaseService,
-    private router: Router,
-    private injector: Injector
-  ) {
+  constructor() {
     this.currentUserSubject = new BehaviorSubject<User | null>(null);
     this.currentUser$ = this.currentUserSubject.asObservable();
   }
@@ -56,15 +56,15 @@ export class AuthService {
 
     return this.http.post<Token>(`${this.baseService.urlBack}/auth/login`, loginRequest)
       .pipe(
-        tap(async (token) => {
-          // Save tokens
+        // Emit only once the session is ready: subscribers (e.g. the redirect after login)
+        // must find the tokens saved and the current user loaded
+        switchMap(async (token) => {
           await this.tokenService.saveTokens(token.access_token, token.refresh_token, rememberMe);
 
-          // Load user info
+          // Load user info, then the user's datasets and workflows
           await this.loadCurrentUser();
 
-          // Load user's datasets and workflows after successful login
-          await this.loadUserData();
+          return token;
         }),
         catchError(this.handleError)
       );
@@ -132,14 +132,15 @@ export class AuthService {
     }
 
     // Navigate to login page
-    this.router.navigate(['/login'], { replaceUrl: true });
+    this.router.navigate(['/login'], { replaceUrl: true })
+      .catch(error => console.error('Failed to navigate to the login page:', error));
   }
 
   /**
    * Refresh access token
    */
   async refreshToken(): Promise<string | null> {
-    if (this.refreshTokenPromise) {
+    if (this.refreshTokenPromise !== null) {
       return this.refreshTokenPromise;
     }
 
@@ -155,9 +156,9 @@ export class AuthService {
         return null;
       }
 
-      const token = await this.http.post<Token>(`${this.baseService.urlBack}/auth/refresh`, {
+      const token = await firstValueFrom(this.http.post<Token>(`${this.baseService.urlBack}/auth/refresh`, {
         refresh_token: refreshToken
-      }).toPromise();
+      }));
 
       if (token) {
         const rememberMe = await this.tokenService.isRememberMe();
@@ -191,7 +192,7 @@ export class AuthService {
         'Authorization': `Bearer ${accessToken}`
       });
 
-      const user = await this.http.get<User>(`${this.baseService.urlBack}/auth/me`, { headers }).toPromise();
+      const user = await firstValueFrom(this.http.get<User>(`${this.baseService.urlBack}/auth/me`, { headers }));
 
       if (user) {
         this.currentUserSubject.next(user);
@@ -309,9 +310,9 @@ export class AuthService {
     }
 
     // Check every minute if token needs refresh
-    this.tokenRefreshIntervalId = setInterval(async () => {
+    this.tokenRefreshIntervalId = setInterval(() => {
       if (this.tokenService.shouldRefreshToken()) {
-        await this.refreshToken();
+        this.refreshToken().catch(error => console.error('Scheduled token refresh failed:', error));
       }
     }, 60000); // 1 minute
   }

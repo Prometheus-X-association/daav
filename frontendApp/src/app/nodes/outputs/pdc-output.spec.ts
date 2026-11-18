@@ -1,12 +1,11 @@
 import { AreaPlugin } from 'rete-area-plugin';
 import { Schemes } from 'src/app/core/workflow-editor';
 import { PdcOutput } from './pdc-output';
-import { Injector } from '@angular/core';
+import { Injector , signal } from '@angular/core';
 import { DatasetService } from 'src/app/services/dataset.service';
 import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
 import { of } from 'rxjs';
 
 describe('PdcOutput', () => {
@@ -32,7 +31,7 @@ describe('PdcOutput', () => {
 
     injector = TestBed.inject(Injector);
     httpClient = TestBed.inject(HttpClient);
-    spyOn(httpClient, 'get').and.returnValue(of({ dataResources: [] }) as any);
+    spyOn(httpClient, 'get').and.returnValue(of({ dataResources: [] }));
 
     const container = document.createElement('div');
     area = new AreaPlugin<Schemes, never>(container);
@@ -61,7 +60,7 @@ describe('PdcOutput', () => {
     block['addSelectControlDataResource']({ dataResources: [{ name: 'Resource 1', _id: 'r1' }] });
 
     expect(block['selectControlDataResource']).toBeDefined();
-    expect(block['selectControlDataResource'].list.length).toBe(1);
+    expect(block['selectControlDataResource'].list).toHaveSize(1);
 
     block.removeControlDataSource();
 

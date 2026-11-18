@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { AlertController, IonicModule, LoadingController, ToastController } from '@ionic/angular';
+import { AlertController, LoadingController, ToastController, provideIonicAngular } from '@ionic/angular/standalone';
 import { ReactiveFormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 import { CredentialsSectionComponent } from './credentials-section.component';
@@ -29,15 +29,15 @@ describe('CredentialsSectionComponent', () => {
     alertControllerSpy.create.and.returnValue(Promise.resolve(alert));
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot(), ReactiveFormsModule],
-      declarations: [CredentialsSectionComponent],
-      providers: [
+    imports: [ReactiveFormsModule, CredentialsSectionComponent],
+    providers: [
+        provideIonicAngular(),
         { provide: AuthService, useValue: authServiceSpy },
         { provide: ToastController, useValue: toastControllerSpy },
         { provide: LoadingController, useValue: loadingControllerSpy },
         { provide: AlertController, useValue: alertControllerSpy }
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(CredentialsSectionComponent);
     component = fixture.componentInstance;
@@ -154,7 +154,7 @@ describe('CredentialsSectionComponent', () => {
     component.user = { id: 'user-1', config: { credentials: { key1: 'value1', key2: 'value2' } } } as any;
 
     await component.deleteCredential('key1');
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     const deleteButton = (options.buttons as any[]).find(button => button.role === 'destructive');
     await deleteButton.handler();
 

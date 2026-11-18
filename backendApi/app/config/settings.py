@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Union
-from pydantic import field_validator, model_validator, ConfigDict, Field, PrivateAttr
+from typing import Dict, List, Optional
+from pydantic import field_validator, model_validator, ConfigDict, Field
 
 from app.config.secret_keys import PUBLIC_DEFAULT_JWT_SECRETS, load_or_create_tmp_secret, tmp_secret_path
 
@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     # Database
     mongodb_url: str = "mongodb://localhost:27017"
     database_name: str = "daav_datasets"
+    mongodb_username: Optional[str] = Field(
+        default=None,
+        description="MongoDB user, used instead of the credentials of MONGODB_URL when MONGODB_PASSWORD_FILE is set"
+    )
+    mongodb_password_file: Optional[str] = Field(
+        default=None,
+        description="File holding the MongoDB password (e.g. the Docker secret /run/secrets/mongo_root_password)"
+    )
     
     # Logging
     log_level: str = "INFO"
@@ -52,7 +60,7 @@ class Settings(BaseSettings):
     security_log_backup_count: int = 5
     
     # CORS - peut être une string ou une liste
-    cors_origins: Union[List[str], str] = ["http://localhost:4200", "http://127.0.0.1:4200"]
+    cors_origins: List[str] | str = ["http://localhost:4200", "http://127.0.0.1:4200"]
     
     # Security middleware settings
     security_rate_limit: int = Field(default=100, description="Max requests per time window")
@@ -101,8 +109,18 @@ class Settings(BaseSettings):
         description="Directory where temporary secrets (<NAME>_TMP) are generated when they are not configured"
     )
 
+    admin_password_file: str = Field(
+        default="/run/secrets/admin_firstlaunch",
+        description=(
+            "File holding the password of the admin account created on first start (when no user exists). "
+            "It must be changed at first login. "
+            "Generate with: python3 -c \"import secrets; print(secrets.token_urlsafe(16) + '-Aa1')\""
+        )
+    )
+
     # Secrets using a generated temporary value: {name: file path}
-    _temporary_secrets: Dict[str, str] = PrivateAttr(default_factory=dict)
+    # Pydantic copies the default of a private attribute for each instance
+    _temporary_secrets: Dict[str, str] = {}
 
     # Email Configuration (SMTP)
     smtp_host: str = Field(
@@ -146,18 +164,18 @@ class Settings(BaseSettings):
     
     # File uploads
     upload_dir: str = "uploads"
-    max_file_size: Union[int, str] = 100 * 1024 * 1024  # 100MB
+    max_file_size: int | str = 100 * 1024 * 1024  # 100MB
 
-    directory_white_list : Union[List[str], str] = []
+    directory_white_list : List[str] | str = []
     
     # Route Access Control - Domain whitelist only
-    domain_whitelist: Union[List[str], str] = Field(
+    domain_whitelist: List[str] | str = Field(
         default=[],
         description="List of whitelisted domains that can access routes without authentication"
     )
 
     # SSRF - hosts allowed to resolve to private/internal addresses (e.g. docker-compose services)
-    allowed_private_hosts: Union[List[str], str] = Field(
+    allowed_private_hosts: List[str] | str = Field(
         default=[],
         description="Hostnames or IPs of data sources allowed to point to private or internal addresses"
     )

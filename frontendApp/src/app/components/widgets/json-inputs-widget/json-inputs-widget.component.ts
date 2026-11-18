@@ -1,9 +1,13 @@
 
-import { ChangeDetectorRef, Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
 import { ClassicPreset } from 'rete';
 import { IonModalCustomEvent, OverlayEventDetail } from '@ionic/core';
-import { JsonEditorOptions } from 'ang-jsoneditor';
-import {CdkAccordionModule} from '@angular/cdk/accordion'
+import { JsonEditorOptions, JsonEditor } from 'ang-jsoneditor';
+import { IonButton, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonLabel, IonModal, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { add, chevronDownOutline, chevronUpOutline, trashOutline } from 'ionicons/icons';
+import { CdkAccordion, CdkAccordionItem } from '@angular/cdk/accordion';
+import { FormsModule } from '@angular/forms';
 
 export class JsonInputsControl extends ClassicPreset.Control {
   public buttonDisabled = false;
@@ -22,21 +26,22 @@ mappings: any;
     selector: 'app-json-inputs-widget',
     templateUrl: './json-inputs-widget.component.html',
     styleUrls: ['./json-inputs-widget.component.scss'],
-    standalone: false
+    imports: [IonButton, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonItem, IonLabel, IonModal, IonTitle, IonToolbar, CdkAccordion, CdkAccordionItem, JsonEditor, FormsModule]
 })
 export class JsonInputsWidgetComponent   {
   @Input() data: JsonInputsControl;
   isModalOpen= false;
-  cdr: ChangeDetectorRef;
+  cdr = inject(ChangeDetectorRef);
   hasChanged = false;
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
 
   makeOptions = () => {
     let editorOptions = new JsonEditorOptions();
     editorOptions.modes = ['code', 'text', 'tree', 'view'];
     return editorOptions;
+  }
+
+  constructor() {
+    addIcons({ add, chevronDownOutline, chevronUpOutline, trashOutline });
   }
 
   onWillDismiss(event: IonModalCustomEvent<OverlayEventDetail<any>>) {

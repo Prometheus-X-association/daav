@@ -2,12 +2,11 @@ import { AreaPlugin } from 'rete-area-plugin';
 import { ClassicPreset } from 'rete';
 import { DataMongoBlock } from './data-mongo-block';
 import { Schemes } from 'src/app/core/workflow-editor';
-import { Injector } from '@angular/core';
+import { Injector , signal } from '@angular/core';
 import { DatasetService } from 'src/app/services/dataset.service';
-import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { MatSelectChange } from '@angular/material/select';
 import { DeepObjectSocket } from 'src/app/core/sockets/sockets';
@@ -95,7 +94,7 @@ describe('DataMongoBlock', () => {
     block.addSelectCollection(data, {} as Node);
 
     expect(block.selectControlCollection).toBeDefined();
-    expect(block.selectControlCollection.list.length).toBe(2);
+    expect(block.selectControlCollection.list).toHaveSize(2);
     expect(area.update).toHaveBeenCalledWith('control', block.selectControlCollection.id);
   });
 
@@ -106,7 +105,7 @@ describe('DataMongoBlock', () => {
     block.addSelectDatabase(data, {} as Node);
 
     expect(block.selectControlDatabase).toBeDefined();
-    expect(block.selectControlDatabase.list.length).toBe(2);
+    expect(block.selectControlDatabase.list).toHaveSize(2);
     expect(area.update).toHaveBeenCalledWith('control', block.selectControlDatabase.id);
   });
 

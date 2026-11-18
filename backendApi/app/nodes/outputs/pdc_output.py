@@ -5,13 +5,12 @@ from fastapi import logger
 from app.core.execution_context import ExecutionContext
 from app.models.interface.dataset_interface import PTXDataset
 from app.nodes.outputs.output_node import OutputNode
+from app.nodes.outputs.pdc_chain_mixin import PdcChainMixin
 from app.models.interface.pdc_chain_interface import PdcChainResponse, PdcChainRequest
 from pydantic import ConfigDict
 from typing import Optional, Any, Dict, List
 import duckdb
-import traceback
 import os
-import requests
 
 from app.enums.status_node import StatusNode
 from app.models.interface.node_data import NodeDataPandasDf, NodeDataParquet
@@ -21,7 +20,20 @@ from app.services.workflow_service import WorkflowService
 from app.utils.security import PathSecurityValidator
 from app.config.settings import settings
 
-class PdcOutput(OutputNode):
+
+def _read_json_file(path: str) -> Any:
+    """Read a JSON file (run in a worker thread so that it does not block the event loop)"""
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def _write_json_file(path: str, data: Any) -> None:
+    """Write a JSON file (run in a worker thread so that it does not block the event loop)"""
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f)
+
+
+class PdcOutput(PdcChainMixin, OutputNode):
     datasetService: Optional[DatasetService] = None
     workflowService: Optional[WorkflowService] = None
 
@@ -95,81 +107,54 @@ class PdcOutput(OutputNode):
             return StatusNode.Error
 
         try:
-            for input in self.inputs.values():
-                if(input.get_connected_node()):
-                    data = input.get_node_data()
-
-                    chain_id = ''
-                    target_id = ''
-
-                    if self.datasetService.pdcChainHeaders is not None:
-                        chain_id = self.datasetService.pdcChainHeaders.x_ptx_service_chain_id
-                        target_id = self.datasetService.pdcChainHeaders.x_ptx_target_id
-
-                    pdc_response: Optional[PdcChainResponse] = None
-
-                    if isinstance(data, NodeDataPandasDf):
-                        df_data = data.dataExample if sample else data.data
-                        df_dict = df_data.to_dict(orient='records')
-
-                        pdc_response = PdcChainResponse(
-                            chainId=chain_id,
-                            targetId=target_id,
-                            data=df_dict
-                        )
-
-                    elif isinstance(data, NodeDataParquet):
-                        # transform parquet file to JSON using duckdb
-                        parquetFilePath = PathSecurityValidator.validate_file_path(data.data)
-                        conn = duckdb.connect()
-                        query = f"COPY (SELECT * FROM read_parquet('{parquetFilePath}')) TO '{file_path}' (FORMAT JSON, ARRAY true)"
-                        conn.sql(query)
-                        conn.close()
-
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            parquet_data = json.load(f)
-
-                        pdc_response = PdcChainResponse(
-                            chainId=chain_id,
-                            targetId=target_id,
-                            data=parquet_data
-                        )
-                    else:
-                        raise TypeError(f"Unsopported datatype: {type(data)}")
-                    
-                    #cache
-                    if pdc_response is not None:
-                        with open(file_path, 'w', encoding='utf-8') as f:
-                            json.dump(pdc_response.model_dump(), f)
-
-                    if pdc_response and self.datasetService.pdcChainHeaders is not None:
-                        url = f"{dataset.url}/service-chain/resume"
-                        headers = {
-                            "Content-Type": "application/json"
-                        }
-                        response = requests.post(url, headers=headers, json=pdc_response.model_dump())
-
-                        # Print the response from the server
-                        #print(response.status_code)
-                        #print(response.json())
+            for data in self._connected_data():
+                pdc_response = await self._build_response(data, sample, file_path)
+                #cache
+                await asyncio.to_thread(_write_json_file, file_path, pdc_response.model_dump())
+                await self._resume_chain(dataset, pdc_response)
             if not os.path.exists(file_path):
                 self.statusMessage = "No data was generated"
                 return StatusNode.Error
         except Exception as e:
-            traceback.print_exc()
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            self.statusMessage = e.__str__()
-            return StatusNode.Error
+            return self._fail(e)
         return StatusNode.Valid
-    
+
+    async def _build_response(self, data: Any, sample: bool, file_path: str) -> PdcChainResponse:
+        """Build the service chain response that carries the rows of an input."""
+        chain_id, target_id = self._chain_ids()
+        if isinstance(data, NodeDataPandasDf):
+            df_data = data.dataExample if sample else data.data
+            rows = df_data.to_dict(orient='records')
+        elif isinstance(data, NodeDataParquet):
+            rows = await self._parquet_rows(data.data, file_path)
+        else:
+            raise TypeError(f"Unsopported datatype: {type(data)}")
+        return PdcChainResponse(
+            chainId=chain_id,
+            targetId=target_id,
+            data=rows
+        )
+
+    @staticmethod
+    async def _parquet_rows(parquet_path: str, file_path: str) -> Any:
+        """Rows of a parquet file, converted through the output file of the node."""
+        # transform parquet file to JSON using duckdb
+        parquet_file_path = PathSecurityValidator.validate_file_path(parquet_path)
+        conn = duckdb.connect()
+        query = f"COPY (SELECT * FROM read_parquet('{parquet_file_path}')) TO '{file_path}' (FORMAT JSON, ARRAY true)"
+        conn.sql(query)
+        conn.close()
+
+        return await asyncio.to_thread(_read_json_file, file_path)
+
     async def _retreiveEndpointConfig(self):
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
 
-        dataset: PTXDataset = await self.datasetService.get_dataset(datasetId)
+        dataset: PTXDataset = await self.datasetService.get_dataset(dataset_id)
         if not dataset:
             raise ValueError("Dataset not found")
         if self.data.get('urlInput').get('value'):

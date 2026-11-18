@@ -27,14 +27,16 @@
           placeholder="Choose a username"
           autocomplete="username"
           [class.invalid]="registerForm.get('username')?.touched && registerForm.get('username')?.invalid"
-        >
+          >
           <ion-icon name="at-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
         </ion-input>
       </ion-item>
-      <div class="error-message" role="alert" *ngIf="getFieldError('username')">
-        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-        <span>{{ getFieldError('username') }}</span>
-      </div>
+      @if (getFieldError('username')) {
+        <div class="error-message" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ getFieldError('username') }}</span>
+        </div>
+      }
 
       <!-- Email Field -->
       <ion-item class="input-item" lines="none">
@@ -47,14 +49,16 @@
           placeholder="Enter your email"
           autocomplete="email"
           [class.invalid]="registerForm.get('email')?.touched && registerForm.get('email')?.invalid"
-        >
+          >
           <ion-icon name="mail-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
         </ion-input>
       </ion-item>
-      <div class="error-message" role="alert" *ngIf="getFieldError('email')">
-        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-        <span>{{ getFieldError('email') }}</span>
-      </div>
+      @if (getFieldError('email')) {
+        <div class="error-message" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ getFieldError('email') }}</span>
+        </div>
+      }
 
       <!-- First Name Field -->
       <ion-item class="input-item" lines="none">
@@ -67,14 +71,16 @@
           placeholder="Enter your first name"
           autocomplete="given-name"
           [class.invalid]="registerForm.get('firstName')?.touched && registerForm.get('firstName')?.invalid"
-        >
+          >
           <ion-icon name="person-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
         </ion-input>
       </ion-item>
-      <div class="error-message" role="alert" *ngIf="getFieldError('firstName')">
-        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-        <span>{{ getFieldError('firstName') }}</span>
-      </div>
+      @if (getFieldError('firstName')) {
+        <div class="error-message" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ getFieldError('firstName') }}</span>
+        </div>
+      }
 
       <!-- Last Name Field -->
       <ion-item class="input-item" lines="none">
@@ -87,14 +93,16 @@
           placeholder="Enter your last name"
           autocomplete="family-name"
           [class.invalid]="registerForm.get('lastName')?.touched && registerForm.get('lastName')?.invalid"
-        >
+          >
           <ion-icon name="person-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
         </ion-input>
       </ion-item>
-      <div class="error-message" role="alert" *ngIf="getFieldError('lastName')">
-        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-        <span>{{ getFieldError('lastName') }}</span>
-      </div>
+      @if (getFieldError('lastName')) {
+        <div class="error-message" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ getFieldError('lastName') }}</span>
+        </div>
+      }
 
       <!-- Password Field -->
       <ion-item class="input-item" lines="none">
@@ -107,47 +115,51 @@
           placeholder="Create a strong password"
           autocomplete="new-password"
           [class.invalid]="registerForm.get('password')?.touched && registerForm.get('password')?.invalid"
-        >
+          >
           <ion-icon name="lock-closed-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
           <ion-input-password-toggle slot="end"></ion-input-password-toggle>
         </ion-input>
       </ion-item>
-      <div class="error-message" role="alert" *ngIf="getFieldError('password')">
-        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-        <span>{{ getFieldError('password') }}</span>
-      </div>
+      @if (getFieldError('password')) {
+        <div class="error-message" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ getFieldError('password') }}</span>
+        </div>
+      }
 
       <!-- Password Strength Indicator -->
-      <div class="password-requirements" *ngIf="registerForm.get('password')?.touched">
-        <p class="requirements-title">Password must contain:</p>
-        <ul class="requirements-list">
-          <li [class.met]="!getPasswordStrengthErrors().includes('one uppercase letter')">
-            <ion-icon [name]="!getPasswordStrengthErrors().includes('one uppercase letter') ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
-            <span class="sr-only">{{ !getPasswordStrengthErrors().includes('one uppercase letter') ? 'Met:' : 'Not met:' }}</span>
-            At least one uppercase letter
-          </li>
-          <li [class.met]="!getPasswordStrengthErrors().includes('one lowercase letter')">
-            <ion-icon [name]="!getPasswordStrengthErrors().includes('one lowercase letter') ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
-            <span class="sr-only">{{ !getPasswordStrengthErrors().includes('one lowercase letter') ? 'Met:' : 'Not met:' }}</span>
-            At least one lowercase letter
-          </li>
-          <li [class.met]="!getPasswordStrengthErrors().includes('one number')">
-            <ion-icon [name]="!getPasswordStrengthErrors().includes('one number') ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
-            <span class="sr-only">{{ !getPasswordStrengthErrors().includes('one number') ? 'Met:' : 'Not met:' }}</span>
-            At least one number
-          </li>
-          <li [class.met]="!getPasswordStrengthErrors().includes('one special character')">
-            <ion-icon [name]="!getPasswordStrengthErrors().includes('one special character') ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
-            <span class="sr-only">{{ !getPasswordStrengthErrors().includes('one special character') ? 'Met:' : 'Not met:' }}</span>
-            At least one special character
-          </li>
-          <li [class.met]="registerForm.get('password')?.value?.length >= 8">
-            <ion-icon [name]="registerForm.get('password')?.value?.length >= 8 ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
-            <span class="sr-only">{{ registerForm.get('password')?.value?.length >= 8 ? 'Met:' : 'Not met:' }}</span>
-            At least 8 characters long
-          </li>
-        </ul>
-      </div>
+      @if (registerForm.get('password')?.touched) {
+        <div class="password-requirements">
+          <p class="requirements-title">Password must contain:</p>
+          <ul class="requirements-list">
+            <li [class.met]="!getPasswordStrengthErrors().includes('one uppercase letter')">
+              <ion-icon [name]="!getPasswordStrengthErrors().includes('one uppercase letter') ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
+              <span class="sr-only">{{ !getPasswordStrengthErrors().includes('one uppercase letter') ? 'Met:' : 'Not met:' }}</span>
+              At least one uppercase letter
+            </li>
+            <li [class.met]="!getPasswordStrengthErrors().includes('one lowercase letter')">
+              <ion-icon [name]="!getPasswordStrengthErrors().includes('one lowercase letter') ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
+              <span class="sr-only">{{ !getPasswordStrengthErrors().includes('one lowercase letter') ? 'Met:' : 'Not met:' }}</span>
+              At least one lowercase letter
+            </li>
+            <li [class.met]="!getPasswordStrengthErrors().includes('one number')">
+              <ion-icon [name]="!getPasswordStrengthErrors().includes('one number') ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
+              <span class="sr-only">{{ !getPasswordStrengthErrors().includes('one number') ? 'Met:' : 'Not met:' }}</span>
+              At least one number
+            </li>
+            <li [class.met]="!getPasswordStrengthErrors().includes('one special character')">
+              <ion-icon [name]="!getPasswordStrengthErrors().includes('one special character') ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
+              <span class="sr-only">{{ !getPasswordStrengthErrors().includes('one special character') ? 'Met:' : 'Not met:' }}</span>
+              At least one special character
+            </li>
+            <li [class.met]="registerForm.get('password')?.value?.length >= 8">
+              <ion-icon [name]="registerForm.get('password')?.value?.length >= 8 ? 'checkmark-circle' : 'close-circle'" aria-hidden="true"></ion-icon>
+              <span class="sr-only">{{ registerForm.get('password')?.value?.length >= 8 ? 'Met:' : 'Not met:' }}</span>
+              At least 8 characters long
+            </li>
+          </ul>
+        </div>
+      }
 
       <!-- Confirm Password Field -->
       <ion-item class="input-item" lines="none">
@@ -160,15 +172,17 @@
           placeholder="Re-enter your password"
           autocomplete="new-password"
           [class.invalid]="registerForm.get('confirmPassword')?.touched && (registerForm.get('confirmPassword')?.invalid || registerForm.errors?.['passwordMismatch'])"
-        >
+          >
           <ion-icon name="lock-closed-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
           <ion-input-password-toggle slot="end"></ion-input-password-toggle>
         </ion-input>
       </ion-item>
-      <div class="error-message" role="alert" *ngIf="getFieldError('confirmPassword')">
-        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-        <span>{{ getFieldError('confirmPassword') }}</span>
-      </div>
+      @if (getFieldError('confirmPassword')) {
+        <div class="error-message" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ getFieldError('confirmPassword') }}</span>
+        </div>
+      }
 
       <!-- Register Button -->
       <ion-button
@@ -176,8 +190,10 @@
         type="submit"
         [disabled]="loading"
         class="register-btn"
-      >
-        <ion-spinner *ngIf="loading" name="crescent" aria-hidden="true"></ion-spinner>
+        >
+        @if (loading) {
+          <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+        }
         <span [class.sr-only]="loading">Create Account</span>
       </ion-button>
 
@@ -190,7 +206,7 @@
           (click)="goToLogin()"
           type="button"
           class="login-link-btn"
-        >
+          >
           Sign In
         </ion-button>
       </div>

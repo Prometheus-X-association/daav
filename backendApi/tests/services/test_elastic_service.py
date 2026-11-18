@@ -161,8 +161,9 @@ class TestConnect:
         dict(authMode="bearer"),
     ])
     def test_missing_credentials_for_auth_mode(self, client, kwargs):
+        connection = ElasticService().connect(make_dataset(**kwargs))
         with pytest.raises(ElasticServiceError) as exc:
-            with ElasticService().connect(make_dataset(**kwargs)):
+            with connection:
                 pass
         assert exc.value.status_code == 400
         client.es_cls.assert_not_called()
@@ -176,15 +177,18 @@ class TestConnect:
         assert client.es_cls.call_args.kwargs["verify_certs"] is False
 
     def test_missing_url(self, client):
+        connection = ElasticService().connect(make_dataset(url=None))
         with pytest.raises(ElasticServiceError) as exc:
-            with ElasticService().connect(make_dataset(url=None)):
+            with connection:
                 pass
         assert exc.value.status_code == 400
 
     def test_ssrf_refused_before_connecting(self):
+        service = ElasticService()
+        dataset = make_dataset(url="http://169.254.169.254")
         with patch.object(elastic_service, "Elasticsearch") as es_cls:
             with pytest.raises(ElasticServiceError) as exc:
-                ElasticService().info(make_dataset(url="http://169.254.169.254"))
+                service.info(dataset)
         assert exc.value.status_code == 400
         es_cls.assert_not_called()
 
@@ -198,15 +202,17 @@ class TestConnect:
     ])
     def test_errors_are_translated(self, client, error, status):
         client.info.side_effect = error
+        service, dataset = ElasticService(), make_dataset()
         with pytest.raises(ElasticServiceError) as exc:
-            ElasticService().info(make_dataset())
+            service.info(dataset)
         assert exc.value.status_code == status
         client.close.assert_called_once()
 
     def test_authorization_reason_reported(self, client):
         client.count.side_effect = api_error(AuthorizationException, 403, {"error": {"reason": "missing read"}})
+        service, dataset = ElasticService(), make_dataset()
         with pytest.raises(ElasticServiceError, match="missing read"):
-            ElasticService().count(make_dataset(), "idx")
+            service.count(dataset, "idx")
 
 
 # ===========================
@@ -219,7 +225,9 @@ class TestIndices:
         client.info.return_value = {"cluster_name": "c", "version": {"number": "8.15.5"}}
         client.cluster.health.side_effect = api_error(AuthorizationException, 403, {})
         info = ElasticService().info(make_dataset())
-        assert info["clusterName"] == "c" and info["version"] == "8.15.5" and info["status"] is None
+        assert info["clusterName"] == "c"
+        assert info["version"] == "8.15.5"
+        assert info["status"] is None
 
     def test_list_indices(self, client):
         client.cat.indices.return_value = [
@@ -248,8 +256,9 @@ class TestIndices:
 
     @pytest.mark.parametrize("name", ["", "UPPER", "*", "a b"])
     def test_create_index_invalid_name(self, client, name):
+        service, dataset = ElasticService(), make_dataset()
         with pytest.raises(ElasticServiceError) as exc:
-            ElasticService().create_index(make_dataset(), name)
+            service.create_index(dataset, name)
         assert exc.value.status_code == 400
         client.indices.create.assert_not_called()
 
@@ -267,9 +276,11 @@ class TestReading:
     def test_search_page(self, client):
         client.search.return_value = {"hits": {"total": {"value": 42}, "hits": [{"_id": "11", "_source": {"a": 1}}]}}
         data, total = ElasticService().search_page(make_dataset(), "idx", page=2, per_page=10, query="a:1")
-        assert data == [{"_id": "11", "a": 1}] and total == 42
+        assert data == [{"_id": "11", "a": 1}]
+        assert total == 42
         kwargs = client.search.call_args.kwargs
-        assert kwargs["from_"] == 10 and kwargs["size"] == 10
+        assert kwargs["from_"] == 10
+        assert kwargs["size"] == 10
         assert kwargs["query"] == {"query_string": {"query": "a:1"}}
 
     def _pages(self, client, pages):
@@ -298,14 +309,16 @@ class TestReading:
     def test_scan_closes_pit_on_error(self, client):
         client.open_point_in_time.return_value = {"id": "pit-1"}
         client.search.side_effect = api_error(BadRequestError, 400, {"error": {"reason": "bad"}})
+        batches = ElasticService().scan(make_dataset(), "idx")
         with pytest.raises(ElasticServiceError):
-            list(ElasticService().scan(make_dataset(), "idx"))
+            list(batches)
         client.close_point_in_time.assert_called_once_with(id="pit-1")
 
     def test_read_dataframe(self, client):
         self._pages(client, [[1, 2], []])
         df = ElasticService().read_dataframe(make_dataset(), "idx", fields=["n"], include_id=False)
-        assert list(df.columns) == ["n"] and df["n"].tolist() == [1, 2]
+        assert list(df.columns) == ["n"]
+        assert df["n"].tolist() == [1, 2]
         assert client.search.call_args_list[0].kwargs["source"] == ["n"]
 
 
@@ -334,9 +347,11 @@ class TestBulkIndex:
 
     def test_id_field(self):
         sent, _ = self._run([{"_id": "a", "x": 1}, {"_id": None, "x": 2}], id_field="_id")
-        assert sent[0]["_id"] == "a" and "_id" not in sent[1]
+        assert sent[0]["_id"] == "a"
+        assert "_id" not in sent[1]
         sent, _ = self._run([{"sku": np.int64(7), "x": 1}], id_field="sku")
-        assert sent[0]["_id"] == "7" and sent[0]["_source"] == {"sku": 7, "x": 1}
+        assert sent[0]["_id"] == "7"
+        assert sent[0]["_source"] == {"sku": 7, "x": 1}
 
     def test_values_cleaned(self):
         sent, _ = self._run([{"x": float("nan"), "d": pd.Timestamp("2025-01-01")}])

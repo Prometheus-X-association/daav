@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 
 import { CustomConnectionComponent } from './connections.component';
 
@@ -9,9 +9,9 @@ describe('CustomConnectionComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ CustomConnectionComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [CustomConnectionComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(CustomConnectionComponent);
     component = fixture.componentInstance;
@@ -28,6 +28,6 @@ describe('CustomConnectionComponent', () => {
     fixture.detectChanges();
     const pathEl: SVGPathElement | null = fixture.nativeElement.querySelector('path');
     expect(pathEl).toBeTruthy();
-    expect(pathEl!.getAttribute('d')).toBe(testPath);
+    expect(pathEl.getAttribute('d')).toBe(testPath);
   });
 });

@@ -125,17 +125,21 @@ def infer_mappings(df: pd.DataFrame) -> Dict[str, Any]:
 class ElasticService:
 
     @staticmethod
+    def _auth_mode(dataset: ElasticDataset) -> str:
+        """The configured auth mode, or the one deduced from the credentials that are set."""
+        if dataset.authMode is not None:
+            return dataset.authMode
+        if dataset.key:
+            return 'apiKey'
+        if dataset.user and dataset.password:
+            return 'basic'
+        if dataset.bearerToken:
+            return 'bearer'
+        return 'none'
+
+    @staticmethod
     def _auth_kwargs(dataset: ElasticDataset) -> Dict[str, Any]:
-        mode = dataset.authMode
-        if mode is None:
-            if dataset.key:
-                mode = 'apiKey'
-            elif dataset.user and dataset.password:
-                mode = 'basic'
-            elif dataset.bearerToken:
-                mode = 'bearer'
-            else:
-                mode = 'none'
+        mode = ElasticService._auth_mode(dataset)
         if mode == 'apiKey':
             if not dataset.key:
                 raise ElasticServiceError("The API key is missing", 400)
@@ -376,23 +380,31 @@ class ElasticService:
         Returns:
             (indexed count, failed count, first error messages)
         """
-        def actions():
-            for record in records:
-                source = {k: to_json_safe(v) for k, v in record.items() if k != '_id'}
-                action: Dict[str, Any] = {"_index": index, "_source": source}
-                doc_id = record.get(id_field) if id_field else None
-                if doc_id is not None and not (isinstance(doc_id, float) and math.isnan(doc_id)):
-                    action["_id"] = str(to_json_safe(doc_id))
-                yield action
+        actions = (self._bulk_action(record, index, id_field) for record in records)
 
         indexed, failed, errors = 0, 0, []
-        for ok, item in helpers.streaming_bulk(client, actions(), chunk_size=BULK_CHUNK_SIZE,
+        for ok, item in helpers.streaming_bulk(client, actions, chunk_size=BULK_CHUNK_SIZE,
                                                raise_on_error=False):
             if ok:
                 indexed += 1
                 continue
             failed += 1
             if len(errors) < MAX_REPORTED_BULK_ERRORS:
-                error = next(iter(item.values()), {}).get("error", item)
-                errors.append(error.get("reason", str(error)) if isinstance(error, dict) else str(error))
+                errors.append(self._bulk_error_message(item))
         return indexed, failed, errors
+
+    @staticmethod
+    def _bulk_action(record: dict, index: str, id_field: Optional[str]) -> Dict[str, Any]:
+        """Bulk action of a record; '_id' never goes in the body, id_field gives the document id."""
+        source = {k: to_json_safe(v) for k, v in record.items() if k != '_id'}
+        action: Dict[str, Any] = {"_index": index, "_source": source}
+        doc_id = record.get(id_field) if id_field else None
+        if doc_id is not None and not (isinstance(doc_id, float) and math.isnan(doc_id)):
+            action["_id"] = str(to_json_safe(doc_id))
+        return action
+
+    @staticmethod
+    def _bulk_error_message(item: dict) -> str:
+        """Readable reason of a failed bulk item."""
+        error = next(iter(item.values()), {}).get("error", item)
+        return error.get("reason", str(error)) if isinstance(error, dict) else str(error)

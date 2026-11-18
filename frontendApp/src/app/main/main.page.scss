@@ -26,11 +26,21 @@ ion-split-pane.side-collapsed {
         min-width: 48px;
         width: 48px;
 
-        > ion-header,
         > ion-content {
             display: none;
         }
     }
+}
+
+// Hidden left column (workflow list) ---------------------------------------
+ion-split-pane.side-hidden > ion-menu {
+    display: none;
+}
+
+#new-workflow {
+    margin: 16px 40px 8px auto;
+    display: block;
+    width: fit-content;
 }
 
 #side-panel-rail {
@@ -52,7 +62,7 @@ ion-split-pane.side-collapsed {
     --border-color: transparent;
     --background: var(--darkPtx);
     position: sticky;
-    z-index: 100 !important;
+    z-index: 100;
     top: 0%;
     left: 0%;
 }
@@ -65,7 +75,7 @@ ion-split-pane.side-collapsed {
 #datasets::part(native) {
     color: var(--white);
     padding: 4px 5px 4px 30px;
-    border: none !important;
+    border: none;
     font-weight: 900;
 }
 
@@ -74,7 +84,7 @@ ion-split-pane.side-collapsed {
     width: 100;
     margin: 0px 0px;
     position: sticky;
-    z-index: 100 !important;
+    z-index: 100;
     bottom: 0%;
     left: 0%;
 }
@@ -89,7 +99,7 @@ ion-split-pane.side-collapsed {
     font-weight: 800;
     border-top: 1px solid var(--darkPtx);
     border-bottom: 1px solid var(--darkPtx);
-    box-shadow: none !important;
+    box-shadow: none;
 
     &:hover {
         background-color: var(--bluePtx);
@@ -97,70 +107,61 @@ ion-split-pane.side-collapsed {
     }
 }
 
-// Main tab ---------------------------------------------------------
-.main-tab-group {
-    background-color: var(--white);
-    overflow: hidden !important;
-    height: fit-content !important;
-    max-height: 100% !important;
-    --mdc-tab-indicator-active-indicator-color: var(--darkPtx) !important;
-    --mdc-tab-indicator-indicator-color: var(--darkPtx) !important;
-    --mat-tab-header-active-label-text-color: var(--darkPtx);
-    --mat-tab-header-active-ripple-color: var(--darkPtx);
-    --mat-tab-header-inactive-ripple-color: var(--darkPtx);
-    --mat-tab-header-active-focus-label-text-color: var(--darkPtx);
-    --mat-tab-header-active-hover-label-text-color: var(--darkPtx);
-    --mat-tab-header-active-focus-indicator-color: var(--darkPtx);
-    --mat-tab-header-active-hover-indicator-color: var(--darkPtx);
-
+// Main tabs (in the toolbar) ---------------------------------------------------------
+.main-tab-nav {
+    --mat-tab-active-indicator-color: var(--darkPtx);
+    --mat-tab-indicator-color: var(--darkPtx);
+    --mat-tab-active-label-text-color: var(--darkPtx);
+    --mat-tab-active-ripple-color: var(--darkPtx);
+    --mat-tab-inactive-ripple-color: var(--darkPtx);
+    --mat-tab-active-focus-label-text-color: var(--darkPtx);
+    --mat-tab-active-hover-label-text-color: var(--darkPtx);
+    --mat-tab-active-focus-indicator-color: var(--darkPtx);
+    --mat-tab-active-hover-indicator-color: var(--darkPtx);
+    border-bottom: none;
 
     .mat-ripple,
     .mdc-tab__ripple {
-        display: none !important;
+        display: none;
     }
 
-    .mat-mdc-tab-labels {
-        justify-content: flex-end;
-        border-bottom: 1px solid var(--darkPtx);
-        padding: 14.5px 0px 0px 0px;
-
-        .mdc-tab {
-            margin-left: 70px;
-
-            &:last-of-type {
-                margin-right: 40px;
-            }
-        }
-    }
-
-    .mat-mdc-tab {
+    .mat-mdc-tab-link {
         flex-grow: unset !important;
-        background-color: var(--white) !important;
-        transition: var(--custom-transition);
         width: 150px;
+        margin-left: 70px;
+        transition: var(--custom-transition);
+
+        &:last-of-type {
+            margin-right: 40px;
+        }
 
         &:hover {
             font-weight: 800;
         }
 
-        span {
+        .mdc-tab__text-label {
             color: var(--black) !important;
         }
     }
 
-    .mat-mdc-tab.mdc-tab--active {
-        span {
+    .mat-mdc-tab-link.mdc-tab--active {
+        font-weight: 800;
+
+        .mdc-tab__text-label {
             color: var(--darkPtx) !important;
         }
-
-        font-weight: 800;
     }
+}
+
+.main-tab-panel {
+    display: block;
+    height: 100%;
 }
 
 // Render tab ---------------------------------------------------------
 .render-tab-group {
     .mat-mdc-tab-labels {
-        padding: 8px 0px 0px 0px !important;
+        padding: 8px 0px 0px 0px;
     }
 
     .mat-mdc-tab {
@@ -172,12 +173,12 @@ ion-split-pane.side-collapsed {
 #render-container {
     width: 100%;
     height: 100%;
-    overflow: hidden !important;
+    overflow: hidden;
 
     #app-container {
         display: flex;
         flex-direction: column;
         height: 100%;
-        overflow: hidden !important;
+        overflow: hidden;
     }
 }

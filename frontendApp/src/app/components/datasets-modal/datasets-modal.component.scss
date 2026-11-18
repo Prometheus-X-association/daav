@@ -21,7 +21,7 @@ ion-modal{
     }
 
     .ion-page {
-        position: relative;
+        position: unset;
         display: block;
         contain: content;
 
@@ -31,10 +31,6 @@ ion-modal{
             padding: 0px;
         }
     }
-}
-
-ion-modal .ion-page{
-    position: unset !important;
 }
 
 // Data type selection ---------------------------------------------------------
@@ -110,8 +106,8 @@ ion-modal .ion-page{
 ion-icon{
     margin-right: 5px;
     transform: translate(0px, 2px);
-    background-color: transparent !important;
-    border: 0px !important;
+    background-color: transparent;
+    border: 0px;
 }
 
 ion-item{
@@ -132,38 +128,34 @@ ion-toggle{
 
 ion-select{
     width: 100%;
-    height: fit-content !important;
-    min-height: 0px !important;
+    height: fit-content;
+    min-height: 0px;
 
     &::part(label){
-        max-width: 100% !important;
+        max-width: 100%;
 
     }
 }
 
 // File and folder input ---------------------------------------------------------
 #text-input{
-    position: relative !important;
+    position: relative;
     z-index: 1;
     background-color: white;
 }
 
 #upload-input{
-    position: absolute !important;
+    position: absolute;
     z-index: 0;
     opacity: 1;
 }
-
-// #folder-label{
-//     padding-left: 15px;
-// }
 
 input{
     padding: 0px 15px 3px 15px;
 }
 
 .active{
-    z-index: 2 !important;
+    z-index: 2;
 }
 
 
@@ -180,7 +172,7 @@ input{
 }
 
 .label{
-    font-size: .75rem !important;
+    font-size: .75rem;
     font-weight: 400;
     margin-top:10px;
 }
@@ -194,13 +186,6 @@ input{
         margin-right: 40px;
     }
 }
-
-// .input-container{
-//     display: flex;
-//     flex-direction: column;
-//     height: 61.5%;
-//     overflow: scroll;
-// }
 
 // Confirm connection ---------------------------------------------------------
 #confirm-container{
@@ -217,8 +202,8 @@ input{
     height: 100%;
     margin: 0;
     font-weight: 900;
-    transition: var(--custom-transition) !important;
-    --transition: var(--custom-transition) !important;
+    transition: var(--custom-transition);
+    --transition: var(--custom-transition);
     --border-radius: 0px;
     --background: var(--bluePtxLight);
     --background-hover: var(--bluePtx);

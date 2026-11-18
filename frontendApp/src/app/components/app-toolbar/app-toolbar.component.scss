@@ -1,27 +1,52 @@
 :host {
     display: block;
+    position: relative;
 }
 
+// Title and buttons are grouped on the left, the page content takes the rest of the toolbar
 ion-title {
-    color: var(--darkPtx) !important;
-    font-weight: 900 !important;
+    flex: none;
+    position: static;
+    width: auto;
+    padding-right: 8px;
+    color: var(--darkPtx);
+    font-weight: 900;
     font-size: 1.8em;
     padding-top: 10px;
     padding-bottom: 10px;
     padding-left: 30px;
     background-color: transparent;
-    font-family: 'poppins' !important;
+    font-family: 'poppins', sans-serif;
+}
+
+ion-toolbar {
+    --padding-bottom: 0;
+}
+
+// The page content fills the toolbar height and sits on its bottom edge,
+// so the active tab indicator touches the bottom of the toolbar
+ion-toolbar::part(content) {
+    align-self: stretch;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
+.toolbar-end {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .theme-menu {
     display: none;
     position: absolute;
-    top: 63px;
+    top: 100%;
     left: 0;
     background-color: var(--grayLight);
     box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 4px 0px;
     border: 1px solid black;
     width: 100%;
+    max-width: 350px;
     padding: 1em;
     z-index: 99;
 
@@ -30,19 +55,25 @@ ion-title {
         flex-direction: column;
     }
 
-    .theme-btns {
-        margin-bottom: 1em;
-    }
-
+    // Fieldsets group the buttons for assistive technologies; the browser
+    // fieldset border, padding and margins are reset so they render as plain blocks
     .theme-btns,
     .font-btns {
         display: flex;
         flex-direction: column;
         width: 100%;
+        min-inline-size: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
 
         ion-button {
             width: 100%;
             box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 4px 0px;
         }
+    }
+
+    .theme-btns {
+        margin-bottom: 1em;
     }
 }

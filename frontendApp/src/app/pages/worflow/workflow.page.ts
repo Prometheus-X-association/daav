@@ -1,22 +1,27 @@
 import { WorkflowService } from '../../services/worflow.service';
-import { Component, ElementRef, Injector, ViewChild, AfterViewInit, OnInit, input, Input, Output, EventEmitter, OnChanges, SimpleChanges, AfterContentInit, AfterViewChecked, DestroyRef, inject } from '@angular/core';
+import { Component, ElementRef, Injector, ViewChild, AfterViewInit, Input, Output, EventEmitter, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkflowEditor } from '../../core/workflow-editor';
 import { environment } from 'src/environments/environment';
 import { Project } from '../../models/interfaces/project';
-import { AppUtils } from '../../models/app-utils';
 import { ActivatedRoute } from '@angular/router';
 import { $localize } from '@angular/localize/init';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDeletionModalComponent } from '../../components/confirm-deletion-modal/confirm-deletion-modal.component';
+import { IonButton, IonInput } from '@ionic/angular/standalone';
+import { FormsModule } from '@angular/forms';
 
 @Component({
     selector: 'app-workflow',
     templateUrl: 'workflow.page.html',
     styleUrls: ['workflow.page.scss'],
-    standalone: false
+    imports: [IonButton, IonInput, FormsModule]
 })
 export class WorkflowPage implements AfterViewInit {
+  private readonly injector = inject(Injector);
+  private readonly route = inject(ActivatedRoute);
+  workflowService = inject(WorkflowService);
+
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   workflow: WorkflowEditor;
@@ -25,7 +30,7 @@ export class WorkflowPage implements AfterViewInit {
   @Input() projectId: string;
   @Output() closed = new EventEmitter<void>();
 
-  constructor(private injector: Injector,private route: ActivatedRoute,public workflowService : WorkflowService) {
+  constructor() {
     this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(params => {
@@ -40,6 +45,7 @@ export class WorkflowPage implements AfterViewInit {
 
       if (el) {
         this.workflow = new WorkflowEditor(el, this.injector);
+        void this.workflow.zoomOnNodes();
         this.workflow.name = this.getDefaultName();
         this.workflow.markAsSaved();
       }
@@ -47,7 +53,7 @@ export class WorkflowPage implements AfterViewInit {
         (window as any).workflow = this.workflow;
       }
       if (this.projectId) {
-        this.loadProject(this.projectId);
+        void this.loadProject(this.projectId);
       }
     }, 0);
   }
@@ -57,14 +63,28 @@ export class WorkflowPage implements AfterViewInit {
    *Load a Project in the workflow
    * @param project : Project | string (id of a project)
    */
-  public loadProject(project : Project | string){
+  public async loadProject(project : Project | string): Promise<void> {
     if (this.workflow && project){
       if ( typeof project === 'string'){
         project = this.workflowService.workflows().find(w => w.id == project);
       }
       if (project){
-        this.workflow.importProject(project);
+        await this.importIntoEditor(project);
       }
+    }
+  }
+
+  /**
+   * Import a project in the editor. On failure the user is told and the editor is emptied:
+   * a partly loaded project must not stay, saving it would overwrite the real one.
+   */
+  private async importIntoEditor(project: Project): Promise<void> {
+    try {
+      await this.workflow.importProject(project);
+    } catch (error) {
+      console.error(error);
+      alert("Error loading project");
+      await this.workflow.resetWorkflow(this.getDefaultName());
     }
   }
 
@@ -75,7 +95,7 @@ export class WorkflowPage implements AfterViewInit {
    */
   public newProject(){
       if (this.workflow ){
-        this.workflow.resetWorkflow(this.getDefaultName());
+        void this.workflow.resetWorkflow(this.getDefaultName());
       }
     }
 
@@ -87,7 +107,7 @@ export class WorkflowPage implements AfterViewInit {
   }
 
   protected import(){
-    this.workflow.importProject(this.exported);
+    void this.importIntoEditor(this.exported);
   }
 
 

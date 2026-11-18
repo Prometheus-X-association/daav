@@ -1,6 +1,6 @@
 import '@angular/localize/init';
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule, IonModal } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { HttpEventType } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
@@ -16,15 +16,14 @@ describe('DatasetsModalComponent', () => {
   beforeEach(waitForAsync(() => {
     datasetServiceSpy = jasmine.createSpyObj('DatasetService', ['addDataset', 'get', 'edit', 'uploadFile']);
     datasetServiceSpy.addDataset.and.returnValue(of({}));
-    datasetServiceSpy.get.and.returnValue(undefined as any);
-    datasetServiceSpy.edit.and.returnValue(undefined as any);
+    datasetServiceSpy.get.and.returnValue(undefined);
+    datasetServiceSpy.edit.and.returnValue(undefined);
     datasetServiceSpy.uploadFile.and.returnValue(of());
 
     TestBed.configureTestingModule({
-      declarations: [DatasetsModalComponent],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule],
-      providers: [{ provide: DatasetService, useValue: datasetServiceSpy }]
-    }).compileComponents();
+    imports: [HttpClientTestingModule, DatasetsModalComponent],
+    providers: [provideIonicAngular(), { provide: DatasetService, useValue: datasetServiceSpy }]
+}).compileComponents();
 
     fixture = TestBed.createComponent(DatasetsModalComponent);
     component = fixture.componentInstance;

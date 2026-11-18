@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 
 import { TransformationModalComponent } from './transformation-modal.component';
 
@@ -9,9 +9,9 @@ describe('TransformationModalComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ TransformationModalComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [TransformationModalComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(TransformationModalComponent);
     component = fixture.componentInstance;

@@ -5,10 +5,8 @@ import { StatusNode } from "src/app/enums/status-node";
 import { AreaExtra, Schemes } from "src/app/core/workflow-editor";
 import { AreaPlugin } from "rete-area-plugin";
 import { InputDataBlock } from "../input/input-data-block";
-import { daavBlock } from "../node-block";
-// import { NodeComponent } from "src/app/components/nodes/nodes.component";
 
-//@daavBlock('input')
+// Example of an input block: not registered with the daavBlock decorator, so it is not offered in the editor
 export class ExampleInput extends InputDataBlock {
   override getRevision(): string {
     throw new Error("Method not implemented.");

@@ -1,30 +1,35 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ToastController, LoadingController, AlertController } from '@ionic/angular';
+import { ToastController, LoadingController, AlertController, IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { alertCircle, alertCircleOutline, arrowBackOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, mailOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-reset-password',
     templateUrl: './reset-password.page.html',
     styleUrls: ['./reset-password.page.scss'],
-    standalone: false
+    imports: [IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar, FormsModule, ReactiveFormsModule]
 })
 export class ResetPasswordPage implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly toastController = inject(ToastController);
+  private readonly loadingController = inject(LoadingController);
+  private readonly alertController = inject(AlertController);
+
   resetPasswordForm!: FormGroup;
   loading = false;
   token: string = '';
   tokenValid = true;
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private toastController: ToastController,
-    private loadingController: LoadingController,
-    private alertController: AlertController
-  ) {}
+  constructor() {
+    addIcons({ alertCircle, alertCircleOutline, arrowBackOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, mailOutline });
+  }
 
   ngOnInit() {
     // Get token from query parameters
@@ -32,7 +37,7 @@ export class ResetPasswordPage implements OnInit {
 
     if (!this.token) {
       this.tokenValid = false;
-      this.showInvalidTokenAlert();
+      this.showInvalidTokenAlert().catch(error => console.error('Failed to show the invalid link alert:', error));
       return;
     }
 
@@ -63,7 +68,7 @@ export class ResetPasswordPage implements OnInit {
 
     const hasUpperCase = /[A-Z]/.test(value);
     const hasLowerCase = /[a-z]/.test(value);
-    const hasNumber = /[0-9]/.test(value);
+    const hasNumber = /\d/.test(value);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
 
     const passwordValid = hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
@@ -106,51 +111,50 @@ export class ResetPasswordPage implements OnInit {
 
     this.loading = true;
 
-    this.authService.resetPassword(this.token, password).subscribe({
-      next: async (response) => {
-        await loading.dismiss();
-        this.loading = false;
+    const failure = await firstValueFrom(this.authService.resetPassword(this.token, password))
+      .then(() => null, (error: Error) => error);
 
-        const alert = await this.alertController.create({
-          header: 'Success!',
-          message: 'Your password has been reset successfully. You can now log in with your new password.',
-          buttons: [
-            {
-              text: 'Go to Login',
-              handler: () => {
-                this.router.navigate(['/login']);
-              }
-            }
-          ]
-        });
-        await alert.present();
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
+    await loading.dismiss();
+    this.loading = false;
 
-        let message = 'Failed to reset password. Please try again.';
+    if (failure) {
+      let message = 'Failed to reset password. Please try again.';
 
-        if (error.message) {
-          message = error.message;
-        }
-
-        // Check if token is expired or invalid
-        if (error.message?.toLowerCase().includes('expired') ||
-            error.message?.toLowerCase().includes('invalid')) {
-          this.tokenValid = false;
-          message += ' Please request a new password reset link.';
-        }
-
-        const toast = await this.toastController.create({
-          message,
-          duration: 5000,
-          color: 'danger',
-          position: 'top'
-        });
-        await toast.present();
+      if (failure.message) {
+        message = failure.message;
       }
+
+      // Check if token is expired or invalid
+      if (failure.message?.toLowerCase().includes('expired') ||
+          failure.message?.toLowerCase().includes('invalid')) {
+        this.tokenValid = false;
+        message += ' Please request a new password reset link.';
+      }
+
+      const toast = await this.toastController.create({
+        message,
+        duration: 5000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+      return;
+    }
+
+    const alert = await this.alertController.create({
+      header: 'Success!',
+      message: 'Your password has been reset successfully. You can now log in with your new password.',
+      buttons: [
+        {
+          text: 'Go to Login',
+          handler: () => {
+            this.router.navigate(['/login'])
+              .catch(error => console.error('Failed to navigate to the login page:', error));
+          }
+        }
+      ]
     });
+    await alert.present();
   }
 
   /**
@@ -164,7 +168,8 @@ export class ResetPasswordPage implements OnInit {
         {
           text: 'Go to Forgot Password',
           handler: () => {
-            this.router.navigate(['/forgot-password']);
+            this.router.navigate(['/forgot-password'])
+              .catch(error => console.error('Failed to navigate to the forgot password page:', error));
           }
         }
       ]
@@ -176,14 +181,14 @@ export class ResetPasswordPage implements OnInit {
    * Navigate to forgot password page
    */
   goToForgotPassword() {
-    this.router.navigate(['/forgot-password']);
+    void this.router.navigate(['/forgot-password']);
   }
 
   /**
    * Navigate to login page
    */
   goToLogin() {
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 
   /**

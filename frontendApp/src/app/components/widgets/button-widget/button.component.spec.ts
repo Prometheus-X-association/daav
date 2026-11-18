@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { ButtonWidgetComponent, ButtonControl } from '../button-widget/button-widget.component';
 
 describe('ButtonComponent', () => {
@@ -8,9 +8,9 @@ describe('ButtonComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ ButtonWidgetComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [ButtonWidgetComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(ButtonWidgetComponent);
     component = fixture.componentInstance;
@@ -28,7 +28,7 @@ describe('ButtonComponent', () => {
     fixture.detectChanges();
     const btn: HTMLButtonElement | null = fixture.nativeElement.querySelector('button');
     expect(btn).toBeTruthy();
-    btn!.click();
+    btn.click();
     expect(spy).toHaveBeenCalled();
   });
 });

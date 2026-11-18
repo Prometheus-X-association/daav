@@ -38,7 +38,7 @@ class ExampleTransform(TransformNode):
                     nodeSchema=schema,
                     name="Example Pandas DataFrame transformed"
                 )
-                for key, output in self.outputs.items():
+                for output in self.outputs.values():
                     output.set_node_data(node_data,node = self)
             break        
         

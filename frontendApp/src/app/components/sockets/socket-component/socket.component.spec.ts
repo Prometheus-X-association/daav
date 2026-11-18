@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 
 import { SocketComponent } from './socket.component';
 
@@ -9,9 +9,9 @@ describe('SocketComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ SocketComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [SocketComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(SocketComponent);
     component = fixture.componentInstance;

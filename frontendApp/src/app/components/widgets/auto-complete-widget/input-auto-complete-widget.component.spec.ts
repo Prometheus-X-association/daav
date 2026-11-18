@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -13,9 +13,9 @@ describe('InputAutoCompleteWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ InputAutoCompleteWidgetComponent ],
-      imports: [IonicModule.forRoot(), FormsModule, MatAutocompleteModule, MatFormFieldModule, MatInputModule, BrowserAnimationsModule]
-    }).compileComponents();
+    imports: [FormsModule, MatAutocompleteModule, MatFormFieldModule, MatInputModule, BrowserAnimationsModule, InputAutoCompleteWidgetComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(InputAutoCompleteWidgetComponent);
     component = fixture.componentInstance;

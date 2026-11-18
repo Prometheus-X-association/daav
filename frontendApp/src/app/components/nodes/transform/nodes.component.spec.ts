@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { ClassicPreset } from 'rete';
 import { TransformNodeComponent } from './nodes.component';
 
@@ -9,9 +9,9 @@ describe('NodesComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ TransformNodeComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [TransformNodeComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(TransformNodeComponent);
     component = fixture.componentInstance;

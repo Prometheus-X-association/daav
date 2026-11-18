@@ -5,7 +5,7 @@ ion-split-pane {
 }
 
 ion-header {
-    box-shadow: none !important;
+    box-shadow: none;
 }
 
 // Left column ---------------------------------------------------------
@@ -120,7 +120,7 @@ ion-menu {
         color: var(--darkPtx);
         font-weight: 800;
         border-top: 1px solid var(--darkPtx);
-        box-shadow: none !important;
+        box-shadow: none;
     }
 
     &:hover::part(native) {

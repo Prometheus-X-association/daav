@@ -22,7 +22,7 @@ describe('ElasticDashboardComponent', () => {
     component = fixture.componentInstance;
     component.dataset = new DatasetElasticSearch({
       id: 'ds1', name: 'es', type: 'elastic', url: 'http://es:9200/', user: 'elastic', ...datasetValues,
-    } as any);
+    });
     fixture.detectChanges();
   }
 
@@ -49,7 +49,7 @@ describe('ElasticDashboardComponent', () => {
     create();
     expect(component.info.version).toBe('8.15.5');
     expect(component.totalDocs).toBe(70);
-    expect(fixture.nativeElement.querySelectorAll('table.indices tbody tr').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('table.indices tbody tr')).toHaveSize(2);
   });
 
   it('should filter indices by name or alias', () => {
@@ -107,5 +107,27 @@ describe('ElasticDashboardComponent', () => {
     component.createIndex();
     expect(elastic.createIndex).not.toHaveBeenCalled();
     expect(component.createError).toContain('not valid JSON');
+  });
+
+  it('should copy the command to the clipboard', async () => {
+    create();
+    const writeText = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+
+    await component.copy('curl -X DELETE');
+
+    expect(writeText).toHaveBeenCalledWith('curl -X DELETE');
+    expect(component.copyFailed).toBeFalse();
+  });
+
+  it('should tell the user when the command cannot be copied', async () => {
+    create();
+    component.selectIndex(indices[0]);
+    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
+
+    await component.copy('curl -X DELETE');
+    fixture.detectChanges();
+
+    expect(component.copyFailed).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.command + .error').textContent).toContain('could not be copied');
   });
 });

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ViewChild, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectorRef, Component, ViewChild, ViewEncapsulation, inject } from '@angular/core';
 import { Dataset } from 'src/app/models/dataset';
 import { DatasetService } from '../services/dataset.service';
 import { LoadingService } from '../services/loading.service';
@@ -6,6 +6,15 @@ import { DatasetsModalComponent } from '../components/datasets-modal/datasets-mo
 import { TransformationModalComponent } from '../components/transformation-modal/transformation-modal.component';
 import { WorkflowPage } from '../pages/worflow/workflow.page';
 import { Project } from '../models/interfaces/project';
+import { IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonMenu, IonSplitPane, IonRouterLink } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chevronBackOutline, chevronForwardOutline, personCircle } from 'ionicons/icons';
+import { AppToolbarComponent } from '../components/app-toolbar/app-toolbar.component';
+import { RouterLink } from '@angular/router';
+import { DatasetsComponent } from '../components/main/datasets/datasets.component';
+import { TransformationComponent } from '../components/main/transformation/transformation.component';
+import { MatTabNav, MatTabLink, MatTabNavPanel } from '@angular/material/tabs';
+import { RenderComponent } from '../components/main/render/render.component';
 
 enum Tabs {
   datasets,
@@ -17,10 +26,14 @@ enum Tabs {
     templateUrl: 'main.page.html',
     styleUrls: ['main.page.scss'],
     encapsulation: ViewEncapsulation.None,
-    standalone: false
+    imports: [IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonMenu, IonSplitPane, IonRouterLink, AppToolbarComponent, RouterLink, DatasetsModalComponent, TransformationModalComponent, DatasetsComponent, TransformationComponent, MatTabNav, MatTabLink, MatTabNavPanel, RenderComponent, WorkflowPage]
 })
 
 export class MainPage {
+  private readonly cd = inject(ChangeDetectorRef);
+  datasetService = inject(DatasetService);
+  loadingService = inject(LoadingService);
+
   fileName = '';
   dataset: Dataset;
   activeTab = Tabs.datasets;
@@ -28,6 +41,10 @@ export class MainPage {
   transformationView: string = "list";
   loadProjectId: string;
   sidePanelCollapsed = false;
+
+  constructor() {
+    addIcons({ chevronBackOutline, chevronForwardOutline, personCircle });
+  }
 
   get Tabs(){
     return Tabs;
@@ -59,9 +76,6 @@ export class MainPage {
   dataSource: any[] = [];
   matTabIndex = 0;
 
-  constructor( private cd: ChangeDetectorRef, public datasetService : DatasetService, public loadingService: LoadingService) {
-  }
-
   loadDataset(){
     this.matTabIndex = 1;
   }
@@ -79,6 +93,11 @@ export class MainPage {
     return this.matTabIndex === Tabs.transformation && this.transformationView === 'rete';
   }
 
+  // No side menu on the workflow list: it would only repeat the list shown in the main view
+  get isSideMenuHidden(): boolean {
+    return this.matTabIndex === Tabs.transformation && this.transformationView === 'list';
+  }
+
   // The side panel can only be collapsed while a workflow is open in the editor
   get isSidePanelCollapsed(): boolean {
     return this.sidePanelCollapsed && this.isWorkflowOpen;
@@ -92,9 +111,6 @@ export class MainPage {
     this.loadProjectId = undefined;
     this.sidePanelCollapsed = false;
     this.transformationView = 'list';
-  }
-
-  ionViewWillEnter() {
   }
 
   closeModalAddConnection() {
@@ -113,7 +129,7 @@ export class MainPage {
 
   loadWorkflow(project: Project) {
     if (this.workflowEditor) {
-      this.workflowEditor.loadProject(project);
+      void this.workflowEditor.loadProject(project);
     }
     else{
       this.loadProjectId = project.id;

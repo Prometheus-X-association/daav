@@ -60,7 +60,8 @@ class TestDataElasticBlock:
         assert args[1:] == ("products", "category:books", ["name", "price"], 100, False)
         node_data = node.outputs["out"].set_node_data.call_args.args[0]
         assert isinstance(node_data, NodeDataPandasDf)
-        assert len(node_data.data) == 2 and node_data.name == "products"
+        assert len(node_data.data) == 2
+        assert node_data.name == "products"
 
     async def test_sample_is_limited(self, input_node):
         node = input_node({"selectDataSource": control("ds1"), "selectIndexDataSource": control("products"),

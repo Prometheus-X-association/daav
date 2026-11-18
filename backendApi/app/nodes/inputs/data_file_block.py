@@ -69,13 +69,13 @@ class DataFileBlock(InputNode):
         Raises:
             ValueError: If no data source, database, or table is selected.
         """
-        datasetId: str 
+        dataset_id: str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
         
-        dataset: FileDataset = await self.datasetService.get_dataset(datasetId)
+        dataset: FileDataset = await self.datasetService.get_dataset(dataset_id)
         return dataset
 
     model_config = ConfigDict(

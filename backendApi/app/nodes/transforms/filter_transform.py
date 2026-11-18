@@ -25,6 +25,42 @@ def _quote_duckdb_identifier(name: str) -> str:
     """Double-quote a DuckDB column/table identifier, escaping inner double-quotes."""
     return '"' + name.replace('"', '""') + '"'
 
+
+def _escape_duckdb_string(value: Any) -> str:
+    """Content of a DuckDB string literal: inner single quotes are doubled, so the value cannot end the literal."""
+    return str(value).replace("'", "''")
+
+
+def _duckdb_literal(value: Any) -> str:
+    """DuckDB literal of an item of an IN list: a number as it is, anything else as an escaped string."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    return f"'{_escape_duckdb_string(value)}'"
+
+def _in_list(value: Any) -> str:
+    """Items of an IN list: one literal per item of a list, a single string literal otherwise."""
+    if isinstance(value, (list, tuple)):
+        return ', '.join(_duckdb_literal(item) for item in value)
+    return f"'{_escape_duckdb_string(value)}'"
+
+
+def _string_condition(quoted_field: str, operator: str, value: Any) -> str:
+    """SQL condition of a rule on a text value, which is escaped so that it stays inside its string literal."""
+    escaped = _escape_duckdb_string(value)
+    literal = f"'{escaped}'"
+    string_operators = {
+        'contains': lambda: f"CONTAINS(LOWER({quoted_field}), LOWER({literal}))",
+        '=': lambda: f"LOWER({quoted_field}) = LOWER({literal})",
+        '!=': lambda: f"LOWER({quoted_field}) != LOWER({literal})",
+        'like': lambda: f"LOWER({quoted_field}) LIKE LOWER('%{escaped}%')",
+        'in': lambda: f"{quoted_field} IN ({_in_list(value)})",
+        'not in': lambda: f"{quoted_field} NOT IN ({_in_list(value)})",
+    }
+    if operator not in string_operators:
+        raise ValueError(f"Unsupported string operator: {operator!r}")
+    return string_operators[operator]()
+
+
 class Source(BaseModel):
     id: str
     name: str
@@ -56,162 +92,91 @@ class FilterTransform(TransformNode):
 
         """
         try:
-            dataSource, filterRules, parquetSave = self._retreiveFilterData()
+            data_source, filter_rules, parquet_save = self._retreiveFilterData()
 
-            if not filterRules:
+            if not filter_rules:
                 self.statusMessage = "WARNING: No filter rules"
                 return StatusNode.Error
-            
-            else:
-                try:
-                    whereClause = self.process_condition(filterRules)
-                    if not whereClause:
-                        whereClause = "1=1" 
 
-                except Exception as e:
-                    self.statusMessage = f"Error in filter conditions: {str(e)}"
-                    return StatusNode.Error
-            
-            source_data = self.inputs[dataSource].get_node_data()
+            try:
+                where_clause = self._where_clause(filter_rules)
+            except Exception as e:
+                self.statusMessage = f"Error in filter conditions: {str(e)}"
+                return StatusNode.Error
 
-            if not parquetSave:
-                if(isinstance(source_data, NodeDataPandasDf)):
-                    data = source_data.dataExample if sample else source_data.data
-
-                    conn = duckdb.connect()
-                    conn.register('source_table', data)
-
-                    query = f"SELECT * FROM source_table WHERE {whereClause}"
-                    logger.info(f"Executing query: {query}")
-                    result_df = conn.execute(query).fetchdf()
-                    conn.close()
-
-                    # Check if result is empty
-                    if result_df.empty:
-                        self.statusMessage = "No data matches the filter conditions"
-                        return StatusNode.Error
-                    
-                    # Create node data output
-                    if sample:
-                        self.outputs.get('out').set_node_data(
-                            NodeDataPandasDf(
-                                nodeSchema=generate_pandas_schema(result_df),
-                                dataExample=result_df, 
-                                name="Filtered Data"
-                            ),
-                            self
-                        )
-                    else:
-                        self.outputs.get('out').set_node_data(
-                            NodeDataPandasDf(
-                                nodeSchema=generate_pandas_schema(result_df),
-                                data=result_df,
-                                dataExample=result_df.head(20), 
-                                name="Filtered Data"
-                            ),
-                            self
-                        )
-                    return StatusNode.Valid
-
-                elif(isinstance(source_data, NodeDataParquet)):
-                    """ Process treatement using duckDB if source node is parquet """
-                    file_path = PathSecurityValidator.validate_file_path(source_data.data)
-                    data = pq.read_table(file_path).to_pandas()
-
-                    conn = duckdb.connect()
-                    conn.register('source_table', data)
-
-                    query = f"SELECT * FROM source_table WHERE {whereClause}"
-                    print(query)
-                    result_df = conn.execute(query).fetchdf()
-                    conn.close()
-
-                    # Add empty result check here too
-                    if result_df.empty:
-                        self.statusMessage = "No data matches the filter conditions"
-                        return StatusNode.Error
-
-                else:
-                    raise ValueError("Unkown data input")
-                
-                if result_df is None:
-                    raise ValueError("No data after filter")
-                
-                if sample:
-                    self.outputs.get('out').set_node_data(NodeDataPandasDf(
-                        nodeSchema=generate_pandas_schema(result_df),
-                        dataExample=result_df, 
-                        name="Filtered Data"),
-                        self)
-                else:
-                    self.outputs.get('out').set_node_data(NodeDataPandasDf(
-                        nodeSchema = generate_pandas_schema(result_df) ,
-                        data=result_df,
-                        dataExample=result_df.head(20), 
-                        name="Filtered Data"),
-                        self)
-                return StatusNode.Valid
-                
-            else:
-                if(isinstance(source_data, NodeDataPandasDf)):
-                    temp_dir = tempfile.gettempdir()
-                    file_name = PathSecurityValidator.validate_filename(f"filtered_data_{self.id}.parquet")
-                    result_parquet = os.path.join(temp_dir, file_name)
-                    
-                    data = source_data.dataExample if sample else source_data.data
-                    
-                    conn = duckdb.connect()
-                    conn.register('data', data)
-                    
-                    query = f"COPY (SELECT * FROM data WHERE {whereClause}) TO '{result_parquet}' (FORMAT PARQUET)"
-                    print(query)
-                    conn.execute(query)
-                    conn.close()
-
-                elif(isinstance(source_data, NodeDataParquet)):
-                    temp_dir = tempfile.gettempdir()
-                    file_name = PathSecurityValidator.validate_filename(f"filtered_data_{self.id}.parquet")
-                    result_parquet = os.path.join(temp_dir, file_name)
-                    
-                    conn = duckdb.connect()
-                    
-                    parquet_path = PathSecurityValidator.validate_file_path(source_data.data)
-                    
-                    query = f"COPY (SELECT * FROM read_parquet('{parquet_path}') WHERE {whereClause}) TO '{result_parquet}' (FORMAT PARQUET)"
-                    print(query)
-                    conn.execute(query)
-                    conn.close()
-                
-                else:
-                    raise ValueError("Unkown data input")
-                
-                # Add check for empty result in parquet case
-                if not os.path.getsize(result_parquet):
-                    self.statusMessage = "No data matches the filter conditions"
-                    return StatusNode.Error
-                
-                # Create the node data output
-                parquet_file = pq.ParquetFile(result_parquet)
-                schema = parquet_file.schema
-                node_data = NodeDataParquet(
-                    data=result_parquet,
-                    nodeSchema=schema,
-                    name="filtered_data",
-                )
-                self.outputs.get('out').set_node_data(node_data, self)
-                return StatusNode.Valid
+            source_data = self.inputs[data_source].get_node_data()
+            # A filter that matches no row is a valid, empty result
+            if parquet_save:
+                return self._filter_to_parquet(source_data, where_clause, sample)
+            return self._filter_to_dataframe(source_data, where_clause, sample)
 
         except Exception as e:
-            self.statusMessage = str(e)
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            return StatusNode.Error  
-    
+            return self._fail(e, print_traceback=False)
+
+    def _where_clause(self, filter_rules) -> str:
+        """SQL condition of the filter rules; every row matches when the rules give no condition."""
+        return self.process_condition(filter_rules) or "1=1"
+
+    def _filter_to_dataframe(self, source_data, where_clause: str, sample: bool) -> StatusNode:
+        """Filter the source in memory and publish the result as a DataFrame."""
+        if isinstance(source_data, NodeDataPandasDf):
+            data = source_data.dataExample if sample else source_data.data
+        elif isinstance(source_data, NodeDataParquet):
+            # Process treatement using duckDB if source node is parquet
+            file_path = PathSecurityValidator.validate_file_path(source_data.data)
+            data = pq.read_table(file_path).to_pandas()
+        else:
+            raise ValueError("Unkown data input")
+
+        conn = duckdb.connect()
+        conn.register('source_table', data)
+        query = f"SELECT * FROM source_table WHERE {where_clause}"
+        logger.info(f"Executing query: {query}")
+        result_df = conn.execute(query).fetchdf()
+        conn.close()
+
+        if result_df is None:
+            raise ValueError("No data after filter")
+        return self._publish_dataframe(result_df, "Filtered Data", sample)
+
+    def _filter_to_parquet(self, source_data, where_clause: str, sample: bool) -> StatusNode:
+        """Filter the source with DuckDB into a Parquet file and publish it."""
+        if isinstance(source_data, NodeDataPandasDf):
+            result_parquet = self._result_parquet_path()
+            conn = duckdb.connect()
+            conn.register('data', source_data.dataExample if sample else source_data.data)
+            query = f"COPY (SELECT * FROM data WHERE {where_clause}) TO '{result_parquet}' (FORMAT PARQUET)"
+        elif isinstance(source_data, NodeDataParquet):
+            result_parquet = self._result_parquet_path()
+            conn = duckdb.connect()
+            parquet_path = PathSecurityValidator.validate_file_path(source_data.data)
+            query = f"COPY (SELECT * FROM read_parquet('{parquet_path}') WHERE {where_clause}) TO '{result_parquet}' (FORMAT PARQUET)"
+        else:
+            raise ValueError("Unkown data input")
+
+        print(query)
+        conn.execute(query)
+        conn.close()
+
+        # Create the node data output (a filter that matches no row gives an empty file)
+        node_data = NodeDataParquet(
+            data=result_parquet,
+            nodeSchema=pq.ParquetFile(result_parquet).schema,
+            name="filtered_data",
+        )
+        self.outputs.get('out').set_node_data(node_data, self)
+        return StatusNode.Valid
+
+    def _result_parquet_path(self) -> str:
+        file_name = PathSecurityValidator.validate_filename(f"filtered_data_{self.id}.parquet")
+        return os.path.join(tempfile.gettempdir(), file_name)
+
     def _retreiveFilterData(self):
         if self.data.get('dataSource') and self.data.get('filterRules') and self.data.get('parquetSave'):
-            dataSource = self.data.get('dataSource')
-            filterRules = self.data.get('filterRules')
-            parquetSave = self.data.get('parquetSave')['value']
-            return dataSource, filterRules, parquetSave
+            data_source = self.data.get('dataSource')
+            filter_rules = self.data.get('filterRules')
+            parquet_save = self.data.get('parquetSave')['value']
+            return data_source, filter_rules, parquet_save
         else:
             print(f"datasource : {self.data.get('dataSource')}, filterRules: {self.data.get('filterRules')}")
             raise ValueError("Input required")
@@ -244,22 +209,7 @@ class FilterTransform(TransformNode):
             if operator not in _NUMERIC_OPERATORS:
                 raise ValueError(f"Unsupported numeric operator: {operator!r}")
             return f"{quoted_field} {operator} {value}"
-        else:
-            value = f"'{value}'"
-
-            string_operators = {
-                'contains': lambda f, v: f"CONTAINS(LOWER({f}), LOWER({v}))",
-                '=': lambda f, v: f"LOWER({f}) = LOWER({v})",
-                '!=': lambda f, v: f"LOWER({f}) != LOWER({v})",
-                'like': lambda f, v: f"LOWER({f}) LIKE LOWER('%" + v.strip("'") + "%')",
-                'in': lambda f, v: f"{f} IN ({v})",
-                'not in': lambda f, v: f"{f} NOT IN ({v})",
-            }
-
-            if operator in string_operators:
-                return string_operators[operator](quoted_field, value)
-            else:
-                raise ValueError(f"Unsupported string operator: {operator!r}")
+        return _string_condition(quoted_field, operator, value)
     
     def process_condition(self, condition):
         """Recursively processes filter conditions to build a SQL WHERE clause.

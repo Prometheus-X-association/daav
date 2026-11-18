@@ -1,6 +1,6 @@
 import { $localize } from '@angular/localize/init';
 import { AreaPlugin } from 'rete-area-plugin';
-import { DeepObjectSocket, FlatObjectSocket } from 'src/app/core/sockets/sockets';
+import { DeepObjectSocket } from 'src/app/core/sockets/sockets';
 import { Schemes, AreaExtra } from 'src/app/core/workflow-editor';
 import { StatusNode } from 'src/app/enums/status-node';
 import { OutputDataBlock } from '../output/output-data-block';
@@ -8,15 +8,15 @@ import { Node } from 'src/app/models/interfaces/node';
 import { daavBlock } from '../node-block';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { DatasetMySQL } from 'src/app/models/dataset-my-sql';
 import { MatSelectChange } from '@angular/material/select';
-import { MongoContentResponse, MySQLContentResponse } from 'src/app/models/dataset-content-response';
+import { MongoContentResponse } from 'src/app/models/dataset-content-response';
 import { ClassicPreset } from 'rete';
 import {
   InputAutoCompleteControl,
-  inputAutoCompleteControlI,
+  InputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { CheckboxControl, CheckboxControlI } from 'src/app/components/widgets/checkbox-widget/checkbox-widget.component';
@@ -25,7 +25,7 @@ import { DatasetMongo } from 'src/app/models/dataset-mongo';
 export class MongoOutput extends OutputDataBlock {
   override width = 350;
   override height = 156;
-  private node: Node;
+  private readonly node: Node;
   selectControlDatabase: SelectControl;
   collectionAutoCompleteControl: InputAutoCompleteControl;
   selectExistControl: SelectControl;
@@ -53,7 +53,6 @@ export class MongoOutput extends OutputDataBlock {
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.collectionAutoComplete) {
       this.addInputCollection(null,node);
@@ -61,11 +60,10 @@ export class MongoOutput extends OutputDataBlock {
     if (node?.data?.selectExist) {
       this.addSelectExist(node);
     }
-    this.area.update('node', this.id);
   }
 
   addInputCollection(data: MongoContentResponse, node: Node, collection?: string) {
-    let collectionAutoComplete: inputAutoCompleteControlI;
+    let collectionAutoComplete: InputAutoCompleteControlI;
     if (node?.data?.collectionAutoComplete) {
       //if node is given it's an import and we report content from json
       collectionAutoComplete = node.data?.collectionAutoComplete;
@@ -91,8 +89,8 @@ export class MongoOutput extends OutputDataBlock {
       }
     );
     this.addControl('collection', this.collectionAutoCompleteControl);
-    this.area.update('control', this.collectionAutoCompleteControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.collectionAutoCompleteControl.id);
+    void this.area.update('node', this.id);
   }
 
 
@@ -106,7 +104,7 @@ export class MongoOutput extends OutputDataBlock {
   }
 
   addSelectExist(node: Node) {
-    let selectExist: selectControlI;
+    let selectExist: SelectControlI;
     if (node?.data?.selectExist) {
       //if node is given it's an import and we report content from json
       selectExist = node.data?.selectExist;
@@ -122,8 +120,8 @@ export class MongoOutput extends OutputDataBlock {
       selectExist
     );
     this.addControl('exist', this.selectExistControl);
-    this.area.update('control', this.selectExistControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectExistControl.id);
+    void this.area.update('node', this.id);
     let createIndex: CheckboxControlI;
     if (node?.data?.createIndex){
       createIndex = node.data?.createIndex;
@@ -140,8 +138,8 @@ export class MongoOutput extends OutputDataBlock {
       }
     );
     this.addControl('createIndex', this.indexCheckbox );
-    this.area.update('control', this.indexCheckbox.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.indexCheckbox.id);
+    void this.area.update('node', this.id);
   }
 
   removeSelectExist() {
@@ -155,11 +153,11 @@ export class MongoOutput extends OutputDataBlock {
     if (this.node?.data?.createIndex) {
       this.node.data.createIndex = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   addIndexTable(node: Node){
-    let indexTable: inputAutoCompleteControlI;
+    let indexTable: InputAutoCompleteControlI;
     if (node?.data?.indexTable) {
       //if node is given it's an import and we report content from json
       indexTable = node.data?.indexTable;
@@ -175,8 +173,8 @@ export class MongoOutput extends OutputDataBlock {
       indexTable
     );
     this.addControl('indexTable', this.indexTableControl);
-    this.area.update('control', this.indexTableControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.indexTableControl.id);
+    void this.area.update('node', this.id);
   }
 
   removeIndexTable() {
@@ -185,12 +183,12 @@ export class MongoOutput extends OutputDataBlock {
     if (this.node?.data?.indexTable) {
       this.node.data.indexTable = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
 
   addSelectDatabase(data: MongoContentResponse, node: Node) {
-    let selectDatabaseSource: selectControlI;
+    let selectDatabaseSource: SelectControlI;
     if (node?.data?.selectDatabaseDataSource) {
       //if node is given it's an import and we report content from json
       selectDatabaseSource = node.data?.selectDatabaseDataSource;
@@ -210,7 +208,7 @@ export class MongoOutput extends OutputDataBlock {
     }
     if (
       selectDatabaseSource.value &&
-      !selectDatabaseSource.list.find(
+      !selectDatabaseSource.list.some(
         (database) => database.value === selectDatabaseSource.value
       )
     ) {
@@ -221,8 +219,8 @@ export class MongoOutput extends OutputDataBlock {
       this.dataBaseChange.bind(this)
     );
     this.addControl('dataDatabaseSource', this.selectControlDatabase);
-    this.area.update('control', this.selectControlDatabase.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlDatabase.id);
+    void this.area.update('node', this.id);
   }
 
   override dataSourceChange(event: MatSelectChange) {
@@ -257,7 +255,7 @@ export class MongoOutput extends OutputDataBlock {
   removeControlDatabase() {
     this.removeControl('dataDatabaseSource');
     this.selectControlDatabase = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
     if (this.node?.data?.selectTableDataSource) {
       this.node.data.selectTableDataSource = null;
     }

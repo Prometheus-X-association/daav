@@ -6,7 +6,7 @@ class MysqlField(BaseModel):
     Type: str
     Null: str
     Key: str
-    Default: Optional[str]
+    Default: Optional[str] = None
     Extra: str
 
 class MysqlSchema(RootModel[List[MysqlField]]):

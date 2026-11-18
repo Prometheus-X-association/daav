@@ -1,7 +1,13 @@
 import { Component, OnDestroy, Input} from '@angular/core';
 import {  Subject } from 'rxjs';
-import { CdkDragDrop, moveItemInArray} from '@angular/cdk/drag-drop';
+import { CdkDragDrop, moveItemInArray, CdkDropList, CdkDrag } from '@angular/cdk/drag-drop';
 import { Column, ColumnMapping, DatasetMapper } from 'src/app/models/data-mapper-types';
+import { MatCard, MatCardHeader, MatCardTitle, MatCardContent } from '@angular/material/card';
+import { MatIcon } from '@angular/material/icon';
+import { MatFormField } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
+import { FormsModule } from '@angular/forms';
+import { MatIconButton } from '@angular/material/button';
 
 
 
@@ -9,10 +15,10 @@ import { Column, ColumnMapping, DatasetMapper } from 'src/app/models/data-mapper
     selector: 'app-data-mapper',
     templateUrl: './data-mapper.component.html',
     styleUrls: ['./data-mapper.component.scss'],
-    standalone: false
+    imports: [MatCard, MatCardHeader, MatCardTitle, MatCardContent, MatIcon, CdkDropList, CdkDrag, MatFormField, MatInput, FormsModule, MatIconButton]
 })
 export class DataMapperComponent implements  OnDestroy {
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   @Input()datasets: DatasetMapper[] = [];
   @Input() mappings: ColumnMapping[] = [];
@@ -49,21 +55,19 @@ export class DataMapperComponent implements  OnDestroy {
 
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
-    } else {
-      if (targetMappingId) {
-        // Ajouter à un mapping existant
-        const mapping = this.mappings.find(m => m.id === targetMappingId);
-        if (mapping) {
-          mapping.sources.push(column);
-        }
-      } else {
-        // Créer un nouveau mapping
-        this.addMapping({
-          id: crypto.randomUUID(),
-          sources: [column],
-          targetName: column.name
-        });
+    } else if (targetMappingId) {
+      // Ajouter à un mapping existant
+      const mapping = this.mappings.find(m => m.id === targetMappingId);
+      if (mapping) {
+        mapping.sources.push(column);
       }
+    } else {
+      // Créer un nouveau mapping
+      this.addMapping({
+        id: crypto.randomUUID(),
+        sources: [column],
+        targetName: column.name
+      });
     }
   }
 

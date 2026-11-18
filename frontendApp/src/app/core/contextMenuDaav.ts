@@ -1,4 +1,4 @@
-import { BaseSchemes, NestedScope, NodeEditor, Scope } from 'rete';
+import { BaseSchemes, NodeEditor, Scope } from 'rete';
 import { ContextMenuPlugin, Props } from 'rete-context-menu-plugin';
 import { BaseAreaPlugin } from 'rete-area-plugin';
 import _typeof from '@babel/runtime/helpers/typeof';
@@ -6,7 +6,6 @@ import _getPrototypeOf from '@babel/runtime/helpers/getPrototypeOf';
 import _get from '@babel/runtime/helpers/get';
 import { Item, Items, Position } from 'rete-context-menu-plugin/_types/types';
 import { BSchemes, ItemDefinition } from 'rete-context-menu-plugin/_types/presets/classic/types';
-import { Node } from '../models/interfaces/node';
 import { NodeBlock } from '../nodes';
 
 export class ContextMenuDaavPlugin<
@@ -35,16 +34,16 @@ export class ContextMenuDaavPlugin<
       []
     >
   ): void {
-    //super.setParent(scope);
+    // Call the parent setParent through the Babel helper, as the compiled plugin does
     _superPropGet(ContextMenuPlugin, 'setParent', this, 3)([scope]);
     let parentScope = this.parentScope(BaseAreaPlugin);
-    var container = (parentScope as any).container as HTMLElement;
-    var element = document.createElement('div');
+    const container = (parentScope as any).container as HTMLElement;
+    const element = document.createElement('div');
     element.style.display = 'none';
     element.style.position = 'fixed';
 
     this.addPipe((context) => {
-      var parent = parentScope;
+      const parent = parentScope;
       if (!context || _typeof(context) !== 'object' || !('type' in context))
         return context;
       if (context.type === 'unmount') {
@@ -54,7 +53,7 @@ export class ContextMenuDaavPlugin<
       } else if (context.type === 'contextmenu') {
         context.data.event.preventDefault();
         context.data.event.stopPropagation();
-        var _this2$props$items = this.eprops.items(context.data.context, this),
+        const _this2$props$items = this.eprops.items(context.data.context, this),
           searchBar = _this2$props$items.searchBar,
           list = _this2$props$items.list;
         container.appendChild(element);
@@ -101,7 +100,7 @@ export class ContextMenuDaavPlugin<
 }
 
 function _superPropGet(t, e, o, r) {
-  var p = _get(_getPrototypeOf(1 & r ? t.prototype : t), e, o);
+  const p = _get(_getPrototypeOf(1 & r ? t.prototype : t), e, o);
   return 2 & r && 'function' == typeof p
     ? function (t) {
         return p.apply(o, t);

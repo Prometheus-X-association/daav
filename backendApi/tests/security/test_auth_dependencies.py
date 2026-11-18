@@ -15,7 +15,7 @@ from app.middleware.auth import (
 @pytest.mark.asyncio
 async def test_active_user_allowed(mock_user):
     """Test that an active user without pending password change is allowed"""
-    result = await get_current_active_user(mock_user)
+    result = get_current_active_user(mock_user)
 
     assert result == mock_user
 
@@ -26,7 +26,7 @@ async def test_pending_password_change_blocked(mock_user):
     mock_user.must_change_password = True
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_active_user(mock_user)
+        get_current_active_user(mock_user)
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == PASSWORD_CHANGE_REQUIRED_DETAIL
@@ -37,7 +37,7 @@ async def test_pending_password_change_allowed_on_password_change_endpoints(mock
     """Test that a user who must change their password can still reach the password change endpoints"""
     mock_user.must_change_password = True
 
-    result = await get_current_active_user_pending_password_change(mock_user)
+    result = get_current_active_user_pending_password_change(mock_user)
 
     assert result == mock_user
 
@@ -48,7 +48,7 @@ async def test_inactive_user_blocked_on_password_change_endpoints(mock_user):
     mock_user.is_active = False
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_active_user_pending_password_change(mock_user)
+        get_current_active_user_pending_password_change(mock_user)
 
     assert exc_info.value.status_code == 403
 
@@ -58,14 +58,20 @@ async def test_inactive_user_blocked_on_password_change_endpoints(mock_user):
 # ============================================
 
 @pytest.mark.asyncio
-async def test_default_admin_must_change_password_before_api_access():
+async def test_default_admin_must_change_password_before_api_access(tmp_path, monkeypatch):
     """Test the full flow: default admin login, blocked access, password change, access granted"""
     from fastapi import FastAPI
     from httpx import ASGITransport, AsyncClient
 
+    from app.config.settings import settings
     from app.middleware.auth import CurrentUser
     from app.routes.auth import router as auth_router
-    from app.services.user_service import UserService, DEFAULT_ADMIN_PASSWORD
+    from app.services.user_service import UserService
+
+    DEFAULT_ADMIN_PASSWORD = "First-Launch-42"
+    password_file = tmp_path / "admin_firstlaunch"
+    password_file.write_text(DEFAULT_ADMIN_PASSWORD + "\n")
+    monkeypatch.setattr(settings, "admin_password_file", str(password_file))
 
     await UserService().ensure_admin_exists()
 

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,9 +13,9 @@ describe('DataMapperComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DataMapperComponent ],
-      imports: [IonicModule.forRoot(), DragDropModule, MatCardModule, MatIconModule, MatTooltipModule]
-    }).compileComponents();
+    imports: [DragDropModule, MatCardModule, MatIconModule, MatTooltipModule, DataMapperComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(DataMapperComponent);
     component = fixture.componentInstance;
@@ -95,15 +95,15 @@ describe('DataMapperComponent', () => {
 
     component.onDrop(event);
 
-    expect(component.mappings.length).toBe(1);
+    expect(component.mappings).toHaveSize(1);
     expect(component.mappings[0].id).toBe('00000000-0000-0000-0000-000000000000');
     expect(component.mappings[0].sources).toContain(column);
   });
 
   it('should identify mapped columns and dataset names', () => {
     const column = { id: 'col1', name: 'Column 1', type: 'string' } as any;
-    component.datasets = [{ id: 'ds1', name: 'Dataset 1', columns: [] } as any];
-    component.mappings = [{ id: 'map1', sources: [column], targetName: 'Target 1' } as any];
+    component.datasets = [{ id: 'ds1', name: 'Dataset 1', columns: [] }];
+    component.mappings = [{ id: 'map1', sources: [column], targetName: 'Target 1' }];
 
     expect(component.isColumnMapped(column)).toBeTrue();
     expect(component.getDatasetName('ds1')).toBe('Dataset 1');
@@ -117,7 +117,7 @@ describe('DataMapperComponent', () => {
 
     component.removeSourceFromMapping('map1', 'col1');
 
-    expect(component.mappings.length).toBe(0);
+    expect(component.mappings).toHaveSize(0);
   });
 
   it('should toggle collapse state for sections', () => {

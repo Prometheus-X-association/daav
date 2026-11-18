@@ -15,7 +15,7 @@ from fastapi import Request, HTTPException
 
 from app.utils.utils import (
     convert_size, folder, generate_pandas_schema, slice_generator, 
-    decodeDictionary, verify_route_access, get_user_output_path,
+    decode_dictionary, verify_route_access, get_user_output_path,
     convert_numpy_type_to_python, normalize_dtype_string, 
     resolve_file_name, filter_data_with_duckdb
 )
@@ -241,7 +241,18 @@ class TestFolder:
 
 class TestGeneratePandasSchema:
     """Test cases for generate_pandas_schema function"""
-    
+
+    @pytest.mark.parametrize("df, dtypes", [
+        (pd.DataFrame(columns=["a", "b"]), ["str", "str"]),
+        (pd.DataFrame({"a": pd.Series([], dtype="int64"), "b": pd.Series([], dtype="float64")}), ["int", "float"]),
+    ])
+    def test_empty_dataframe_keeps_its_columns(self, df, dtypes):
+        """A table or a file without any row still has a schema (it used to raise an IndexError)"""
+        schema = generate_pandas_schema(df)
+        assert [(c.name, c.dtype, c.count, c.nested) for c in schema.root] == [
+            ("a", dtypes[0], 0, []), ("b", dtypes[1], 0, []),
+        ]
+
     @pytest.fixture
     def sample_dataframe(self):
         """Sample DataFrame for testing"""
@@ -395,7 +406,7 @@ class TestDecodeDictionary:
             'key1': 'value1',
             'key2': 'value2'
         }
-        result = decodeDictionary(test_dict)
+        result = decode_dictionary(test_dict)
         
         assert result == test_dict
     
@@ -405,7 +416,7 @@ class TestDecodeDictionary:
             'key1': b'Hello',
             'key2': b'World'
         }
-        result = decodeDictionary(test_dict)
+        result = decode_dictionary(test_dict)
         
         assert result['key1'] == 'Hello'
         assert result['key2'] == 'World'
@@ -419,7 +430,7 @@ class TestDecodeDictionary:
                 }
             }
         }
-        result = decodeDictionary(test_dict)
+        result = decode_dictionary(test_dict)
         
         assert result['level1']['level2']['key'] == 'nested_value'
     
@@ -433,7 +444,7 @@ class TestDecodeDictionary:
                 'inner_bytes': b'inner_value'
             }
         }
-        result = decodeDictionary(test_dict)
+        result = decode_dictionary(test_dict)
         
         assert result['string'] == 'normal_string'
         assert result['bytes'] == 'bytes_string'
@@ -443,15 +454,15 @@ class TestDecodeDictionary:
     def test_decode_non_dictionary(self):
         """Test decoding non-dictionary input"""
         # Test with bytes
-        result = decodeDictionary(b'test_bytes')
+        result = decode_dictionary(b'test_bytes')
         assert result == 'test_bytes'
         
         # Test with string
-        result = decodeDictionary('normal_string')
+        result = decode_dictionary('normal_string')
         assert result == 'normal_string'
         
         # Test with number
-        result = decodeDictionary(123)
+        result = decode_dictionary(123)
         assert result == 123
 
 
@@ -472,8 +483,7 @@ class TestRouteAccessControl:
         
         self.mock_request.headers = {"origin": "https://example.com"}
         
-        result = verify_route_access(self.mock_request)
-        assert result is True
+        verify_route_access(self.mock_request)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_domain_whitelist_with_referer_header(self, mock_settings):
@@ -482,8 +492,7 @@ class TestRouteAccessControl:
         
         self.mock_request.headers = {"referer": "https://example.com/page"}
         
-        result = verify_route_access(self.mock_request)
-        assert result is True
+        verify_route_access(self.mock_request)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_domain_whitelist_subdomain(self, mock_settings):
@@ -492,8 +501,7 @@ class TestRouteAccessControl:
         
         self.mock_request.headers = {"origin": "https://api.example.com"}
         
-        result = verify_route_access(self.mock_request)
-        assert result is True
+        verify_route_access(self.mock_request)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_domain_not_in_whitelist_no_api_keys(self, mock_settings):
@@ -516,8 +524,7 @@ class TestRouteAccessControl:
         api_keys = ["secret-token-123", "another-token"]
         self.mock_request.headers = {"authorization": "Bearer secret-token-123"}
         
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_bearer_token_invalid_list(self, mock_settings):
@@ -552,10 +559,20 @@ class TestRouteAccessControl:
         
         api_keys = [{"X-API-Key": "my-secret-key"}, {"X-Auth": "token123"}]
         self.mock_request.headers = {"X-API-Key": "my-secret-key"}
-        
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
-    
+
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
+
+    @patch('app.utils.utils.settings')
+    def test_custom_header_name_is_case_insensitive(self, mock_settings):
+        """Test that a custom header matches a real request, whose header names are lowercase"""
+        mock_settings.domain_whitelist = []
+        request = Request({"type": "http", "headers": [(b"x-api-key", b"my-secret-key")]})
+
+        verify_route_access(request, api_keys=[{"X-API-Key": "my-secret-key"}])  # Does not raise: access granted
+
+        with pytest.raises(HTTPException):
+            verify_route_access(request, api_keys=[{"X-API-Key": "other-key"}])
+
     @patch('app.utils.utils.settings')
     def test_custom_header_invalid_value(self, mock_settings):
         """Test access denied with invalid custom header value"""
@@ -598,8 +615,7 @@ class TestRouteAccessControl:
             "X-Custom-Auth": "secret2"  # This one is valid
         }
         
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_mixed_api_keys_bearer_and_custom(self, mock_settings):
@@ -616,8 +632,7 @@ class TestRouteAccessControl:
         
         # Test with Bearer token
         self.mock_request.headers = {"authorization": "Bearer bearer-token-123"}
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_mixed_api_keys_custom_header_success(self, mock_settings):
@@ -630,8 +645,7 @@ class TestRouteAccessControl:
         ]
         
         self.mock_request.headers = {"X-API-Key": "custom-key-456"}
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_priority_domain_over_token(self, mock_settings):
@@ -641,8 +655,7 @@ class TestRouteAccessControl:
         self.mock_request.headers = {"origin": "https://example.com"}
         # Don't provide api_keys - should still pass via domain
         
-        result = verify_route_access(self.mock_request)
-        assert result is True
+        verify_route_access(self.mock_request)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_no_whitelist_and_no_api_keys(self, mock_settings):
@@ -662,8 +675,7 @@ class TestRouteAccessControl:
         self.mock_request.headers = {"origin": "https://example.com", "authorization": "Bearer valid-token"}
         api_keys = ["valid-token"]
         
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_empty_authorization_header_with_list(self, mock_settings):
@@ -686,8 +698,7 @@ class TestRouteAccessControl:
         api_keys = ["secret-token"]
         self.mock_request.headers = {"authorization": "Bearer   secret-token   "}  # Extra spaces
         
-        result = verify_route_access(self.mock_request, api_keys=api_keys)
-        assert result is True
+        verify_route_access(self.mock_request, api_keys=api_keys)  # Does not raise: access granted
     
     @patch('app.utils.utils.settings')
     def test_request_without_client(self, mock_settings):
@@ -816,6 +827,24 @@ class TestConvertNumpyTypeToPython:
         """Test other type fallback"""
         result = convert_numpy_type_to_python("regular_string")
         assert result == "str"
+
+    def test_array_with_object_or_string_dtype(self):
+        assert convert_numpy_type_to_python(np.array(["a", None], dtype=object)) == "str"
+        assert convert_numpy_type_to_python(np.array(["a", "b"])) == "ndarray"  # dtype '<U1'
+        assert convert_numpy_type_to_python(np.array([1], dtype=np.uint16)) == "int"
+
+    def test_array_with_unmapped_dtype_keeps_type_name(self):
+        assert convert_numpy_type_to_python(np.array([1 + 2j])) == "ndarray"
+        assert convert_numpy_type_to_python(pd.Series([1.5])) == "float"
+        assert convert_numpy_type_to_python(np.datetime64("2024-01-01")) == "datetime64"
+
+    def test_unknown_type(self):
+        class Custom:
+            pass
+        assert convert_numpy_type_to_python(Custom()) == "Custom"
+        assert convert_numpy_type_to_python(None) == "NoneType"
+        assert convert_numpy_type_to_python(3) == "int"
+        assert convert_numpy_type_to_python(2.5) == "float"
 
 
 class TestNormalizeDtypeString:

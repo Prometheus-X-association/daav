@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TransformationComponent } from './transformation.component';
 import { LoadingService } from 'src/app/services/loading.service';
@@ -20,7 +20,7 @@ describe('TransformationComponent', () => {
   beforeEach(waitForAsync(() => {
     workflowSpy = jasmine.createSpyObj('WorkflowService', ['getWorkflows', 'deleteWorkflow', 'executeWorkflowJson'], {
       workflows: () => []
-    } as any);
+    });
     workflowSpy.getWorkflows.and.returnValue(of([]));
     workflowSpy.deleteWorkflow.and.returnValue(of(null));
     workflowSpy.executeWorkflowJson.and.returnValue(of({
@@ -38,17 +38,17 @@ describe('TransformationComponent', () => {
     const loadingSpy = jasmine.createSpyObj('LoadingService', ['present', 'dismiss']);
 
     TestBed.configureTestingModule({
-      declarations: [TransformationComponent],
-      imports: [IonicModule.forRoot()],
-      providers: [
+    imports: [TransformationComponent],
+    providers: [
+        provideIonicAngular(),
         { provide: LoadingService, useValue: loadingSpy },
         { provide: WorkflowService, useValue: workflowSpy },
         { provide: DatasetService, useValue: datasetSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(TransformationComponent);
     component = fixture.componentInstance;
@@ -84,14 +84,14 @@ describe('TransformationComponent', () => {
     expect(component.loadWorkflow.emit).toHaveBeenCalledWith(project);
   });
 
-  it('should copy text to clipboard and prevent default', async () => {
+  it('should copy text to clipboard and prevent default', () => {
     const writeSpy = spyOn(navigator.clipboard, 'writeText').and.returnValue(Promise.resolve());
     const event = {
       preventDefault: jasmine.createSpy('preventDefault'),
       stopPropagation: jasmine.createSpy('stopPropagation')
     } as any;
 
-    await component.copyToClipboard('text', event);
+    component.copyToClipboard('text', event);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(event.stopPropagation).toHaveBeenCalled();

@@ -16,14 +16,14 @@
   }
 
   & ::ng-deep [data-testid="node"]{
-    height: auto !important;
+    height: auto;
   }
 
   & ::ng-deep .playButton {
     position: absolute;
     top: 0;
     left: 0;
-    --mdc-icon-button-state-layer-size: 34px;
+    --mat-icon-button-state-layer-size: 34px;
     padding: 5px;
     background: #ffffffa3;
     border-radius: 23%;
@@ -69,20 +69,20 @@
   }
 
   ion-button{
-    --background: transparent !important;
-    --background-focused: transparent !important;
-    --background-active: transparent !important;
-    --ripple-color: transparent !important;
+    --background: transparent;
+    --background-focused: transparent;
+    --background-active: transparent;
+    --ripple-color: transparent;
     --color: var(--darkPtx);
-    --box-shadow: none !important;
+    --box-shadow: none;
     --padding-bottom: 16px;
     --padding-top: 10px;
     font-weight: 450;
     border-bottom: 2px solid var(--white);
-    margin: 14px 20px 0px 20px !important;
+    margin: 14px 20px 0px 20px;
 
     &::part(native){
-      height: 100% !important;
+      height: 100%;
       width: 100px;
       transition: var(--custom-transition);
 
@@ -93,22 +93,20 @@
   }
 }
 ::ng-deep #toolbar-transform {
-    display: flex !important;
+    display: flex;
     flex-direction: column;
-    justify-content: flex-start !important;
-    align-items: center !important;
-    padding: 20px 13px !important;
-    height: -moz-fit-content !important;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 20px 13px;
     border-top: 1px solid var(--darkPtx);
     background-color: var(--white) !important;
     height: 95% !important;
     width: 250px !important;
   & > div {
     display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
+    flex-direction: column;
+    justify-content: center;
     transform: scale(1) !important;
-    // display: block !important;
     margin: 0px 7px !important;
     height: 100% !important;
     padding: 0 !important;
@@ -116,13 +114,13 @@
   }
 
   .title{
-    font-size: 14px !important;
-    padding: 5px 20px !important;
+    font-size: 14px;
+    padding: 5px 20px;
     font-weight: bold;
-    margin-bottom:  25px !important;
+    margin-bottom:  25px;
   }
   [data-testid="node"]{
-    width: auto !important;
+    width: auto;
     padding-bottom: 0px;
   }
   .control,

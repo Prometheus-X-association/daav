@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import { LoadingService } from '../services/loading.service';
+import { IonTabs } from '@ionic/angular/standalone';
+import { LoadingComponent } from '../components/main/loading/loading.component';
 
 @Component({
     selector: 'app-tabs',
@@ -8,7 +10,7 @@ import { LoadingService } from '../services/loading.service';
     providers: [
         LoadingService
     ],
-    standalone: false
+    imports: [IonTabs, LoadingComponent]
 })
 export class TabsPage {
   constructor() {

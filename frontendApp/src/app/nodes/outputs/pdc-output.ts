@@ -1,4 +1,3 @@
-import { Input, Output } from "@angular/core";
 import { daavBlock } from "../node-block";
 import { OutputDataBlock } from "../output/output-data-block";
 import { AreaPlugin } from "rete-area-plugin";
@@ -10,17 +9,16 @@ import { StatusNode } from "src/app/enums/status-node";
 import { ClassicPreset } from "rete";
 import { AllSocket } from "src/app/core/sockets/sockets";
 import { MatSelectChange } from "@angular/material/select";
-import { SelectControl, selectControlI } from "src/app/components/widgets/select-widget/select-widget.component";
-import { InputAutoCompleteControl, inputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
+import { SelectControl, SelectControlI } from "src/app/components/widgets/select-widget/select-widget.component";
+import { InputAutoCompleteControl, InputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
 import { ButtonControl } from "src/app/components/widgets/button-widget/button-widget.component";
-import { TextDisplayControl, textDisplayControlI } from "src/app/components/widgets/text-display-widget/text-display-widget.component";
-import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
+import { TextDisplayControl, TextDisplayControlI } from "src/app/components/widgets/text-display-widget/text-display-widget.component";
 
 
 @daavBlock("output")
 export class PdcOutput extends OutputDataBlock {
   override width = 350;
-  private node: Node;
+  private readonly node: Node;
 
   private dataResourcesResponse: any;
   private selectControlDataResource: SelectControl;
@@ -52,7 +50,6 @@ export class PdcOutput extends OutputDataBlock {
           this.dataResourceChange.bind(this)
         );
         this.addControl("selectDataResource", this.selectControlDataResource);
-        this.area.update('control', this.selectControlDataResource.id);
       }
 
       this.loadDataResourcesAndInitialize(node);
@@ -69,13 +66,12 @@ export class PdcOutput extends OutputDataBlock {
         this.removeUrlControl();
       }
 
-      this.area.update('node', this.id);
     }
 
     private addCurrentUrlControl(url?: string): void {
       const currentUrl = url || window.location.href;
       
-      const currentUrlData: textDisplayControlI = {
+      const currentUrlData: TextDisplayControlI = {
         value: currentUrl,
         label: 'Current URL',
         copyable: true,
@@ -83,22 +79,22 @@ export class PdcOutput extends OutputDataBlock {
       
       this.currentUrlControl = new TextDisplayControl(currentUrlData);
       this.addControl('currentUrl', this.currentUrlControl);
-      this.area.update('control', this.currentUrlControl.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.currentUrlControl.id);
+      void this.area.update('node', this.id);
     }
 
     private removeCurrentUrlControl(): void {
       if (this.currentUrlControl) {
         this.removeControl('currentUrl');
         this.currentUrlControl = null;
-        this.area.update('node', this.id);
+        void this.area.update('node', this.id);
       }
     }
 
     private updateCurrentUrlDisplay(newUrl: string): void {
       if (this.currentUrlControl) {
         this.currentUrlControl.value = newUrl;
-        this.area.update('control', this.currentUrlControl.id);
+        void this.area.update('control', this.currentUrlControl.id);
       }
     }
 
@@ -109,8 +105,8 @@ export class PdcOutput extends OutputDataBlock {
         .toLowerCase()
         .trim()
         .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9\-_\.]/g, '') 
-        .replace(/\-+/g, '-') 
+        .replace(/[^a-z0-9_.-]/g, '') 
+        .replace(/-+/g, '-') 
         .replace(/^-|-$/g, ''); 
     }
 
@@ -158,11 +154,11 @@ export class PdcOutput extends OutputDataBlock {
       this.removeUrlControl();
       this.removeSaveButton();
       this.selectControlDataResource = null;
-      this.area.update('node', this.id);
+      void this.area.update('node', this.id);
     }
 
     addSelectControlDataResource(data, node?: Node) {
-      let selectDataResource: selectControlI;
+      let selectDataResource: SelectControlI;
 
       if (node?.data?.selectDataResource) {
         // If node is given, it's an import and we report content from JSON
@@ -187,7 +183,7 @@ export class PdcOutput extends OutputDataBlock {
       
       if (
         selectDataResource.value &&
-        !selectDataResource.list.find(
+        !selectDataResource.list.some(
           (resource) => resource.value === selectDataResource.value
         )
       ) {
@@ -200,8 +196,8 @@ export class PdcOutput extends OutputDataBlock {
       );
 
       this.addControl("selectDataResource", this.selectControlDataResource)
-      this.area.update('control', this.selectControlDataResource.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.selectControlDataResource.id);
+      void this.area.update('node', this.id);
     }
 
     dataResourceChange(event: MatSelectChange): void {
@@ -234,17 +230,17 @@ export class PdcOutput extends OutputDataBlock {
     }
 
     private addUrlControl(url?: string, node?: Node): void {
-      let urlControlData: inputAutoCompleteControlI; 
+      let urlControlData: InputAutoCompleteControlI; 
       if(node?.data?.urlInput) {
         urlControlData = { ...node.data.urlInput };
         
-        if (urlControlData.value && urlControlData.value.includes('://')) {
+        if (urlControlData.value?.includes('://')) {
           const { baseUrl, fileName } = this.extractUrlParts(urlControlData.value);
           urlControlData.value = fileName; 
           urlControlData.label = baseUrl;  
         }
       } else {
-        const { baseUrl, fileName } = this.extractUrlParts(url);
+        const { fileName } = this.extractUrlParts(url);
         
         urlControlData = {
           value: fileName, 
@@ -260,8 +256,8 @@ export class PdcOutput extends OutputDataBlock {
       );
   
       this.addControl('urlText', this.urlInputControl);
-      this.area.update('control', this.urlInputControl.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.urlInputControl.id);
+      void this.area.update('node', this.id);
   
       if (urlControlData.value) {
         this.updateStatus(StatusNode.Complete);
@@ -279,8 +275,8 @@ export class PdcOutput extends OutputDataBlock {
         disabled
       );
       this.addControl('saveUrlButton', this.saveUrlButton);
-      this.area.update('control', this.saveUrlButton.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.saveUrlButton.id);
+      void this.area.update('node', this.id);
     }
 
     private extractUrlParts(fullUrl?: string): { baseUrl: string, fileName: string } {
@@ -295,7 +291,7 @@ export class PdcOutput extends OutputDataBlock {
         try {
           const url = new URL(fullUrl);
           const pathParts = url.pathname.split('/');
-          const fileName = pathParts[pathParts.length - 1] || '';
+          const fileName = pathParts.at(-1) || '';
           const baseUrl = fullUrl.substring(0, fullUrl.lastIndexOf('/') + 1);
           
           return {
@@ -303,6 +299,7 @@ export class PdcOutput extends OutputDataBlock {
             fileName: fileName
           };
         } catch (error) {
+          console.warn('Invalid URL, using the default output URL:', error);
           return {
             baseUrl: this.datasetService.urlBack + '/output/',
             fileName: fullUrl
@@ -336,13 +333,7 @@ export class PdcOutput extends OutputDataBlock {
       const baseUrl = this.urlInputControl?.label || this.datasetService.urlBack + '/output/';
       const fileName = this.urlInputControl?.value || '';
       
-      let newUrl: string;
-      
-      if (baseUrl.includes('://')) {
-        newUrl = baseUrl + fileName;
-      } else {
-        newUrl = baseUrl + fileName;
-      }
+      const newUrl = baseUrl + fileName;
       
       if (this.selectControlDataResource?.value && newUrl) {
         const payload = {
@@ -366,7 +357,7 @@ export class PdcOutput extends OutputDataBlock {
       if (this.saveUrlButton) {
         this.removeControl('saveUrlButton');
         this.saveUrlButton = null;
-        this.area.update('node', this.id);
+        void this.area.update('node', this.id);
       }
     }
 
@@ -375,7 +366,7 @@ export class PdcOutput extends OutputDataBlock {
       if (this.urlInputControl) {
         this.removeControl('urlText');
         this.urlInputControl = null;
-        this.area.update('node', this.id);
+        void this.area.update('node', this.id);
       }
     }
 

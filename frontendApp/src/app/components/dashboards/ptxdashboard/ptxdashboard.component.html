@@ -9,330 +9,355 @@
     <h3>Service offerings</h3>
   </div>
   <div class="horizontal-scroll-container">
-    <ng-container *ngIf="isLoadingCatalog">
-      <ion-card 
-        *ngFor="let item of getSkeletonArray()" 
-        class="catalog-card skeleton-card">
-        <ion-card-header>
-          <div class="owner-header">
-            <ion-skeleton-text 
-              [animated]="true" 
-              style="width: 40px; height: 40px; border-radius: 50%;">
-            </ion-skeleton-text>
-            <ion-skeleton-text 
-              [animated]="true" 
-              style="width: 80px; margin-left: 12px;">
-            </ion-skeleton-text>
-          </div>
-        </ion-card-header>
-        <hr>
-        <ion-card-content>
-          <ion-skeleton-text 
-            [animated]="true" 
-            style="width: 70%;">
-          </ion-skeleton-text>
-        </ion-card-content>
-      </ion-card>
-    </ng-container>
-    <ion-card 
-      *ngFor="let item of serviceOfferings" 
-      class="catalog-card">
-      <ion-card-header>
-        <div class="owner-header">
-          <img 
-            *ngIf="item.owner?.logo" 
-            [src]="item.owner.logo" 
-            [alt]="item.owner.name + ' logo'" 
-            class="owner-logo">
-          <ion-card-subtitle>{{ item.owner.name }}</ion-card-subtitle>
-        </div>
-      </ion-card-header>
-      <hr>
-      <ion-card-content>
-        {{ item.name }}
-      </ion-card-content>
-    </ion-card>
-  </div>
-  
-  <!-- Software Resources -->
-  <div class="section-header">
-    <h3>Software resources</h3>
-  </div>
-  <div class="horizontal-scroll-container">
-    <ng-container *ngIf="isLoadingCatalog">
-      <ion-card 
-        *ngFor="let item of getSkeletonArray()" 
-        class="catalog-card skeleton-card">
-        <ion-card-header>
-          <div class="owner-header">
-            <ion-skeleton-text 
-              [animated]="true" 
-              style="width: 40px; height: 40px; border-radius: 50%;">
-            </ion-skeleton-text>
-            <ion-skeleton-text 
-              [animated]="true" 
-              style="width: 80px; margin-left: 12px;">
-            </ion-skeleton-text>
-          </div>
-        </ion-card-header>
-        <hr>
-        <ion-card-content>
-          <ion-skeleton-text 
-            [animated]="true" 
-            style="width: 70%;">
-          </ion-skeleton-text>
-        </ion-card-content>
-      </ion-card>
-    </ng-container>
-    <ion-card 
-      *ngFor="let item of softwareResources" 
-      class="catalog-card">
-      <ion-card-header>
-        <div class="owner-header">
-          <img 
-            *ngIf="item.owner?.logo" 
-            [src]="item.owner.logo" 
-            [alt]="item.owner.name + ' logo'" 
-            class="owner-logo">
-          <ion-card-subtitle>{{ item.owner.name }}</ion-card-subtitle>
-        </div>
-      </ion-card-header>
-      <hr>
-      <ion-card-content>
-        {{ item.name }}
-      </ion-card-content>
-    </ion-card>
-  </div>
-  
-  <!-- Data Resources -->
-  <div class="section-header">
-    <h3>Data resources</h3>
-  </div>
-  <div class="horizontal-scroll-container">
-    <ng-container *ngIf="isLoadingCatalog">
-      <ion-card 
-        *ngFor="let item of getSkeletonArray()" 
-        class="catalog-card skeleton-card">
-        <ion-card-header>
-          <div class="owner-header">
-            <ion-skeleton-text 
-              [animated]="true" 
-              style="width: 40px; height: 40px; border-radius: 50%;">
-            </ion-skeleton-text>
-            <ion-skeleton-text 
-              [animated]="true" 
-              style="width: 80px; margin-left: 12px;">
-            </ion-skeleton-text>
-          </div>
-        </ion-card-header>
-        <hr>
-        <ion-card-content>
-          <ion-skeleton-text 
-            [animated]="true" 
-            style="width: 70%;">
-          </ion-skeleton-text>
-        </ion-card-content>
-      </ion-card>
-    </ng-container>
-    <ion-card 
-      *ngFor="let item of dataResources" 
-      class="catalog-card">
-      <ion-card-header>
-        <div class="owner-header">
-          <img 
-            *ngIf="item.owner?.logo" 
-            [src]="item.owner.logo" 
-            [alt]="item.owner.name + ' logo'" 
-            class="owner-logo">
-          <ion-card-subtitle>{{ item.owner.name }}</ion-card-subtitle>
-        </div>
-      </ion-card-header>
-      <hr>
-      <ion-card-content>
-        {{ item.name }}
-      </ion-card-content>
-    </ion-card>
-  </div>
+    @if (isLoadingCatalog) {
+      @for (item of getSkeletonArray(); track item) {
+        <ion-card
+          class="catalog-card skeleton-card">
+          <ion-card-header>
+            <div class="owner-header">
+              <ion-skeleton-text
+                [animated]="true"
+                style="width: 40px; height: 40px; border-radius: 50%;">
+              </ion-skeleton-text>
+              <ion-skeleton-text
+                [animated]="true"
+                style="width: 80px; margin-left: 12px;">
+              </ion-skeleton-text>
+            </div>
+          </ion-card-header>
+          <hr>
+            <ion-card-content>
+              <ion-skeleton-text
+                [animated]="true"
+                style="width: 70%;">
+              </ion-skeleton-text>
+            </ion-card-content>
+          </ion-card>
+        }
+      }
+      @for (item of serviceOfferings; track item) {
+        <ion-card
+          class="catalog-card">
+          <ion-card-header>
+            <div class="owner-header">
+              @if (item.owner?.logo) {
+                <img
+                  [src]="item.owner.logo"
+                  [alt]="item.owner.name + ' logo'"
+                  class="owner-logo">
+              }
+              <ion-card-subtitle>{{ item.owner.name }}</ion-card-subtitle>
+            </div>
+          </ion-card-header>
+          <hr>
+            <ion-card-content>
+              {{ item.name }}
+            </ion-card-content>
+          </ion-card>
+        }
+      </div>
 
-  <hr class="section-divider">
-</div>
+      <!-- Software Resources -->
+      <div class="section-header">
+        <h3>Software resources</h3>
+      </div>
+      <div class="horizontal-scroll-container">
+        @if (isLoadingCatalog) {
+          @for (item of getSkeletonArray(); track item) {
+            <ion-card
+              class="catalog-card skeleton-card">
+              <ion-card-header>
+                <div class="owner-header">
+                  <ion-skeleton-text
+                    [animated]="true"
+                    style="width: 40px; height: 40px; border-radius: 50%;">
+                  </ion-skeleton-text>
+                  <ion-skeleton-text
+                    [animated]="true"
+                    style="width: 80px; margin-left: 12px;">
+                  </ion-skeleton-text>
+                </div>
+              </ion-card-header>
+              <hr>
+                <ion-card-content>
+                  <ion-skeleton-text
+                    [animated]="true"
+                    style="width: 70%;">
+                  </ion-skeleton-text>
+                </ion-card-content>
+              </ion-card>
+            }
+          }
+          @for (item of softwareResources; track item) {
+            <ion-card
+              class="catalog-card">
+              <ion-card-header>
+                <div class="owner-header">
+                  @if (item.owner?.logo) {
+                    <img
+                      [src]="item.owner.logo"
+                      [alt]="item.owner.name + ' logo'"
+                      class="owner-logo">
+                  }
+                  <ion-card-subtitle>{{ item.owner.name }}</ion-card-subtitle>
+                </div>
+              </ion-card-header>
+              <hr>
+                <ion-card-content>
+                  {{ item.name }}
+                </ion-card-content>
+              </ion-card>
+            }
+          </div>
 
-<!-- Section Contracts -->
-<div class="dashboard-section">
-  <div class="section-header">
-    <h2>Contracts</h2>
-  </div>
-  
-  <div class="contracts-container">
-    <ion-card 
-      *ngFor="let contract of contractsUseCase" 
-      class="contract-card">
-      <div class="contract-content">
-        <img 
-          [src]="contract.logo" 
-          [alt]="contract.name + ' logo'" 
-          class="contract-logo">
-    
-        <div class="contract-details">
-          <div class="contract-header">
-            <h3>{{ contract.name }}</h3>
-            <p class="status-indicator"
+          <!-- Data Resources -->
+          <div class="section-header">
+            <h3>Data resources</h3>
+          </div>
+          <div class="horizontal-scroll-container">
+            @if (isLoadingCatalog) {
+              @for (item of getSkeletonArray(); track item) {
+                <ion-card
+                  class="catalog-card skeleton-card">
+                  <ion-card-header>
+                    <div class="owner-header">
+                      <ion-skeleton-text
+                        [animated]="true"
+                        style="width: 40px; height: 40px; border-radius: 50%;">
+                      </ion-skeleton-text>
+                      <ion-skeleton-text
+                        [animated]="true"
+                        style="width: 80px; margin-left: 12px;">
+                      </ion-skeleton-text>
+                    </div>
+                  </ion-card-header>
+                  <hr>
+                    <ion-card-content>
+                      <ion-skeleton-text
+                        [animated]="true"
+                        style="width: 70%;">
+                      </ion-skeleton-text>
+                    </ion-card-content>
+                  </ion-card>
+                }
+              }
+              @for (item of dataResources; track item) {
+                <ion-card
+                  class="catalog-card">
+                  <ion-card-header>
+                    <div class="owner-header">
+                      @if (item.owner?.logo) {
+                        <img
+                          [src]="item.owner.logo"
+                          [alt]="item.owner.name + ' logo'"
+                          class="owner-logo">
+                      }
+                      <ion-card-subtitle>{{ item.owner.name }}</ion-card-subtitle>
+                    </div>
+                  </ion-card-header>
+                  <hr>
+                    <ion-card-content>
+                      {{ item.name }}
+                    </ion-card-content>
+                  </ion-card>
+                }
+              </div>
+
+              <hr class="section-divider">
+            </div>
+
+            <!-- Section Contracts -->
+            <div class="dashboard-section">
+              <div class="section-header">
+                <h2>Contracts</h2>
+              </div>
+
+              <div class="contracts-container">
+                @for (contract of contractsUseCase; track contract) {
+                  <ion-card
+                    class="contract-card">
+                    <div class="contract-content">
+                      <img
+                        [src]="contract.logo"
+                        [alt]="contract.name + ' logo'"
+                        class="contract-logo">
+                      <div class="contract-details">
+                        <div class="contract-header">
+                          <h3>{{ contract.name }}</h3>
+                          <p class="status-indicator"
                [ngClass]="{
                  'signed': contract.status === 'signed',
                  'pending': contract.status === 'pending'
                }">
-              <span 
-                class="status-dot" 
+                            <span
+                              class="status-dot"
                 [ngClass]="{
                   'signed': contract.status === 'signed',
                   'pending': contract.status === 'pending'
                 }">
-              </span>
-              {{ contract.status | titlecase }}
-            </p>
-          </div>
-          
-          <div class="provider-section">
-            <div 
-              *ngFor="let provider of contract.dataProviders" 
-              class="provider-item">
-              <h4>{{ provider.name }}</h4>
-              <div class="purposes-container">
-                <ion-button 
-                  *ngFor="let purpose of contract.purposes"
-                  size="small"
-                  fill="outline"
-                  (click)="triggerDataExchange(contract, provider, purpose)">
-                  Trigger exchange to {{ purpose.name }}
-                </ion-button>
+                            </span>
+                            {{ contract.status | titlecase }}
+                          </p>
+                        </div>
+                        <div class="provider-section">
+                          @for (provider of contract.dataProviders; track provider) {
+                            <div
+                              class="provider-item">
+                              <h4>{{ provider.name }}</h4>
+                              <div class="purposes-container">
+                                @for (purpose of contract.purposes; track purpose) {
+                                  <ion-button
+                                    size="small"
+                                    fill="outline"
+                                    (click)="triggerDataExchange(contract, provider, purpose)">
+                                    Trigger exchange to {{ purpose.name }}
+                                  </ion-button>
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </ion-card>
+                }
               </div>
+              <hr class="section-divider">
             </div>
-          </div>
-        </div>
-      </div>
-    </ion-card>
-  </div>
-  <hr class="section-divider">
-</div>
 
-<!-- Section Data Exchange history -->
-<div class="dashboard-section">
-  <div class="section-header">
-    <h2>Data exchanges history</h2>
-  </div>
-
-  <!-- Loading skeleton to display data exchange history -->
-  <div *ngIf="isLoadingHistory" class="loading-container" role="status" aria-label="Loading data exchanges">
-    <ion-card *ngFor="let item of getSkeletonArray(3)" class="exchange-skeleton-card">
-      <ion-card-header>
-        <ion-skeleton-text 
-          [animated]="true" 
-          style="width: 60%; height: 20px;">
-        </ion-skeleton-text>
-        <ion-skeleton-text 
-          [animated]="true" 
-          style="width: 40%; height: 16px; margin-top: 8px;">
-        </ion-skeleton-text>
-      </ion-card-header>
-    </ion-card>
-  </div>
-
-  <!-- show all data exchanges -->
-  <div *ngIf="!isLoadingHistory && dataExchanges.length > 0" class="exchanges-container">
-    <ion-card 
-      *ngFor="let exchange of dataExchanges; let i = index" 
-      class="exchange-card"
-      [class.expanded]="isExchangeExpanded(i)">
-      
-      <!-- Exchange Header -->
-      <ion-card-header class="exchange-header" role="button" tabindex="0"
-        [attr.aria-expanded]="isExchangeExpanded(i)" [attr.aria-controls]="'exchange-details-' + i"
-        (click)="toggleExchange(i)" (keydown.enter)="toggleExchange(i)"
-        (keydown.space)="$event.preventDefault(); toggleExchange(i)">
-        <div class="header-info">
-          <div class="exchange-title">
-            <ion-card-title>{{ exchange.resources[0]?.name || 'Unnamed Resource' }}</ion-card-title>
-            <p><strong>Description:</strong> {{ exchange.resources[0]?.description }}</p>
-            <p><strong>Owner:</strong> {{ exchange.resources[0]?.owner.name }}</p>
-            <p *ngIf="exchange.providerEndpoint">
-              <strong>Provider Endpoint:</strong> {{ exchange.providerEndpoint }}
-            </p>
-            <p *ngIf="exchange.consumerEndpoint">
-              <strong>Consumer Endpoint:</strong> {{ exchange.consumerEndpoint }}
-            </p>
-            <p><strong>Latest execution:</strong>
-              <span class="latest-date">
-                {{ getLatestExecutionDate(exchange) }}
-              </span>
-            </p>
-          </div>
-          <div class="exchange-meta">
-            <span class="execution-count">
-              <ion-icon name="repeat-outline" aria-hidden="true"></ion-icon>
-              {{ getExecutionCount(exchange) }} executions
-            </span>
-          </div>
-        </div>
-        <ion-icon 
-          [name]="isExchangeExpanded(i) ? 'chevron-up-outline' : 'chevron-down-outline'"
-          class="expand-icon" aria-hidden="true">
-        </ion-icon>
-      </ion-card-header>
-
-      <!-- Exchange Details (Expanded) -->
-      <ion-card-content *ngIf="isExchangeExpanded(i)" class="exchange-details" [id]="'exchange-details-' + i">
-
-       <!-- Executions History -->
-        <div class="details-section">
-          <h4>Execution History ({{ exchange.executions.length }} total)</h4>
-          <div class="executions-list">
-            <div 
-              *ngFor="let execution of getExecutionsToShow(exchange, i); let first = first" 
-              class="execution-item"
-              [class.latest]="first">
-              <div class="execution-info">
-                <span class="execution-id">iD: {{ execution.id }}</span>  
-                <ng-container *ngIf="execution.createdAt">
-                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
-                  <span class="execution-date">
-                    {{ formatDate(execution.createdAt) }}
-                  </span>
-                </ng-container>
+            <!-- Section Data Exchange history -->
+            <div class="dashboard-section">
+              <div class="section-header">
+                <h2>Data exchanges history</h2>
               </div>
-            </div>
-            
-            <!-- Show more/Show less controls -->
-            <div *ngIf="shouldShowMoreButton(exchange)" class="show-more-controls">
-              <ion-button 
-                *ngIf="!isShowingAllExecutions(i)" 
-                fill="clear" 
-                size="small" 
-                (click)="toggleShowAllExecutions(i)"
-                class="show-more-button">
-                <ion-icon name="chevron-down-outline" slot="start" aria-hidden="true"></ion-icon>
-                Show {{ getHiddenExecutionsCount(exchange) }} more executions
-              </ion-button>
-              
-              <ion-button 
-                *ngIf="isShowingAllExecutions(i)" 
-                fill="clear" 
-                size="small" 
-                (click)="toggleShowAllExecutions(i)"
-                class="show-less-button">
-                <ion-icon name="chevron-up-outline" slot="start" aria-hidden="true"></ion-icon>
-                Show less
-              </ion-button>
-            </div>
-          </div>
-        </div>
-      </ion-card-content>
-    </ion-card>
-  </div>
 
-  <!-- Empty state -->
-  <div *ngIf="!isLoadingHistory && dataExchanges.length === 0" class="empty-state">
-    <ion-icon name="swap-horizontal-outline" class="empty-icon" aria-hidden="true"></ion-icon>
-    <h3>No Data Exchanges Found</h3>
-    <p>There are no data exchanges in the history for this connexion.</p>
-  </div>
-</div>
+              <!-- Loading skeleton to display data exchange history -->
+              @if (isLoadingHistory) {
+                <output class="loading-container" aria-live="polite" aria-label="Loading data exchanges">
+                  @for (item of getSkeletonArray(3); track item) {
+                    <ion-card class="exchange-skeleton-card">
+                      <ion-card-header>
+                        <ion-skeleton-text
+                          [animated]="true"
+                          style="width: 60%; height: 20px;">
+                        </ion-skeleton-text>
+                        <ion-skeleton-text
+                          [animated]="true"
+                          style="width: 40%; height: 16px; margin-top: 8px;">
+                        </ion-skeleton-text>
+                      </ion-card-header>
+                    </ion-card>
+                  }
+                </output>
+              }
+
+              <!-- show all data exchanges -->
+              @if (!isLoadingHistory && dataExchanges.length > 0) {
+                <div class="exchanges-container">
+                  @for (exchange of dataExchanges; track exchange; let i = $index) {
+                    <ion-card
+                      class="exchange-card"
+                      [class.expanded]="isExchangeExpanded(i)">
+                      <!-- Exchange Header -->
+                      <ion-card-header class="exchange-header" role="button" tabindex="0"
+                        [attr.aria-expanded]="isExchangeExpanded(i)" [attr.aria-controls]="'exchange-details-' + i"
+                        (click)="toggleExchange(i)" (keydown.enter)="toggleExchange(i)"
+                        (keydown.space)="$event.preventDefault(); toggleExchange(i)">
+                        <div class="header-info">
+                          <div class="exchange-title">
+                            <ion-card-title>{{ exchange.resources[0]?.name || 'Unnamed Resource' }}</ion-card-title>
+                            <p><strong>Description:</strong> {{ exchange.resources[0]?.description }}</p>
+                            <p><strong>Owner:</strong> {{ exchange.resources[0]?.owner.name }}</p>
+                            @if (exchange.providerEndpoint) {
+                              <p>
+                                <strong>Provider Endpoint:</strong> {{ exchange.providerEndpoint }}
+                              </p>
+                            }
+                            @if (exchange.consumerEndpoint) {
+                              <p>
+                                <strong>Consumer Endpoint:</strong> {{ exchange.consumerEndpoint }}
+                              </p>
+                            }
+                            <p><strong>Latest execution:</strong>
+                            <span class="latest-date">
+                              {{ getLatestExecutionDate(exchange) }}
+                            </span>
+                          </p>
+                        </div>
+                        <div class="exchange-meta">
+                          <span class="execution-count">
+                            <ion-icon name="repeat-outline" aria-hidden="true"></ion-icon>
+                            {{ getExecutionCount(exchange) }} executions
+                          </span>
+                        </div>
+                      </div>
+                      <ion-icon
+                        [name]="isExchangeExpanded(i) ? 'chevron-up-outline' : 'chevron-down-outline'"
+                        class="expand-icon" aria-hidden="true">
+                      </ion-icon>
+                    </ion-card-header>
+                    <!-- Exchange Details (Expanded) -->
+                    @if (isExchangeExpanded(i)) {
+                      <ion-card-content class="exchange-details" [id]="'exchange-details-' + i">
+                        <!-- Executions History -->
+                        <div class="details-section">
+                          <h4>Execution History ({{ exchange.executions.length }} total)</h4>
+                          <div class="executions-list">
+                            @for (execution of getExecutionsToShow(exchange, i); track execution; let first = $first) {
+                              <div
+                                class="execution-item"
+                                [class.latest]="first">
+                                <div class="execution-info">
+                                  <span class="execution-id">iD: {{ execution.id }}</span>
+                                  @if (execution.createdAt) {
+                                    <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                                    <span class="execution-date">
+                                      {{ formatDate(execution.createdAt) }}
+                                    </span>
+                                  }
+                                </div>
+                              </div>
+                            }
+                            <!-- Show more/Show less controls -->
+                            @if (shouldShowMoreButton(exchange)) {
+                              <div class="show-more-controls">
+                                @if (!isShowingAllExecutions(i)) {
+                                  <ion-button
+                                    fill="clear"
+                                    size="small"
+                                    (click)="toggleShowAllExecutions(i)"
+                                    class="show-more-button">
+                                    <ion-icon name="chevron-down-outline" slot="start" aria-hidden="true"></ion-icon>
+                                    Show {{ getHiddenExecutionsCount(exchange) }} more executions
+                                  </ion-button>
+                                }
+                                @if (isShowingAllExecutions(i)) {
+                                  <ion-button
+                                    fill="clear"
+                                    size="small"
+                                    (click)="toggleShowAllExecutions(i)"
+                                    class="show-less-button">
+                                    <ion-icon name="chevron-up-outline" slot="start" aria-hidden="true"></ion-icon>
+                                    Show less
+                                  </ion-button>
+                                }
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      </ion-card-content>
+                    }
+                  </ion-card>
+                }
+              </div>
+            }
+
+            <!-- Empty state -->
+            @if (!isLoadingHistory && dataExchanges.length === 0) {
+              <div class="empty-state">
+                <ion-icon name="swap-horizontal-outline" class="empty-icon" aria-hidden="true"></ion-icon>
+                <h3>No Data Exchanges Found</h3>
+                <p>There are no data exchanges in the history for this connexion.</p>
+              </div>
+            }
+          </div>

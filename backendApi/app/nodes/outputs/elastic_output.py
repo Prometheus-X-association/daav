@@ -45,8 +45,8 @@ class ElasticOutput(OutputNode):
             StatusNode: The status of the node after processing.
         """
         try:
-            dataset, index, ifExist, idField = await self._retrieveParams()
-            indexed = await asyncio.to_thread(self._write, dataset, index, ifExist, idField, sample)
+            dataset, index, if_exist, id_field = await self._retrieveParams()
+            indexed = await asyncio.to_thread(self._write, dataset, index, if_exist, id_field, sample)
             self.statusMessage = f"{indexed} documents indexed into '{index}'"
         except Exception as e:
             traceback.print_exc()
@@ -57,38 +57,41 @@ class ElasticOutput(OutputNode):
 
     def _chunks(self, sample: bool) -> Iterator[pd.DataFrame]:
         """Yield the connected input data as DataFrame chunks."""
-        for input in self.inputs.values():
-            if not input.get_connected_node():
-                continue
-            data = input.get_node_data()
-            if isinstance(data, NodeDataPandasDf):
-                df = data.dataExample if sample else data.data
-                if not isinstance(df, pd.DataFrame):
-                    raise ValueError("Input data is not a pandas DataFrame")
-                yield from utils.slice_generator(df, CHUNK_SIZE)
-            elif isinstance(data, NodeDataParquet):
-                parquetFile = pq.ParquetFile(data.data)
-                for batch in parquetFile.iter_batches(batch_size=CHUNK_SIZE):
-                    yield batch.to_pandas()
-                    if sample:
-                        break
-            else:
-                raise TypeError("Unsupported data type: {}".format(type(data)))
+        for data in self._connected_data():
+            yield from self._data_chunks(data, sample)
 
-    def _write(self, dataset: ElasticDataset, index: str, ifExist: str, idField: Optional[str], sample: bool) -> int:
+    def _data_chunks(self, data: Any, sample: bool) -> Iterator[pd.DataFrame]:
+        """Yield the data of one input as DataFrame chunks."""
+        if isinstance(data, NodeDataPandasDf):
+            yield from utils.slice_generator(self._input_dataframe(data, sample), CHUNK_SIZE)
+        elif isinstance(data, NodeDataParquet):
+            yield from self._parquet_chunks(data.data, sample)
+        else:
+            raise TypeError("Unsupported data type: {}".format(type(data)))
+
+    @staticmethod
+    def _parquet_chunks(path: str, sample: bool) -> Iterator[pd.DataFrame]:
+        """Yield a parquet file by batches; a sample only yields the first batch."""
+        parquet_file = pq.ParquetFile(path)
+        for batch in parquet_file.iter_batches(batch_size=CHUNK_SIZE):
+            yield batch.to_pandas()
+            if sample:
+                break
+
+    def _write(self, dataset: ElasticDataset, index: str, if_exist: str, id_field: Optional[str], sample: bool) -> int:
         chunks = self._chunks(sample)
         first = next(chunks, None)
         if first is None:
             raise ValueError("No input data connected")
-        if idField and idField not in first.columns:
-            raise ValueError(f"The id field '{idField}' is not a column of the input data")
+        if id_field and id_field not in first.columns:
+            raise ValueError(f"The id field '{id_field}' is not a column of the input data")
 
         indexed, failed, errors = 0, 0, []
         with self.elasticService.connect(dataset) as client:
             exists = bool(client.indices.exists(index=index))
-            if exists and ifExist == 'fail':
+            if exists and if_exist == 'fail':
                 raise ValueError(f"Index '{index}' already exists and ifExist is set to 'fail'")
-            if exists and ifExist == 'replace':
+            if exists and if_exist == 'replace':
                 client.indices.delete(index=index)
                 exists = False
             if not exists:
@@ -96,7 +99,7 @@ class ElasticOutput(OutputNode):
 
             for chunk in (first, *chunks):
                 ok, ko, errs = self.elasticService.bulk_index(
-                    client, index, chunk.to_dict(orient='records'), id_field=idField
+                    client, index, chunk.to_dict(orient='records'), id_field=id_field
                 )
                 indexed += ok
                 failed += ko
@@ -123,21 +126,21 @@ class ElasticOutput(OutputNode):
         Raises:
             ValueError: If no data source or index is selected, or the index name is invalid.
         """
-        datasetId = self._value('selectDataSource')
-        if not datasetId:
+        dataset_id = self._value('selectDataSource')
+        if not dataset_id:
             raise ValueError("No data source selected")
-        dataset: ElasticDataset = await self.datasetService.get_dataset(datasetId)
+        dataset: ElasticDataset = await self.datasetService.get_dataset(dataset_id)
         if not isinstance(dataset, ElasticDataset):
             raise ValueError("The data source is not an Elasticsearch dataset")
         index = self._value('indexAutoComplete') or dataset.index
         if not index:
             raise ValueError("No index selected")
         _validate_es_index(index)
-        ifExist = self._value('selectExist') or 'fail'
-        if ifExist not in ('fail', 'replace', 'append'):
-            raise ValueError(f"Invalid ifExist option: {ifExist}")
-        idField = self._value('idField') or None
-        return dataset, index, ifExist, idField
+        if_exist = self._value('selectExist') or 'fail'
+        if if_exist not in ('fail', 'replace', 'append'):
+            raise ValueError(f"Invalid ifExist option: {if_exist}")
+        id_field = self._value('idField') or None
+        return dataset, index, if_exist, id_field
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

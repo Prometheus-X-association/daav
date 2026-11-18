@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { PTXDashboardComponent } from './ptxdashboard.component';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
@@ -10,8 +10,8 @@ describe('PTXDashboardComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-    imports: [IonicModule.forRoot(), PTXDashboardComponent],
-    providers: [provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
+    imports: [PTXDashboardComponent],
+    providers: [provideIonicAngular(), provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(PTXDashboardComponent);
@@ -39,11 +39,11 @@ describe('PTXDashboardComponent', () => {
 
     expect(component.shouldShowMoreButton(exchange)).toBeTrue();
     expect(component.getHiddenExecutionsCount(exchange)).toBe(2);
-    expect(component.getExecutionsToShow(exchange, 0).length).toBe(10);
+    expect(component.getExecutionsToShow(exchange, 0)).toHaveSize(10);
 
     component.toggleShowAllExecutions(0);
     expect(component.isShowingAllExecutions(0)).toBeTrue();
-    expect(component.getExecutionsToShow(exchange, 0).length).toBe(12);
+    expect(component.getExecutionsToShow(exchange, 0)).toHaveSize(12);
 
     component.toggleShowAllExecutions(0);
     expect(component.isShowingAllExecutions(0)).toBeFalse();

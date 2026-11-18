@@ -1,7 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ToastController, LoadingController } from '@ionic/angular';
+import { ToastController, LoadingController, IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { alertCircleOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, lockOpenOutline, logOutOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 /**
@@ -13,21 +16,23 @@ import { AuthService } from '../../services/auth.service';
     selector: 'app-change-password',
     templateUrl: './change-password.page.html',
     styleUrls: ['./change-password.page.scss'],
-    standalone: false
+    imports: [IonButton, IonContent, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonSpinner, IonTitle, IonToolbar, FormsModule, ReactiveFormsModule]
 })
 export class ChangePasswordPage implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly toastController = inject(ToastController);
+  private readonly loadingController = inject(LoadingController);
+
   changePasswordForm!: FormGroup;
   loading = false;
   returnUrl: string = '/';
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private toastController: ToastController,
-    private loadingController: LoadingController
-  ) {}
+  constructor() {
+    addIcons({ alertCircleOutline, checkmarkCircle, closeCircle, key, lockClosedOutline, lockOpenOutline, logOutOutline });
+  }
 
   ngOnInit() {
     this.changePasswordForm = this.formBuilder.group({
@@ -59,7 +64,7 @@ export class ChangePasswordPage implements OnInit {
 
     const hasUpperCase = /[A-Z]/.test(value);
     const hasLowerCase = /[a-z]/.test(value);
-    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?\/]/.test(value);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{}|;:,.<>?/]/.test(value);
 
     const passwordValid = hasUpperCase && hasLowerCase && hasSpecialChar;
 
@@ -110,37 +115,38 @@ export class ChangePasswordPage implements OnInit {
 
     this.loading = true;
 
-    this.authService.changePassword(currentPassword, newPassword).subscribe({
-      next: async () => {
-        // Reload user to clear the pending password change and load user data
-        await this.authService.loadCurrentUser();
+    const failure = await firstValueFrom(this.authService.changePassword(currentPassword, newPassword))
+      .then(() => null, (error: Error) => error);
 
-        await loading.dismiss();
-        this.loading = false;
+    if (failure) {
+      await loading.dismiss();
+      this.loading = false;
 
-        const toast = await this.toastController.create({
-          message: 'Password changed successfully',
-          duration: 3000,
-          color: 'success',
-          position: 'top'
-        });
-        await toast.present();
+      const toast = await this.toastController.create({
+        message: failure.message || 'Failed to change password',
+        duration: 5000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+      return;
+    }
 
-        this.router.navigateByUrl(this.returnUrl, { replaceUrl: true });
-      },
-      error: async (error) => {
-        await loading.dismiss();
-        this.loading = false;
+    // Reload user to clear the pending password change and load user data
+    await this.authService.loadCurrentUser();
 
-        const toast = await this.toastController.create({
-          message: error.message || 'Failed to change password',
-          duration: 5000,
-          color: 'danger',
-          position: 'top'
-        });
-        await toast.present();
-      }
+    await loading.dismiss();
+    this.loading = false;
+
+    const toast = await this.toastController.create({
+      message: 'Password changed successfully',
+      duration: 3000,
+      color: 'success',
+      position: 'top'
     });
+    await toast.present();
+
+    await this.router.navigateByUrl(this.returnUrl, { replaceUrl: true });
   }
 
   /**

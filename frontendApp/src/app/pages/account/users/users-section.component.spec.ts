@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, flush, waitForAsync } from '@angular/core/testing';
-import { AlertController, IonicModule, ToastController } from '@ionic/angular';
+import { AlertController, ToastController, provideIonicAngular } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { UsersSectionComponent } from './users-section.component';
@@ -34,15 +34,15 @@ describe('UsersSectionComponent', () => {
     router = { navigate: jasmine.createSpy('navigate') };
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot()],
-      declarations: [UsersSectionComponent],
-      providers: [
+    imports: [UsersSectionComponent],
+    providers: [
+        provideIonicAngular(),
         { provide: AuthService, useValue: authServiceSpy },
         { provide: ToastController, useValue: toastControllerSpy },
         { provide: AlertController, useValue: alertControllerSpy },
         { provide: Router, useValue: router }
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(UsersSectionComponent);
     component = fixture.componentInstance;
@@ -58,8 +58,8 @@ describe('UsersSectionComponent', () => {
   it('should not offer actions on the current user', () => {
     const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('tbody tr'));
 
-    expect(rows[0].querySelectorAll('.actions ion-button').length).toBe(0);
-    expect(rows[1].querySelectorAll('.actions ion-button').length).toBe(3);
+    expect(rows[0].querySelectorAll('.actions ion-button')).toHaveSize(0);
+    expect(rows[1].querySelectorAll('.actions ion-button')).toHaveSize(3);
   });
 
   it('should handle loadAllUsers error', async () => {
@@ -77,12 +77,56 @@ describe('UsersSectionComponent', () => {
 
     component.deleteUser(users[1]);
     flush();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     (options.buttons as any[]).find(button => button.role === 'destructive').handler();
     flush();
 
     expect(authServiceSpy.deleteUser).toHaveBeenCalledWith('user-2');
     expect(authServiceSpy.getAllUsers).toHaveBeenCalled();
+  }));
+
+  it('should reload the users and log the error when the confirmation toast cannot be shown', fakeAsync(() => {
+    const failure = new Error('No toast');
+    toastControllerSpy.create.and.callFake(() => Promise.reject(failure));
+    const consoleError = spyOn(console, 'error');
+    authServiceSpy.getAllUsers.calls.reset();
+
+    component.deleteUser(users[1]);
+    flush();
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
+    (options.buttons as any[]).find(button => button.role === 'destructive').handler();
+    flush();
+
+    expect(authServiceSpy.getAllUsers).toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith('Failed to show toast:', failure);
+  }));
+
+  it('should keep the password dialog open and warn when the passwords differ', fakeAsync(() => {
+    component.changeUserPassword(users[1]);
+    flush();
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
+    const change = (options.buttons as any[]).find(button => button.text === 'Change');
+
+    expect(change.handler({ newPassword: '12345678', confirmPassword: 'other' })).toBeFalse();
+    flush();
+
+    expect(authServiceSpy.updateUser).not.toHaveBeenCalled();
+    expect(toastControllerSpy.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: 'Passwords do not match', color: 'warning' }));
+  }));
+
+  it('should report a failed password change', fakeAsync(() => {
+    authServiceSpy.updateUser.and.returnValue(throwError(() => new Error('forbidden')));
+
+    component.changeUserPassword(users[1]);
+    flush();
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
+    const change = (options.buttons as any[]).find(button => button.text === 'Change');
+
+    expect(change.handler({ newPassword: '12345678', confirmPassword: '12345678' })).toBeTrue();
+    flush();
+
+    expect(authServiceSpy.updateUser).toHaveBeenCalledWith('user-2', { password: '12345678' });
+    expect(toastControllerSpy.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: 'Failed to change password: forbidden', color: 'danger' }));
   }));
 
   it('should navigate to the register page to create a user', () => {

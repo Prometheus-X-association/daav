@@ -1,9 +1,15 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { ChangeDetectorRef, Component, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core';
+import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger, MatAutocomplete } from '@angular/material/autocomplete';
 import { ClassicPreset } from 'rete';
+import { MatFormField, MatLabel, MatSuffix } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
+import { FormsModule } from '@angular/forms';
+import { MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
+import { MatOption } from '@angular/material/select';
 
 
-export interface inputAutoCompleteControlI {
+export interface InputAutoCompleteControlI {
   value: string;
   list: string[];
   readonly?: boolean;
@@ -15,7 +21,7 @@ export interface inputAutoCompleteControlI {
 
 export class InputAutoCompleteControl
   extends ClassicPreset.Control
-  implements inputAutoCompleteControlI
+  implements InputAutoCompleteControlI
 {
   value: string;
   list: string[];
@@ -25,7 +31,7 @@ export class InputAutoCompleteControl
   type: 'number' | 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'date' | 'datetime-local' | 'month' | 'week' | 'time' | 'color';
   showPassword: boolean = false;
   disabled: boolean;
-  constructor(data: inputAutoCompleteControlI,onChange?:(event?: InputEvent |MatAutocompleteSelectedEvent)=>void) {
+  constructor(data: InputAutoCompleteControlI,onChange?:(event?: InputEvent |MatAutocompleteSelectedEvent)=>void) {
     super();
     if (data){
       this.label = data.label ? data.label : null;
@@ -48,17 +54,13 @@ export class InputAutoCompleteControl
 @Component({
     selector: 'app-input-auto-complete-widget',
     templateUrl: './input-auto-complete-widget.component.html',
-    styleUrls: ['./input-auto-complete-widget.component.scss'],
-    standalone: false
+    imports: [MatFormField, MatLabel, MatInput, FormsModule, MatAutocompleteTrigger, MatIconButton, MatSuffix, MatIcon, MatAutocomplete, MatOption]
 })
 export class InputAutoCompleteWidgetComponent implements OnInit, OnChanges {
 
   @Input() data: InputAutoCompleteControl;
-  cdr: ChangeDetectorRef;
+  cdr = inject(ChangeDetectorRef);
   filteredOptions: string[];
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
   ngOnInit() {
     this.filteredOptions = this.data.list;
   }

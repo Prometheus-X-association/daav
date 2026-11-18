@@ -44,7 +44,7 @@ export class FilterTransform extends TransformBlock {
             }
             if (!this.preventNodeEvent){
                 if (context.type === 'connectioncreated' || context.type === 'connectionremoved') {
-                    const { source, target } = context.data;
+                    const { target } = context.data;
                     if (target === this.id) {
                         this.onConnectionChange(context.data,context.type);
                     }
@@ -52,7 +52,7 @@ export class FilterTransform extends TransformBlock {
             }
             if (context.type === 'noderemoved') {
                 if (context.data.id === this.id) {
-                  area.signal.pipes.splice(area.signal.pipes.findIndex(pipe => pipe === contextPipe), 1);
+                  area.signal.pipes.splice(area.signal.pipes.indexOf(contextPipe), 1);
                 }
             }
             if (context.type === 'nodeDataOutputUpdated') {
@@ -84,9 +84,7 @@ export class FilterTransform extends TransformBlock {
     }
 
     onFilterClose(){
-        const hasRules = this.dataFilterControl.query &&
-                         this.dataFilterControl.query.rules &&
-                         this.dataFilterControl.query.rules.length > 0;
+        const hasRules = this.dataFilterControl.query?.rules?.length > 0;
         if(hasRules){
             console.log("rules: ", this.dataFilterControl.query)
             this.updateStatus(StatusNode.Complete);
@@ -112,7 +110,7 @@ export class FilterTransform extends TransformBlock {
             else {
                 const connectionOutput = worflowEditor.getConnections().find(conn => conn.source === this.id && conn.sourceOutput === "out");
                 if ( connectionOutput ){
-                    worflowEditor.removeConnection(connectionOutput.id)
+                    void worflowEditor.removeConnection(connectionOutput.id)
                 }
                 this.removeOutput("out");
             }
@@ -141,7 +139,7 @@ export class FilterTransform extends TransformBlock {
             this.resetQuery();
 
         }
-        this.area.update('node', this.id);
+        void this.area.update('node', this.id);
     }
 
     private resetQuery(){

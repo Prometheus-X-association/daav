@@ -1,8 +1,9 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
-import { MatSelectChange } from '@angular/material/select';
+import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { MatSelectChange, MatSelect, MatOption } from '@angular/material/select';
 import { ClassicPreset } from 'rete';
+import { MatFormField, MatLabel } from '@angular/material/form-field';
 
-export interface selectControlI {
+export interface SelectControlI {
   value: string;
   list: { label: string; value: string; default?: boolean, data?: any }[];
   none?: boolean;
@@ -12,7 +13,7 @@ export interface selectControlI {
 
 export class SelectControl
   extends ClassicPreset.Control
-  implements selectControlI
+  implements SelectControlI
 {
   value: string;
   oldValue : string;
@@ -21,12 +22,12 @@ export class SelectControl
   new?: boolean;
   label?: string;
   callback?: (event?: MatSelectChange, source? : SelectWidgetComponent) => void;
-  constructor(data: selectControlI,onChange?:(event?: MatSelectChange)=>void) {
+  constructor(data: SelectControlI,onChange?:(event?: MatSelectChange)=>void) {
     super();
     if (data){
       this.label = data.label ? data.label : null;
       this.none = data.none ? data.none : false;
-      this.none = data.new ? data.new : false;
+      this.new = data.new ? data.new : false;
       this.value = data.value;
       this.list = data.list;
       this.callback = onChange;
@@ -37,15 +38,11 @@ export class SelectControl
 @Component({
     selector: 'app-select-widget',
     templateUrl: './select-widget.component.html',
-    styleUrls: ['./select-widget.component.scss'],
-    standalone: false
+    imports: [MatFormField, MatLabel, MatSelect, MatOption]
 })
 export class SelectWidgetComponent implements OnChanges {
   @Input() data: SelectControl;
-  cdr: ChangeDetectorRef;
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
   ngOnChanges(changes: SimpleChanges): void {
     this.cdr.detectChanges();
   }

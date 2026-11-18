@@ -2,12 +2,11 @@ import { AreaPlugin } from 'rete-area-plugin';
 import { MysqlOutput } from './mysql-output';
 import { Schemes } from 'src/app/core/workflow-editor';
 import { WorkflowNodeEditor } from 'src/app/core/workflow-node-editor';
-import { Injector } from '@angular/core';
+import { Injector , signal } from '@angular/core';
 import { DatasetService } from 'src/app/services/dataset.service';
-import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
 
 describe('MysqlOutput', () => {
   let area: AreaPlugin<any, any>;
@@ -53,7 +52,7 @@ describe('MysqlOutput', () => {
 
   it('should add and remove table controls', () => {
     const block = new MysqlOutput('label', area);
-    block['addInputTable']({ tables: ['one', 'two'] } as any, {} as any);
+    block['addInputTable']({ tables: ['one', 'two'] }, {} as any);
 
     expect(block['tableAutoCompleteControl']).toBeDefined();
     block.removeInputTable();

@@ -1,22 +1,31 @@
 import { DatasetService } from 'src/app/services/dataset.service';
-import { Component, Input, ViewChild, OnInit,  OnChanges, SimpleChanges, output, ElementRef, reflectComponentType, ViewContainerRef, ChangeDetectorRef, Renderer2 } from '@angular/core';
+import { Component, Input, ViewChild, OnInit, OnChanges, SimpleChanges, output, ElementRef, ViewContainerRef, ChangeDetectorRef, Renderer2, inject } from '@angular/core';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { LoadingService } from 'src/app/services/loading.service';
 import { DataRenderTypes } from 'src/app/models/data-render-types';
 import { Dataset } from 'src/app/models/dataset'
 import { DatasetType } from 'src/app/enums/dataset-type';
+import { DatasetContentResponse, isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
+import { MatTabGroup, MatTab } from '@angular/material/tabs';
+import { IonAccordion, IonAccordionGroup, IonButton, IonIcon, IonItem, IonLabel, IonList } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chevronDownOutline } from 'ionicons/icons';
+import { MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow } from '@angular/material/table';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
-import { MatTab } from '@angular/material/tabs';
-import { isApiContentResponse, isElasticSearchContentResponse, isMongoContentResponse, isMySQLContentResponse } from 'src/app/models/dataset-content-response';
 
 @Component({
     selector: 'app-render',
     templateUrl: './render.component.html',
     styleUrls: ['./render.component.scss'],
-    standalone: false
+    imports: [MatTabGroup, MatTab, IonAccordion, IonAccordionGroup, IonButton, IonIcon, IonItem, IonLabel, IonList, MatPaginator, MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, NgxJsonViewerModule, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow]
 })
 
 export class RenderComponent implements OnInit, OnChanges {
+  datasetService = inject(DatasetService);
+  loadingService = inject(LoadingService);
+  private readonly cd = inject(ChangeDetectorRef);
+  private readonly render = inject(Renderer2);
+
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("dashboardContainer") dashboardContainer: ElementRef;
   @ViewChild("dashboardContainerAnchor", {read: ViewContainerRef}) dashboardContainerAnchor: ViewContainerRef;
@@ -53,7 +62,8 @@ export class RenderComponent implements OnInit, OnChanges {
   @Input() dataset: Dataset;
   filterTables = "";
 
-  constructor(public datasetService : DatasetService, public loadingService : LoadingService, private cd : ChangeDetectorRef, private render: Renderer2) {
+  constructor() {
+    addIcons({ chevronDownOutline });
     this.data = this.dataDefault;
   }
 
@@ -73,7 +83,7 @@ export class RenderComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges) {
     if (changes['dataset']) {
       this.data = this.dataDefault;
-      this.getDatasetContent(this.dataset, "", "", 0);
+      void this.getDatasetContent(this.dataset, "", "", 0);
     }
   }
 
@@ -94,9 +104,7 @@ export class RenderComponent implements OnInit, OnChanges {
 
       this.cd.detectChanges();
 
-      // debugger;
       // create dashboard based on dataset type
-      // console.log(this.dashboardContainer.nativeElement);
       for(const e of this.dashboardContainer.nativeElement.children){
         if(e.id != "dashboard-container-anchor"){
           e.remove();
@@ -104,7 +112,6 @@ export class RenderComponent implements OnInit, OnChanges {
       };
 
       const dashboardComponent = this.dashboardContainerAnchor.createComponent(this.dataset.dashboardComponent);
-      // this.render.appendChild(this.dashboardContainer.nativeElement, dashboardComponent.location.nativeElement);
       dashboardComponent.setInput("dataset", this.data.selectedDataset);
 
     }
@@ -157,100 +164,96 @@ export class RenderComponent implements OnInit, OnChanges {
       const params = this.data.selectedDataset?.type === DatasetType.ElasticSearch
         ? { index: table || null }
         : { database, table };
-      this.datasetService.getContentDataset(this.data.selectedDataset,this.data.pagination, params).subscribe((res) => {
+      this.datasetService.getContentDataset(this.data.selectedDataset,this.data.pagination, params).subscribe({ next: (res) => {
         this.data.pagination.nextUrl = null;
-        if (res) {
-          if (res.data) {
-            this.data.fiche = {
-              items: res.data,
-              limit: res.limit,
-              total: res.total_rows,
-              current_page: res.current_page
-            }
-          }
-
-          if (this.selectedDatasetId !== this.data.selectedDataset.id) {
-            if (!res.data) {
-              this.data.displayedColumns = [];
-              this.data.fiche = {
-                items: null,
-                limit: null,
-                total: null,
-                current_page: null,
-              };
-              this.data.renderTabIndex = 0;
-            }
-            if (isMySQLContentResponse(res) || isMongoContentResponse(res)) {
-              this.data.dbNames = res.databases;
-            }
-            else{
-              this.data.dbNames = null;
-            }
-
-            if (isMongoContentResponse(res)) {
-              this.data.tableNames = res.collections;
-            }
-            else if (isMySQLContentResponse(res)) {
-              this.data.tableNames = res.tables;
-            }
-            else if (isElasticSearchContentResponse(res)) {
-              this.data.tableNames = res.indices;
-            }
-            else{
-              this.data.tableNames = null;
-            }
-
-          }
-          if(isApiContentResponse(res)){
-            this.data.fiche.nextUrl = res.next_url;
-            this.data.fiche.prevUrl = res.prev_url;
-            this.data.pagination.perPage  = res.limit ? res.limit : this.data.pagination.perPage;
-          }
-
-          if (this.data.dbNames !== null || this.data.tableNames !== null) {
-            // When db and/or table are not specified
-            let items = this.data.fiche.items;
-            let keys: string[];
-            items.length !== 0 ? keys = Object.keys(items[0]) : keys = [" "]
-            this.data.displayedColumns = keys;
-          }
-          else if (this.data.fiche.items?.length > 0){
-            // For a single table
-            this.data.displayedColumns = Object.keys(this.data.fiche.items[0]);
-          }
-
-          resolve();
-        }
-        // Connection work but the user don't have access to this dataset
-        else{
-          this.data.displayedColumns = [];
-          this.data.fiche = {
-            items: null,
-            limit: null,
-            total: null,
-            current_page: null,
-          };
-          this.data.renderTabIndex = 0;
+        if (!res) {
+          // Connection work but the user don't have access to this dataset
+          this.resetFiche();
           alert("Connection successful but unable to get data.")
-          reject();
+          reject(new Error("Connection successful but unable to get data."));
+          return;
         }
-      },error => {
+        if (res.data) {
+          this.data.fiche = {
+            items: res.data,
+            limit: res.limit,
+            total: res.total_rows,
+            current_page: res.current_page
+          }
+        }
+        if (this.selectedDatasetId !== this.data.selectedDataset.id) {
+          if (!res.data) {
+            this.resetFiche();
+          }
+          this.updateNames(res);
+        }
+        this.applyApiPagination(res);
+        this.updateDisplayedColumns();
+        resolve();
+      }, error: error => {
         // Connection don't work
         console.log("error",error)
-        this.data.displayedColumns = [];
-        this.data.fiche = {
-          items: null,
-          limit: null,
-          total: null,
-          current_page: null,
-        };
-        this.data.renderTabIndex = 0;
+        this.resetFiche();
         alert("Connection error.")
         this.data.pagination.nextUrl = null;
-        reject();
-      });
+        reject(new Error("Connection error.", { cause: error }));
+      }});
     })
   }
+
+  /**
+   * Empty the displayed content and come back to the first tab
+   */
+  private resetFiche() {
+    this.data.displayedColumns = [];
+    this.data.fiche = {
+      items: null,
+      limit: null,
+      total: null,
+      current_page: null,
+    };
+    this.data.renderTabIndex = 0;
+  }
+
+  /**
+   * Database and table (collection, index) names of a newly selected dataset
+   */
+  private updateNames(res: DatasetContentResponse) {
+    this.data.dbNames = isMySQLContentResponse(res) || isMongoContentResponse(res) ? res.databases : null;
+    if (isMongoContentResponse(res)) {
+      this.data.tableNames = res.collections;
+    } else if (isMySQLContentResponse(res)) {
+      this.data.tableNames = res.tables;
+    } else if (isElasticSearchContentResponse(res)) {
+      this.data.tableNames = res.indices;
+    } else {
+      this.data.tableNames = null;
+    }
+  }
+
+  /**
+   * Previous and next pages, and page size, given by an API response
+   */
+  private applyApiPagination(res: DatasetContentResponse) {
+    if (isApiContentResponse(res)) {
+      this.data.fiche.nextUrl = res.next_url;
+      this.data.fiche.prevUrl = res.prev_url;
+      this.data.pagination.perPage = res.limit ? res.limit : this.data.pagination.perPage;
+    }
+  }
+
+  private updateDisplayedColumns() {
+    if (this.data.dbNames !== null || this.data.tableNames !== null) {
+      // When db and/or table are not specified
+      const items = this.data.fiche.items;
+      this.data.displayedColumns = items.length !== 0 ? Object.keys(items[0]) : [" "];
+    }
+    else if (this.data.fiche.items?.length > 0){
+      // For a single table
+      this.data.displayedColumns = Object.keys(this.data.fiche.items[0]);
+    }
+  }
+
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
     this.filterTables = filterValue.trim().toLowerCase();

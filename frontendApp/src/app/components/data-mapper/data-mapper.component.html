@@ -8,43 +8,44 @@
 
       <mat-card-content>
         <div class="data-mapper__sources-list">
-          <ng-container *ngFor="let dataset of datasets">
+          @for (dataset of datasets; track dataset) {
             <h3 class="data-mapper__dataset-title">
               <button type="button" class="data-mapper__dataset-header"
-                      [class.collapsed]="isSectionCollapsed(dataset.id)"
-                      [attr.aria-expanded]="!isSectionCollapsed(dataset.id)"
-                      [attr.aria-controls]="'source-' + dataset.id"
-                      (click)="toggleSection(dataset.id)">
+                [class.collapsed]="isSectionCollapsed(dataset.id)"
+                [attr.aria-expanded]="!isSectionCollapsed(dataset.id)"
+                [attr.aria-controls]="'source-' + dataset.id"
+                (click)="toggleSection(dataset.id)">
                 <mat-icon>expand_more</mat-icon>
                 <span>{{ dataset.name }}</span>
               </button>
             </h3>
-
             <div class="data-mapper__columns"
-                 [class.collapsed]="isSectionCollapsed(dataset.id)"
-                 cdkDropList
-                 [cdkDropListData]="dataset.columns"
-                 [cdkDropListConnectedTo]="getConnectedLists()"
-                 [id]="'source-' + dataset.id">
-              <div *ngFor="let column of dataset.columns"
-                   class="data-mapper__column"
-                   [class.mapped]="isColumnMapped(column)"
-                   cdkDrag
-                   [cdkDragData]="column"
-                   (cdkDragStarted)="onDragStart($event, column)"
-                   (cdkDragEnded)="onDragEnd()">
-                <div class="data-mapper__column-header">
-                  <span class="data-mapper__column-name" [title]="column.name">{{column.name}}</span>
-                  <span class="data-mapper__column-type data-mapper__column-type--{{column.type}}">
-                    {{column.type}}
-                  </span>
+              [class.collapsed]="isSectionCollapsed(dataset.id)"
+              cdkDropList
+              [cdkDropListData]="dataset.columns"
+              [cdkDropListConnectedTo]="getConnectedLists()"
+              [id]="'source-' + dataset.id">
+              @for (column of dataset.columns; track column) {
+                <div
+                  class="data-mapper__column"
+                  [class.mapped]="isColumnMapped(column)"
+                  cdkDrag
+                  [cdkDragData]="column"
+                  (cdkDragStarted)="onDragStart($event, column)"
+                  (cdkDragEnded)="onDragEnd()">
+                  <div class="data-mapper__column-header">
+                    <span class="data-mapper__column-name" [title]="column.name">{{column.name}}</span>
+                    <span class="data-mapper__column-type data-mapper__column-type--{{column.type}}">
+                      {{column.type}}
+                    </span>
+                  </div>
+                  <div class="data-mapper__column-sample">
+                    Sample: {{column.sample[0]}}
+                  </div>
                 </div>
-                <div class="data-mapper__column-sample">
-                  Sample: {{column.sample[0]}}
-                </div>
-              </div>
+              }
             </div>
-          </ng-container>
+          }
         </div>
       </mat-card-content>
     </mat-card>
@@ -58,71 +59,72 @@
       <mat-card-content>
         <div class="data-mapper__mappings">
           <div class="data-mapper__mappings-list"
-               [class.dragging]="draggedColumn">
+            [class.dragging]="draggedColumn">
 
 
             <!-- Liste des mappings existants -->
-            <div *ngFor="let mapping of mappings"
-                 class="data-mapper__mapping"
-                 [class.active]="activeMapping === mapping.id"
-                 [id]="'mapping-' + mapping.id"
-                 cdkDropList
-                 [cdkDropListData]="mapping.sources"
-                 (cdkDropListDropped)="onDrop($event, mapping.id)"
-                 (cdkDropListEntered)="activeMapping = mapping.id"
-                 (cdkDropListExited)="activeMapping = null">
-
-              <div class="data-mapper__mapping-header">
-                <mat-form-field appearance="outline">
-                  <input matInput
-                         [(ngModel)]="mapping.targetName"
-                         aria-label="Target column name"
-                         placeholder="Target column name">
-                </mat-form-field>
-
-                <button mat-icon-button color="warn"
-                        [attr.aria-label]="'Remove mapping ' + (mapping.targetName || '')"
-                        (click)="removeMapping(mapping.id)">
-                  <mat-icon>close</mat-icon>
-                </button>
-              </div>
-
-              <div class="data-mapper__mapping-sources">
-                <div *ngFor="let source of mapping.sources"
-                     class="data-mapper__mapping-source">
-                  <div class="data-mapper__mapping-source-info">
-                    <span class="dataset-name">{{getDatasetName(source.datasetId)}}</span>
-                    <mat-icon>arrow_right</mat-icon>
-                    <span class="column-name" [title]="source.name">{{source.name}}</span>
-                  </div>
-                  <span class="data-mapper__column-type data-mapper__column-type--{{source.type}}">
-                    {{source.type}}
-                  </span>
-                  <button mat-icon-button
-                          class="remove-button"
-                          [attr.aria-label]="'Remove ' + source.name + ' from mapping'"
-                          (click)="removeSourceFromMapping(mapping.id, source.id)">
+            @for (mapping of mappings; track mapping) {
+              <div
+                class="data-mapper__mapping"
+                [class.active]="activeMapping === mapping.id"
+                [id]="'mapping-' + mapping.id"
+                cdkDropList
+                [cdkDropListData]="mapping.sources"
+                (cdkDropListDropped)="onDrop($event, mapping.id)"
+                (cdkDropListEntered)="activeMapping = mapping.id"
+                (cdkDropListExited)="activeMapping = null">
+                <div class="data-mapper__mapping-header">
+                  <mat-form-field appearance="outline">
+                    <input matInput
+                      [(ngModel)]="mapping.targetName"
+                      aria-label="Target column name"
+                      placeholder="Target column name">
+                  </mat-form-field>
+                  <button mat-icon-button color="warn"
+                    [attr.aria-label]="'Remove mapping ' + (mapping.targetName || '')"
+                    (click)="removeMapping(mapping.id)">
                     <mat-icon>close</mat-icon>
                   </button>
                 </div>
-              </div>
-            </div>
-            <!-- Drop Zone pour nouveau mapping -->
-            <div class="data-mapper__mapping new-mapping"
-                  cdkDropList
-                  [cdkDropListData]="[]"
-                  id="mapping-dropzone"
-                  (cdkDropListDropped)="onDrop($event)">
-                <div class="data-mapper__mappings-dropzone"
-                    [class.active]="draggedColumn">
-                  <div class="dropzone-content">
-                    <mat-icon>sync_alt</mat-icon>
-                    <p>{{mappings.length === 0
-                        ? "Drag columns here to create mappings"
-                        : "Drop here to create a new mapping"}}</p>
-                  </div>
+                <div class="data-mapper__mapping-sources">
+                  @for (source of mapping.sources; track source) {
+                    <div
+                      class="data-mapper__mapping-source">
+                      <div class="data-mapper__mapping-source-info">
+                        <span class="dataset-name">{{getDatasetName(source.datasetId)}}</span>
+                        <mat-icon>arrow_right</mat-icon>
+                        <span class="column-name" [title]="source.name">{{source.name}}</span>
+                      </div>
+                      <span class="data-mapper__column-type data-mapper__column-type--{{source.type}}">
+                        {{source.type}}
+                      </span>
+                      <button mat-icon-button
+                        class="remove-button"
+                        [attr.aria-label]="'Remove ' + source.name + ' from mapping'"
+                        (click)="removeSourceFromMapping(mapping.id, source.id)">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                  }
                 </div>
               </div>
+            }
+            <!-- Drop Zone pour nouveau mapping -->
+            <div class="data-mapper__mapping new-mapping"
+              cdkDropList
+              [cdkDropListData]="[]"
+              id="mapping-dropzone"
+              (cdkDropListDropped)="onDrop($event)">
+              <div class="data-mapper__mappings-dropzone"
+                [class.active]="draggedColumn">
+                <div class="dropzone-content">
+                  <mat-icon>sync_alt</mat-icon>
+                  <p>{{mappings.length === 0
+                    ? "Drag columns here to create mappings"
+                  : "Drop here to create a new mapping"}}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </mat-card-content>

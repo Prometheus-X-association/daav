@@ -1,29 +1,22 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { MatSelectChange } from '@angular/material/select';
 import { ClassicPreset } from 'rete';
-import { selectControlI } from '../select-widget/select-widget.component';
-import { OnChange } from 'rete-render-utils/_types/sockets-position/types';
+import { IonSpinner } from '@ionic/angular/standalone';
 
 export class NodeLoaderControl extends ClassicPreset.Control {
   loading = false;
   callback?: (event?: MatSelectChange) => void;
-  constructor() {
-    super();
-  }
 }
 
 @Component({
     selector: 'app-node-loader-widget',
     templateUrl: './node-loader-widget.component.html',
     styleUrls: ['./node-loader-widget.component.scss'],
-    standalone: false
+    imports: [IonSpinner]
 })
 export class NodeLoaderWidgetComponent implements OnChanges {
   @Input() data: NodeLoaderControl;
-  cdr: ChangeDetectorRef;
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
   ngOnChanges(changes: SimpleChanges): void {
     this.cdr.detectChanges();
   }

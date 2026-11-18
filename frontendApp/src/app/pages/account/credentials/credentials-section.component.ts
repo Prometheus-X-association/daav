@@ -1,7 +1,10 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { AlertController, LoadingController, ToastController } from '@ionic/angular';
+import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { AlertController, LoadingController, ToastController, IonButton, IonIcon, IonInput, IonInputPasswordToggle } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { addOutline, checkmarkOutline, closeOutline, createOutline, keyOutline, trashOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 
@@ -13,9 +16,15 @@ import { User } from '../../../models/auth.models';
     selector: 'app-credentials-section',
     templateUrl: './credentials-section.component.html',
     styleUrls: ['./credentials-section.component.scss'],
-    standalone: false
+    imports: [FormsModule, ReactiveFormsModule, IonButton, IonIcon, IonInput, IonInputPasswordToggle]
 })
 export class CredentialsSectionComponent implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
+  private readonly loadingController = inject(LoadingController);
+
   private readonly destroyRef = inject(DestroyRef);
   user: User | null = null;
   credentialForm!: FormGroup;
@@ -23,13 +32,9 @@ export class CredentialsSectionComponent implements OnInit {
   editingCredential: string | null = null;
   loading = false;
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private authService: AuthService,
-    private toastController: ToastController,
-    private alertController: AlertController,
-    private loadingController: LoadingController
-  ) {}
+  constructor() {
+    addIcons({ addOutline, checkmarkOutline, closeOutline, createOutline, keyOutline, trashOutline });
+  }
 
   ngOnInit() {
     this.authService.currentUser$
@@ -181,22 +186,19 @@ export class CredentialsSectionComponent implements OnInit {
     this.loading = true;
 
     // PUT /auth/me updates the current user and refreshes it in the AuthService
-    return new Promise(resolve => {
-      this.authService.updateProfile({ config: { ...this.user!.config, credentials } }).subscribe({
-        next: async () => {
-          await loading.dismiss();
-          this.loading = false;
-          await this.showToast(successMessage, 'success');
-          resolve(true);
-        },
-        error: async (error) => {
-          await loading.dismiss();
-          this.loading = false;
-          await this.showToast(`${errorMessage}: ${error.message}`, 'danger');
-          resolve(false);
-        }
-      });
-    });
+    const failure = await firstValueFrom(this.authService.updateProfile({ config: { ...this.user.config, credentials } }))
+      .then(() => null, (error: Error) => error);
+
+    await loading.dismiss();
+    this.loading = false;
+
+    if (failure) {
+      await this.showToast(`${errorMessage}: ${failure.message}`, 'danger');
+      return false;
+    }
+
+    await this.showToast(successMessage, 'success');
+    return true;
   }
 
   /**

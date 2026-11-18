@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { DataFilterWidgetComponent, DataFilterControl } from './data-filter-widget.component';
 import { HasDatasetsPipe } from 'src/app/models/data-mapper-types';
 
@@ -9,9 +9,9 @@ describe('DataFilterWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ DataFilterWidgetComponent, HasDatasetsPipe ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [DataFilterWidgetComponent, HasDatasetsPipe],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(DataFilterWidgetComponent);
     component = fixture.componentInstance;
@@ -31,7 +31,7 @@ describe('DataFilterWidgetComponent', () => {
     const callbackSpy = jasmine.createSpy('callback');
     component.data.callback = callbackSpy;
 
-    component.onWillDismiss(customEvent as any);
+    component.onWillDismiss(customEvent);
 
     expect(component.isModalOpen).toBeFalse();
     expect(callbackSpy).toHaveBeenCalledWith(customEvent);

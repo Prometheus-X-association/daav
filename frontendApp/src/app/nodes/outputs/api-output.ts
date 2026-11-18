@@ -6,7 +6,7 @@ import { Node } from 'src/app/models/interfaces/node';
 import { StatusNode } from "src/app/enums/status-node";
 import { ClassicPreset } from "rete";
 import { AllSocket } from "src/app/core/sockets/sockets";
-import { InputAutoCompleteControl, inputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
+import { InputAutoCompleteControl, InputAutoCompleteControlI } from "src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component";
 import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
 import { WorkflowNodeEditor } from "src/app/core/workflow-node-editor";
 import { MatSelectChange } from "@angular/material/select";
@@ -14,7 +14,7 @@ import { MatSelectChange } from "@angular/material/select";
 @daavBlock("output")
 export class ApiOutput extends OutputDataBlock{
   override width = 500;
-  private node: Node;
+  private readonly node: Node;
 
   private nameControl: InputAutoCompleteControl;
   private urlControl: InputAutoCompleteControl;
@@ -43,19 +43,24 @@ export class ApiOutput extends OutputDataBlock{
     this.addTokenInput(node);
 
     this.validateInput();
-    this.area.update("node", this.id);
   }
 
   override addSourceSelect(){
-
+    // No data source select: the API output is configured by its URL.
   }
 
   private generateRandomToken(length: number = 64): string {
+    // The token is the access key of the published route: it must come from the cryptographic generator
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    // Bytes above this limit are drawn again, otherwise the first characters would come out more often
+    const limit = 256 - (256 % characters.length);
     let result = '';
-    const charactersLength = characters.length;
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    while (result.length < length) {
+      for (const byte of crypto.getRandomValues(new Uint8Array(length))) {
+        if (byte < limit && result.length < length) {
+          result += characters.charAt(byte % characters.length);
+        }
+      }
     }
     return result;
   }
@@ -65,7 +70,7 @@ export class ApiOutput extends OutputDataBlock{
   }
 
   private addTokenInput(node: Node): void{
-    let tokenInput: inputAutoCompleteControlI;
+    let tokenInput: InputAutoCompleteControlI;
     if(node?.data?.tokenInput){
         tokenInput = node.data.tokenInput
     }else {
@@ -91,12 +96,12 @@ export class ApiOutput extends OutputDataBlock{
         }
       )
       this.addControl('token', this.tokenControl);
-      this.area.update('control', this.tokenControl.id);
-      this.area.update('node', this.id);
+      void this.area.update('control', this.tokenControl.id);
+      void this.area.update('node', this.id);
 }
 
   private addNameInput(node: Node): void{
-    let nameInput: inputAutoCompleteControlI;
+    let nameInput: InputAutoCompleteControlI;
     if(node?.data?.nameInput){
       nameInput = node.data.nameInput
     }else {
@@ -121,12 +126,12 @@ export class ApiOutput extends OutputDataBlock{
       }
     )
     this.addControl('name', this.nameControl);
-    this.area.update('control', this.nameControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.nameControl.id);
+    void this.area.update('node', this.id);
   }
 
   private addUrlInput(node: Node): void{
-    let urlInput: inputAutoCompleteControlI;
+    let urlInput: InputAutoCompleteControlI;
     if(node?.data?.urlInput){
       urlInput = node.data.urlInput
     }else {
@@ -151,8 +156,8 @@ export class ApiOutput extends OutputDataBlock{
       }
     )
     this.addControl('url', this.urlControl);
-    this.area.update('control', this.urlControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.urlControl.id);
+    void this.area.update('node', this.id);
   }
 
   private extractValue(event: InputEvent | MatAutocompleteSelectedEvent): string {
@@ -181,14 +186,14 @@ export class ApiOutput extends OutputDataBlock{
       return;
     }
 
-    const isValidUrl = /^[a-zA-Z0-9_\/-]+$/.test(urlValue);
+    const isValidUrl = /^[a-zA-Z0-9_/-]+$/.test(urlValue);
     if (!isValidUrl) {
       this.updateStatus(StatusNode.Incomplete, "Invalid URL format");
       return;
     }
 
     this.updateStatus(StatusNode.Complete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
 

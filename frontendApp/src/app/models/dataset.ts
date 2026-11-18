@@ -1,6 +1,4 @@
-import { Component, ComponentDecorator } from "@angular/core";
 import { DashboardComponent } from "../components/dashboards/dashboard/dashboard.component";
-import { PTXDashboardComponent } from "../components/dashboards/ptxdashboard/ptxdashboard.component";
 import { DatasetType } from "../enums/dataset-type";
 import { DatasetsI } from "./datasets-i";
 import { Folder } from "./folder";

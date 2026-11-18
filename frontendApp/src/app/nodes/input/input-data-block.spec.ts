@@ -1,12 +1,11 @@
 import { AreaPlugin } from 'rete-area-plugin';
 import { Schemes } from 'src/app/core/workflow-editor';
 import { InputDataBlock } from './input-data-block';
-import { Injector } from '@angular/core';
+import { Injector , signal } from '@angular/core';
 import { DatasetService } from 'src/app/services/dataset.service';
-import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
 import { MatSelectChange } from '@angular/material/select';
 
 describe('InputDataBlock', () => {
@@ -100,5 +99,28 @@ describe('InputDataBlock', () => {
     expect(result).toBeFalse();
     expect(event.source.writeValue).toHaveBeenCalledWith('dataset-old');
     expect(block.selectControl.value).toBe('dataset-old');
+  });
+
+  it('should call dataSourceChange from the select control callback', () => {
+    const block = new InputDataBlock('label', area);
+    const changeSpy = spyOn(block, 'dataSourceChange');
+    const event = { value: 'dataset-1' } as MatSelectChange;
+
+    block.selectControl.callback(event);
+
+    expect(changeSpy).toHaveBeenCalledWith(event);
+  });
+
+  it('should log an asynchronous dataSourceChange failure from the select control callback', async () => {
+    const block = new InputDataBlock('label', area);
+    const error = new Error('change failed');
+    spyOn(block, 'dataSourceChange').and.returnValue(Promise.reject(error));
+    const consoleSpy = spyOn(console, 'error');
+
+    block.selectControl.callback({ value: 'dataset-1' } as MatSelectChange);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleSpy).toHaveBeenCalledWith('Data source change failed:', error);
   });
 });

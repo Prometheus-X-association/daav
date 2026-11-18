@@ -1,9 +1,8 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip';
-import { StatusComponentComponent } from './status-component.component';
-import { StatusControl } from './status-component.component';
+import { StatusComponentComponent , StatusControl } from './status-component.component';
 import { StatusNode } from 'src/app/enums/status-node';
 
 describe('StatusComponentComponent', () => {
@@ -12,9 +11,9 @@ describe('StatusComponentComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ StatusComponentComponent ],
-      imports: [IonicModule.forRoot(), MatTooltipModule]
-    }).compileComponents();
+    imports: [MatTooltipModule, StatusComponentComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(StatusComponentComponent);
       component = fixture.componentInstance;

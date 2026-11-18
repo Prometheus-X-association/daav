@@ -3,8 +3,8 @@ import { StatusNode } from "../enums/status-node";
 import { Node } from "../models/interfaces/node";
 import { StatusControl } from "../components/widgets/status-component/status-component.component";
 import { AreaPlugin } from "rete-area-plugin";
-import { AreaExtra, Schemes, WorkflowEditor } from "../core/workflow-editor";
-import { NodeComponent } from "rete-angular-plugin/19";
+import { AreaExtra, Schemes } from "../core/workflow-editor";
+import { NodeComponent } from "rete-angular-plugin/21";
 import { NodeLoaderControl } from '../components/widgets/node-loader-widget/node-loader-widget.component';
 import { NodeData } from '../models/node-data';
 import { DatasetSchema } from "../models/dataset-schema";
@@ -24,8 +24,8 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
     errorStacktrace : string[];
     rebuildLocally = false;
     preventNodeEvent = false;
-    dataOutput : Map<OutputId,T>;
-    private statusControl: StatusControl;
+    dataOutput : Map<string,T>;
+    private readonly statusControl: StatusControl;
     width = 250;
     height = 120;
     nodeLoader: NodeLoaderControl;
@@ -50,14 +50,12 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
       }
       this.statusControl = new StatusControl(this.status,this.statusMessage,this.errorStacktrace);
       this.addControl("status",this.statusControl);
-      area.update("control", this.statusControl.id);
       this.playButtonControl = new ButtonControl(()=>{
         this.execute();
       },null,"play_arrow","playButton");
       this.playButtonControl.ariaLabel = "Run node";
       this.playButtonControl.disabled = (this.status === StatusNode.Incomplete);
       this.addControl("play",this.playButtonControl);
-      area.update("control", this.playButtonControl.id);
       this.nodeLoader = new NodeLoaderControl();
       this.addControl("loader",this.nodeLoader);
     }
@@ -95,8 +93,8 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
       this.statusControl.statusMessage=statusMessage;
       this.statusControl.errorStacktrace=errorStacktrace;
       this.playButtonControl.disabled = (status === StatusNode.Incomplete);
-      this.area.update("node",this.id);
-      this.area.update("control", this.statusControl.id);
+      void this.area.update("node",this.id);
+      void this.area.update("control", this.statusControl.id);
     }
 
     /**
@@ -105,7 +103,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
      */
     showLoader(show : boolean){
       this.nodeLoader.loading = show;
-      this.area.update("control", this.nodeLoader.id);
+      void this.area.update("control", this.nodeLoader.id);
     }
 
     execute(){
@@ -123,7 +121,7 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
             Object.assign(this.data(), response.data);
 
             // Update area to reflect changes
-            this.area.update("node", this.id);
+            void this.area.update("node", this.id);
         }
     }
 
@@ -132,5 +130,3 @@ export abstract class NodeBlock<G=DatasetSchema,T = NodeData<G>> extends Classic
      */
     abstract getRevision():string
   }
-
-  export type OutputId = string;

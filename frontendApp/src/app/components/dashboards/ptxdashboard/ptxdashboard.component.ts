@@ -1,7 +1,9 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { DashboardComponent } from '../dashboard/dashboard.component';
 import { CommonModule } from '@angular/common';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonSkeletonText } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chevronDownOutline, chevronUpOutline, repeatOutline, swapHorizontalOutline, timeOutline } from 'ionicons/icons';
 import {
   MatSnackBar,
 } from '@angular/material/snack-bar';
@@ -49,7 +51,7 @@ interface DataExchangeResponse{
     selector: 'app-ptxdashboard',
     templateUrl: './ptxdashboard.component.html',
     styleUrls: ['./ptxdashboard.component.scss'],
-    imports: [CommonModule, IonicModule]
+    imports: [CommonModule, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonSkeletonText]
 })
 export class PTXDashboardComponent  extends DashboardComponent implements OnInit{
 
@@ -60,7 +62,7 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
   contractsUseCase: any[] = [];
   pdcEndpoint: string = ''; 
   contractUri: string = '';
-  private _snackBar = inject(MatSnackBar);
+  private readonly _snackBar = inject(MatSnackBar);
   isLoadingCatalog: boolean = true;
   dataExchanges: DataExchange[] = [];
   expandedExchanges: Set<number> = new Set();
@@ -69,11 +71,11 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
 
   constructor() {
     super();
+    addIcons({ chevronDownOutline, chevronUpOutline, repeatOutline, swapHorizontalOutline, timeOutline });
   }
 
   ngOnInit(): void {
     this.loadCatalog();
-    //this.loadContractsBilaterals();
     this.loadContractsUseCase();
     this.loadDataExchangeHistory();
   }
@@ -199,13 +201,13 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
 
     const sortedExecutions = exchange.executions
       .filter(exec => exec.createdAt)
-      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (sortedExecutions.length === 0) {
       return '';
     }
 
-    return new Date(sortedExecutions[0].createdAt!).toLocaleDateString('fr-FR', {
+    return new Date(sortedExecutions[0].createdAt).toLocaleDateString('fr-FR', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -245,7 +247,7 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
   }
 
   getSkeletonArray(count: number = 1): number[] {
-    return Array(count).fill(0).map((x, i) => i);
+    return new Array(count).fill(0).map((x, i) => i);
   }
 
   loadContractsBilaterals() {
@@ -253,7 +255,6 @@ export class PTXDashboardComponent  extends DashboardComponent implements OnInit
       .subscribe({
         next: (res) => {
           this.contractsBilaterals = res.contracts;
-          //console.log('Bilateral contracts loaded:', this.contractsBilaterals);
           this.pdcEndpoint = res.endpoint;
           this.contractUri = res.contractUri;
         },

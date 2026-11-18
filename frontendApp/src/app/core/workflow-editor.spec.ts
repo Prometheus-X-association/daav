@@ -1,5 +1,5 @@
 import { WorkflowEditor } from './workflow-editor';
-import { Injector, EnvironmentInjector } from '@angular/core';
+import { Injector } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Project } from '../models/interfaces/project';

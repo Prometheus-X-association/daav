@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from typing import Dict, Any
@@ -7,6 +8,13 @@ from app.models.interface.workflow_interface import IProject
 from app.models.interface.user_interface import User
 from app.services.dataset_service import DatasetService
 from app.services.workflow_service import workflow_service
+
+
+def _read_text_file(path: str) -> str:
+    """Read a text file (run in a worker thread by the async migration)"""
+    with open(path, 'r') as f:
+        return f.read()
+
 
 class MigrationService:
     
@@ -20,8 +28,7 @@ class MigrationService:
             return False
         
         try:
-            with open(config_path, 'r') as config_file:
-                config = json.loads(config_file.read())
+            config = json.loads(await asyncio.to_thread(_read_text_file, config_path))
             
             # Migrate datasets
             connections = config.get("connections", [])

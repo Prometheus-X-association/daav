@@ -1,6 +1,6 @@
 import '@angular/localize/init';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute } from '@angular/router';
@@ -34,16 +34,16 @@ describe('WorkflowPage', () => {
     dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
     await TestBed.configureTestingModule({
-      declarations: [WorkflowPage],
-      imports: [IonicModule.forRoot(), FormsModule],
-      providers: [
+    imports: [FormsModule, WorkflowPage],
+    providers: [
+        provideIonicAngular(),
         { provide: ActivatedRoute, useValue: activatedRouteSpy },
         { provide: WorkflowService, useValue: workflowServiceSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(WorkflowPage);
     component = fixture.componentInstance;
@@ -69,6 +69,19 @@ describe('WorkflowPage', () => {
     component.loadProject('test');
 
     expect(component.workflow.importProject).toHaveBeenCalledWith(project);
+  });
+
+  it('should report a project that cannot be loaded and empty the editor', async () => {
+    const project = { id: 'broken', name: 'Broken Project' } as any;
+    (component.workflow.importProject as jasmine.Spy).and.rejectWith(new Error('unknown block'));
+    spyOn(window, 'alert');
+    spyOn(console, 'error');
+
+    await component.loadProject(project);
+
+    expect(window.alert).toHaveBeenCalledWith('Error loading project');
+    // A partly loaded project must not stay in the editor: saving it would overwrite the real one
+    expect(component.workflow.resetWorkflow).toHaveBeenCalledWith('New Workflow');
   });
 
   it('should load project object directly', () => {

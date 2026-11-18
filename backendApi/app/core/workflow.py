@@ -70,11 +70,11 @@ class Workflow(BaseModel):
                 node = NodeFactory.create_node(node_data)
                 # build inputs and outputs
                 for key, input in node_data.inputs.items():
-                    nodeInput = NodeInput(input.id, node)
-                    node.inputs[key] = nodeInput
+                    node_input = NodeInput(input.id, node)
+                    node.inputs[key] = node_input
                 for key, output in node_data.outputs.items():
-                    nodeOutput = NodeOutput(output.id, node)
-                    node.outputs[key] = nodeOutput
+                    node_output = NodeOutput(output.id, node)
+                    node.outputs[key] = node_output
                 self.nodes[node.id] = node
             except ImportError as e:
                 print(f"Error creating node with id {node_data.id}: {e}")
@@ -111,11 +111,11 @@ class Workflow(BaseModel):
             node_data.data['status'] = node.status
             node_data.data['statusMessage'] = node.statusMessage
             node_data.data['errorStacktrace'] = node.errorStackTrace
-            outputDict = {}
+            output_dict = {}
             for key, output in node.outputs.items():
                 if output.get_node_data():
-                   outputDict[key] = output.get_node_data()
-            node_data.data['dataOutput'] = outputDict
+                   output_dict[key] = output.get_node_data()
+            node_data.data['dataOutput'] = output_dict
         if save:
             self.old_project = self.project
             self.project = project

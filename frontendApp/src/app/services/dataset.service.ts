@@ -25,11 +25,13 @@ import { ConfirmDeletionModalComponent } from '../components/confirm-deletion-mo
   providedIn: 'root',
 })
 export class DatasetService extends BaseService {
-  private apiUrl = this.urlBack + '/datasets';
+  private readonly http = inject(HttpClient);
+
+  private readonly apiUrl = this.urlBack + '/datasets';
 
   readonly dialog = inject(MatDialog);
 
-  private datasetsSignal = signal<Dataset[]>([]);
+  private readonly datasetsSignal = signal<Dataset[]>([]);
   datasets = this.datasetsSignal.asReadonly();
 
   pagination: { perPage: number; page: number } = {
@@ -44,9 +46,6 @@ export class DatasetService extends BaseService {
   fiches: Array<any> = [];
   files: Array<any> = [];
 
-  constructor(private http: HttpClient) {
-    super();
-  }
   exportDaav(projectDaav: Project) {
     return new Promise<Array<string>>((resolve, reject) => {
       this.http.post(this.urlBack + '/exportDaav', projectDaav).subscribe({
@@ -57,7 +56,7 @@ export class DatasetService extends BaseService {
         error: (err: any) => {
           console.log('errrr', err);
           console.error(err);
-          reject();
+          reject(new Error('Request failed', { cause: err }));
         },
       });
     });
@@ -74,7 +73,7 @@ export class DatasetService extends BaseService {
         },
         error: (err: any) => {
           console.error(err);
-          reject();
+          reject(new Error('Request failed', { cause: err }));
         },
       });
     });
@@ -91,7 +90,7 @@ export class DatasetService extends BaseService {
         },
         error: (err: any) => {
           console.error(err);
-          reject();
+          reject(new Error('Request failed', { cause: err }));
         },
       });
     });
@@ -108,7 +107,7 @@ export class DatasetService extends BaseService {
         },
         error: (err: any) => {
           console.error(err);
-          reject();
+          reject(new Error('Request failed', { cause: err }));
         },
       });
     });
@@ -169,8 +168,8 @@ export class DatasetService extends BaseService {
   ) {
     const data = {
       dataset,
-      pagination: paginationParams ? paginationParams : this.pagination,
-      datasetParams: datasetParams ? datasetParams : this.datasetParams,
+      pagination: paginationParams || this.pagination,
+      datasetParams: datasetParams || this.datasetParams,
     };
     return this.http.post<DatasetResponseMap<T>>(
       this.apiUrl + '/getContentDataset',
@@ -185,8 +184,8 @@ export class DatasetService extends BaseService {
   ) {
     const data = {
       dataset,
-      pagination: paginationParams ? paginationParams : this.pagination,
-      datasetParams: datasetParams ? datasetParams : this.datasetParams,
+      pagination: paginationParams || this.pagination,
+      datasetParams: datasetParams || this.datasetParams,
     };
     return this.http.post<NodeDataPandasDf>(
       this.apiUrl + '/getDfContentDataset',

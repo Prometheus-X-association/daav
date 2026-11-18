@@ -1,5 +1,3 @@
-import { Node } from 'src/app/models/interfaces/node';
-import { Preset } from 'rete-dock-plugin/_types/presets/types';
 import { NodeConnection } from '../models/interfaces/node-connection';
 import { ClassicPreset, GetSchemes } from 'rete';
 
@@ -16,7 +14,7 @@ import {
   NodeComponent,
   Presets,
   SocketComponent,
-} from 'rete-angular-plugin/19';
+} from 'rete-angular-plugin/21';
 import {
   ClassicFlow,
   ConnectionPlugin,
@@ -24,7 +22,7 @@ import {
 } from 'rete-connection-plugin';
 import { AreaExtensions, AreaPlugin } from 'rete-area-plugin';
 import { Injector } from '@angular/core';
-import { DockPlugin, DockPresets } from 'rete-dock-plugin';
+import { DockPlugin } from 'rete-dock-plugin';
 import { DataLrsBlock } from '../nodes/inputs/data-lrs-block';
 import { DataMongoBlock } from '../nodes/inputs/data-mongo-block';
 import { NodeBlock, registeredBlock } from '../nodes/node-block';
@@ -47,7 +45,7 @@ import {
   StatusControl,
 } from '../components/widgets/status-component/status-component.component';
 import { Presets as ArrangePresets,AutoArrangePlugin } from 'rete-auto-arrange-plugin';
-import { ContextMenuExtra, ContextMenuPlugin,Presets as ContextMenuPresets } from 'rete-context-menu-plugin';
+import { ContextMenuExtra, ContextMenuPlugin } from 'rete-context-menu-plugin';
 import { DataMapperControl, DataMapperWidgetComponent } from '../components/widgets/data-mapper-widget/data-mapper-widget.component';
 import { SelectControl, SelectWidgetComponent } from '../components/widgets/select-widget/select-widget.component';
 import { NodeLoaderControl, NodeLoaderWidgetComponent } from '../components/widgets/node-loader-widget/node-loader-widget.component';
@@ -131,9 +129,16 @@ export class WorkflowEditor {
     this.area.use(this.arrange);
     this.buildDockContent();
     AreaExtensions.simpleNodesOrder(this.area);
-    AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
     AreaExtensions.showInputControl(this.area);
     console.log(registeredBlock);
+  }
+
+  /**
+   * Zoom on the nodes of the editor. With an empty editor, the origin goes to the centre of the container.
+   * Asynchronous, so it is called after the constructor.
+   */
+  zoomOnNodes(): Promise<void> {
+    return AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
   }
 
   buildContextMenu() {
@@ -171,7 +176,6 @@ export class WorkflowEditor {
   }
 
   private connectionRule() {
-    //this.connection.addPreset(() => new ClassicFlow());
     this.nodeEditor.addPipe((context) => {
       if (context.type === 'connectioncreate') {
         const { data } = context;
@@ -200,9 +204,9 @@ export class WorkflowEditor {
                 ClassicPreset.Node
               >(
                 this.nodeEditor.getNode(source.nodeId),
-                source.key as never,
+                source.key,
                 this.nodeEditor.getNode(target.nodeId),
-                target.key as never
+                target.key
               )
             );
             console.log(sockets);
@@ -220,15 +224,15 @@ export class WorkflowEditor {
             const { editor } = context;
 
             if (source && target) {
-              editor.addConnection(
+              void editor.addConnection(
                 new ClassicPreset.Connection<
                   ClassicPreset.Node,
                   ClassicPreset.Node
                 >(
                   editor.getNode(source.nodeId),
-                  source.key as never,
+                  source.key,
                   editor.getNode(target.nodeId),
-                  target.key as never
+                  target.key
                 )
               );
               return true;
@@ -247,7 +251,7 @@ export class WorkflowEditor {
               this.nodeEditor,
               data.payload
             );
-            const port = source ? source : target;
+            const port = source || target;
             if (port) {
               return port?.getConnectionComponent();
             } else {
@@ -339,9 +343,9 @@ export class WorkflowEditor {
         }
         //deactivate node event who can fire reactive input creation
         node.preventNodeEvent = true;
-        console.log("activate prevent default "+node);
+        console.log("activate prevent default", node);
       } else {
-        throw new Error("this type : {nodeI.type} of block can't be found ");
+        throw new Error(`this type : ${nodeI.type} of block can't be found `);
       }
       //if NodeBlock recreation of node content can be delegate at the object constructor or handle here if rebuild Locally is false or it's a classic preset
       if (buildContent) {
@@ -397,10 +401,9 @@ export class WorkflowEditor {
     //reactivate node event
     this.nodeEditor.getNodes().forEach((node) => {
       node.preventNodeEvent = false;
-      console.log("desactivate prevent default "+node);
+      console.log("desactivate prevent default", node);
     });
-    //await this.arrange.layout({options : {}});
-    AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
+    void AreaExtensions.zoomAt(this.area, this.nodeEditor.getNodes());
     this.markAsSaved();
   }
   /**
@@ -504,7 +507,6 @@ export class WorkflowEditor {
     registeredBlock.forEach((block) => {
       let blockClass = block.class as any;
       this.dock.add(() => new blockClass(blockClass.name, this.area));
-      this.dock.addPipe
     });
   }
 
@@ -583,15 +585,14 @@ export class WorkflowEditor {
           this.nodeEditor.getNode(node.id).dataOutput = newDataOutput;
         }
         newDataOutput.forEach((value, key) => {
-          if (!previousDataOutput || !previousDataOutput.get(key) ||previousDataOutput.get(key).dataExample !== value.dataExample) {
-            this.nodeEditor.emit({
+          if (previousDataOutput?.get(key)?.dataExample !== value.dataExample) {
+            void this.nodeEditor.emit({
               type: "nodeDataOutputUpdated",
               data: {
                   nodeId: node.id,
                   outputKey: key,
               }
             });
-          this.nodeEditor.getNode(node.id).outputs[key].id
           }
         });
     });

@@ -1,5 +1,5 @@
-import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { AppToolbarComponent } from './app-toolbar.component';
 import { ThemeService } from '../../services/theme.service';
 
@@ -8,17 +8,17 @@ describe('AppToolbarComponent', () => {
   let fixture: ComponentFixture<AppToolbarComponent>;
   let themeService: ThemeService;
 
-  beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot()],
-      declarations: [AppToolbarComponent]
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AppToolbarComponent],
+      providers: [provideIonicAngular()]
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppToolbarComponent);
     component = fixture.componentInstance;
     themeService = TestBed.inject(ThemeService);
     fixture.detectChanges();
-  }));
+  });
 
   afterEach(() => {
     themeService.applyTheme('');

@@ -1,3 +1,5 @@
-  <div class="node-loader-widget" *ngIf="data.loading">
+@if (data.loading) {
+  <div class="node-loader-widget">
     <ion-spinner color="primary" role="status" aria-label="Loading"></ion-spinner>
   </div>
+}

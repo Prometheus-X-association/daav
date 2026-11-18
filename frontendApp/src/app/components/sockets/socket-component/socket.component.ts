@@ -1,12 +1,12 @@
-import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges} from '@angular/core';
+import { ChangeDetectorRef, Component, HostBinding, Input, OnChanges, inject } from '@angular/core';
 
 @Component({
     selector: 'app-socket-component',
     template: '',
     styleUrls: ['./socket.component.scss'],
-    standalone: false
 })
 export class SocketComponent  implements OnChanges {
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() data!: any;
   @Input() rendered!: any;
@@ -15,7 +15,7 @@ export class SocketComponent  implements OnChanges {
     return this.data.name;
   }
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor() {
     this.cdr.detach();
   }
 

@@ -37,7 +37,7 @@ class DataMongoBlock(InputNode):
         """
         try:
             dataset, database, collection = await self._retreiveDatabase()
-            datasetParam = DatasetParams(
+            dataset_param = DatasetParams(
                 database=database,
                 table=collection  # In MongoDB context, 'table' refers to 'collection'
             )
@@ -52,7 +52,7 @@ class DataMongoBlock(InputNode):
                 else:
                     # For full data processing, don't use pagination
                     pagination = None
-                node_data : NodeDataPandasDf = self.datasetService.getDfMongoContent(dataset, datasetParam, pagination)
+                node_data : NodeDataPandasDf = self.datasetService.getDfMongoContent(dataset, dataset_param, pagination)
                 
 
                 for key, output in self.outputs.items():
@@ -86,14 +86,14 @@ class DataMongoBlock(InputNode):
         Raises:
             ValueError: If no data source, database, or collection is selected.
         """
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
-        dataset : MongoDataset  = await self.datasetService.get_dataset(datasetId)
-        database = self.data['selectDatabaseDataSource']['value'] if self.data.get('selectDatabaseDataSource') and self.data['selectDatabaseDataSource'].get('value') else dataset.database
-        collection = self.data['selectCollectionDataSource']['value'] if self.data.get('selectCollectionDataSource') and self.data['selectCollectionDataSource'].get('value') else dataset.collection
+        dataset : MongoDataset  = await self.datasetService.get_dataset(dataset_id)
+        database = self._param('selectDatabaseDataSource') or dataset.database
+        collection = self._param('selectCollectionDataSource') or dataset.collection
         if (collection is None or collection == ""):
             raise ValueError("No Collection selected")
         if (database is None or database == ""):

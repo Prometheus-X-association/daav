@@ -14,11 +14,11 @@ import { DatasetElasticSearch } from 'src/app/models/dataset-elastic-search';
 import { ElasticService } from 'src/app/services/elastic.service';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import {
   InputAutoCompleteControl,
-  inputAutoCompleteControlI,
+  InputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
 import {
   CheckboxControl,
@@ -38,8 +38,8 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
   maxDocsControl: InputAutoCompleteControl;
   includeIdControl: CheckboxControl;
 
-  private node: Node;
-  private elasticService: ElasticService;
+  private readonly node: Node;
+  private readonly elasticService: ElasticService;
   private previewTimer: ReturnType<typeof setTimeout>;
 
   constructor(
@@ -61,7 +61,6 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     if (node?.data?.query) {
       this.addOptionControls(node);
     }
-    this.area.update('node', this.id);
   }
 
   private get dataset(): DatasetElasticSearch {
@@ -93,7 +92,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     this.showLoader(true);
     this.datasetService.getContentDataset(dataset, { perPage: PREVIEW_SIZE, page: 1 }, { index: null }).subscribe({
       next: (data) => {
-        this.addSelectIndex(data.indices as string[]);
+        this.addSelectIndex(data.indices);
         this.showLoader(false);
       },
       error: (err) => {
@@ -114,7 +113,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
   }
 
   addSelectIndex(indices: string[]) {
-    const selectIndex: selectControlI = {
+    const selectIndex: SelectControlI = {
       value: null,
       list: (indices ?? []).map((index) => ({ label: index, value: index })),
       none: true,
@@ -122,8 +121,8 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     };
     this.selectControlIndex = new SelectControl(selectIndex, this.indexChange.bind(this));
     this.addControl('dataIndexSource', this.selectControlIndex);
-    this.area.update('control', this.selectControlIndex.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlIndex.id);
+    void this.area.update('node', this.id);
   }
 
   removeSelectIndex() {
@@ -132,25 +131,25 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     if (this.node?.data?.selectIndexDataSource) {
       this.node.data.selectIndexDataSource = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   /** Query, fields, maximum number of documents and _id option */
   addOptionControls(node: Node) {
     const onChange = () => this.schedulePreview();
-    const query: inputAutoCompleteControlI = node?.data?.query ?? {
+    const query: InputAutoCompleteControlI = node?.data?.query ?? {
       value: '',
       list: [],
       label: $localize`Query`,
       type: 'text',
     };
-    const fields: inputAutoCompleteControlI = node?.data?.fields ?? {
+    const fields: InputAutoCompleteControlI = node?.data?.fields ?? {
       value: '',
       list: [],
       label: $localize`Fields`,
       type: 'text',
     };
-    const maxDocs: inputAutoCompleteControlI = node?.data?.maxDocs ?? {
+    const maxDocs: InputAutoCompleteControlI = node?.data?.maxDocs ?? {
       value: '',
       list: [],
       label: $localize`Max documents`,
@@ -168,7 +167,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     this.addControl('fields', this.fieldsControl);
     this.addControl('maxDocs', this.maxDocsControl);
     this.addControl('includeId', this.includeIdControl);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   removeOptionControls() {
@@ -182,7 +181,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     this.fieldsControl = null;
     this.maxDocsControl = null;
     this.includeIdControl = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   schedulePreview() {
@@ -200,7 +199,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     const fields = (this.fieldsControl?.value ?? '')
       .split(',')
       .map((field) => field.trim())
-      .filter((field) => field);
+      .filter(Boolean);
     this.showLoader(true);
     this.elasticService
       .sample(dataset.id, {
@@ -228,7 +227,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     }
     this.dataOutput.set('out', data);
     this.updateStatus(StatusNode.Complete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   cleanOutput() {
@@ -237,13 +236,13 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
         .getConnections()
         .find((conn) => conn.source === this.id && conn.sourceOutput === 'out');
       if (connection) {
-        this.worflowEditor.removeConnection(connection.id);
+        void this.worflowEditor.removeConnection(connection.id);
       }
       this.removeOutput('out');
       this.dataOutput.delete('out');
     }
     this.updateStatus(StatusNode.Incomplete);
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   override data() {
@@ -257,5 +256,7 @@ export class DataElasticBlock extends InputDataBlock<PandasSchema, NodeDataPanda
     return { ...super.data(), ...data };
   }
 
-  override execute() {}
+  override execute() {
+    // Intentionally empty: the data is loaded when the source is selected.
+  }
 }

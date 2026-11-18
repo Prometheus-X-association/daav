@@ -2,7 +2,7 @@ import { runInInjectionContext, inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import {
-  selectControlI,
+  SelectControlI,
   SelectControl,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { Dataset } from 'src/app/models/dataset';
@@ -39,7 +39,7 @@ export class OutputDataBlock extends NodeBlock {
   }
 
    addSourceSelect(node: Node) {
-    let selectDataSource: selectControlI;
+    let selectDataSource: SelectControlI;
     if (node?.data?.selectDataSource) {
       //if node is given it's an import and we report content from json
       selectDataSource = node.data?.selectDataSource;
@@ -56,10 +56,10 @@ export class OutputDataBlock extends NodeBlock {
       this.dataSourceChange.bind(this)
     );
     this.addControl('dataSource', this.selectControl);
-    this.area.update('control', this.selectControl.id);
+    void this.area.update('control', this.selectControl.id);
     //update list from service on dataset signal
     // this is obscur toObservable have problem context and need to run in runInInjectionContext
-    const result = runInInjectionContext(this.worflowEditor.injector, () => {
+    runInInjectionContext(this.worflowEditor.injector, () => {
       const service = inject(DatasetService);
       this.selectDataSourceSub = toObservable(service.datasets)
         .pipe(
@@ -97,8 +97,8 @@ export class OutputDataBlock extends NodeBlock {
     }
 
     // Forcer la mise à jour du contrôle
-    this.area.update('control', this.selectControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControl.id);
+    void this.area.update('node', this.id);
   }
 
   protected datasetFilter(dataset : Dataset){

@@ -10,8 +10,11 @@ services:
       - mongodb-config:/data/configdb
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
+      # Only read when the mongodb-data volume is created: see DOCKER_DEPLOYMENT.md to change it afterwards
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
       MONGO_INITDB_DATABASE: daav_datasets
+    secrets:
+      - mongo_root_password
     command: mongod --auth
 
   # MongoDB Administration Interface (optional)
@@ -23,11 +26,18 @@ services:
     networks:
       - daav
     environment:
+      # The connection string is built from these variables (ME_CONFIG_MONGODB_URL is ignored
+      # when ME_CONFIG_MONGODB_SERVER is set), so that the password can come from the secret
+      ME_CONFIG_MONGODB_SERVER: mongodb
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: admin123
-      ME_CONFIG_MONGODB_URL: mongodb://admin:admin123@mongodb:27017/
+      ME_CONFIG_MONGODB_ADMINPASSWORD_FILE: /run/secrets/mongo_root_password
+      # Basic auth is disabled unless ME_CONFIG_BASICAUTH is "true" (mongo-express >= 1.0).
+      # Login: admin / content of secrets/mongo_root_password
+      ME_CONFIG_BASICAUTH: "true"
       ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+      ME_CONFIG_BASICAUTH_PASSWORD_FILE: /run/secrets/mongo_root_password
+    secrets:
+      - mongo_root_password
     depends_on:
       - mongodb
     profiles:
@@ -70,8 +80,10 @@ services:
       - path: ./backendApi/.env
         required: false
     environment:
-      # MongoDB Configuration
-      MONGODB_URL: mongodb://admin:admin123@mongodb:27017/daav_datasets?authSource=admin
+      # MongoDB Configuration (password read from the mongo_root_password secret)
+      MONGODB_URL: mongodb://mongodb:27017/daav_datasets?authSource=admin
+      MONGODB_USERNAME: admin
+      MONGODB_PASSWORD_FILE: /run/secrets/mongo_root_password
       DATABASE_NAME: daav_datasets
       WORKERS: 4
       
@@ -102,6 +114,11 @@ services:
       - backend-uploads:/app/uploads
       - backend-logs:/app/logs
       - backend-secrets:/app/secrets
+    # Password of the "admin" account created on first start, read from /run/secrets/admin_firstlaunch.
+    # It must be changed at first login. See the "secrets" section at the end of this file.
+    secrets:
+      - admin_firstlaunch
+      - mongo_root_password
     depends_on:
       - mongodb
     healthcheck:
@@ -131,6 +148,18 @@ services:
 networks:
   daav:
     driver: bridge
+
+# Required: the stack does not start if these files are missing (./docker-start.sh creates them). Create them with:
+#   mkdir -p secrets
+#   python3 -c "import secrets; print(secrets.token_urlsafe(16) + '-Aa1')" > secrets/admin_firstlaunch
+#   python3 -c "import secrets; print(secrets.token_urlsafe(24))" > secrets/mongo_root_password
+# They must be readable by the container users (uid 1000 for the backend, 999 for MongoDB): keep the default
+# permissions (644). The MongoDB password must only contain URL-safe characters (mongo-express does not encode it).
+secrets:
+  admin_firstlaunch:
+    file: ./secrets/admin_firstlaunch
+  mongo_root_password:
+    file: ./secrets/mongo_root_password
 
 volumes:
   mongodb-data:

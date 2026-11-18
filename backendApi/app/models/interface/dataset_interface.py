@@ -10,10 +10,13 @@ from app.utils.encryption import encrypt_field, decrypt_field
 from app.utils.ssrf import check_url_static
 
 # SQL identifiers: only letters, digits, underscore (max 64 chars - MySQL limit)
-_SQL_IDENTIFIER_RE = re.compile(r'^[A-Za-z0-9_]{1,64}$')
+_SQL_IDENTIFIER_RE = re.compile(r'^\w{1,64}$', re.ASCII)
 
 # Elasticsearch index names: letters, digits, underscore, hyphen, dot
 _ES_INDEX_RE = re.compile(r'^[a-z0-9_\-\.]{1,255}$')
+
+_EXAMPLE_NAME_1 = "John Doe"
+_EXAMPLE_NAME_2 = "Jane Doe"
 
 def _validate_sql_identifier(value: Optional[str], field_name: str) -> Optional[str]:
     if not value:
@@ -315,8 +318,8 @@ class MySQLContentResponse(BasicContentResponse):
                     {"Field": "name", "Type": "varchar(255)", "Null": "YES", "Key": "", "Default": None, "Extra": ""}
                 ],
                 "data": [
-                    {"id": 1, "name": "John Doe"},
-                    {"id": 2, "name": "Jane Doe"}
+                    {"id": 1, "name": _EXAMPLE_NAME_1},
+                    {"id": 2, "name": _EXAMPLE_NAME_2}
                 ],
                 "total_rows": 2,
                 "current_page": 1,
@@ -335,8 +338,8 @@ class MongoContentResponse(BasicContentResponse):
                 "databases": ["db1", "db2", "db3"],
                 "collections": ["collection1", "collection2", "collection3"],
                 "data": [
-                    {"id": 1, "name": "John Doe"},
-                    {"id": 2, "name": "Jane Doe"}
+                    {"id": 1, "name": _EXAMPLE_NAME_1},
+                    {"id": 2, "name": _EXAMPLE_NAME_2}
                 ],
                 "total_rows": 2,
                 "current_page": 1,
@@ -353,8 +356,8 @@ class ElasticContentResponse(BasicContentResponse):
             "example": {
                 "indices": ["index1", "index2", "index3"],
                 "data": [
-                    {"id": 1, "name": "John Doe"},
-                    {"id": 2, "name": "Jane Doe"}
+                    {"id": 1, "name": _EXAMPLE_NAME_1},
+                    {"id": 2, "name": _EXAMPLE_NAME_2}
                 ],
                 "total_rows": 2,
                 "current_page": 1,
@@ -368,8 +371,8 @@ class FileContentResponse(BasicContentResponse):
         "json_schema_extra": {
             "example": {
                 "data": [
-                    {"id": 1, "name": "John Doe"},
-                    {"id": 2, "name": "Jane Doe"}
+                    {"id": 1, "name": _EXAMPLE_NAME_1},
+                    {"id": 2, "name": _EXAMPLE_NAME_2}
                 ],
                 "total_rows": 2,
                 "current_page": 1,
@@ -385,8 +388,8 @@ class ApiContentResponse(BasicContentResponse):
         "json_schema_extra": {
             "example": {
                 "data": [
-                    {"id": 1, "name": "John Doe"},
-                    {"id": 2, "name": "Jane Doe"}
+                    {"id": 1, "name": _EXAMPLE_NAME_1},
+                    {"id": 2, "name": _EXAMPLE_NAME_2}
                 ],
                 "total_rows": 2,
                 "current_page": 1,
@@ -401,8 +404,8 @@ class PandaContentResponse(BasicContentResponse):
         "json_schema_extra": {
             "example": {
                 "data": [
-                    {"id": 1, "name": "John Doe"},
-                    {"id": 2, "name": "Jane Doe"}
+                    {"id": 1, "name": _EXAMPLE_NAME_1},
+                    {"id": 2, "name": _EXAMPLE_NAME_2}
                 ],
                 "total_rows": 2,
                 "current_page": 1,

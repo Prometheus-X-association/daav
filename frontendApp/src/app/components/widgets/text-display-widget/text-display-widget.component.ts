@@ -1,18 +1,21 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges } from "@angular/core";
+import { ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from "@angular/core";
 import { ClassicPreset } from "rete";
+import { IonButton, IonIcon } from "@ionic/angular/standalone";
+import { addIcons } from "ionicons";
+import { copyOutline } from "ionicons/icons";
 
-export interface textDisplayControlI{
+export interface TextDisplayControlI{
     value: string,
     label?: string,
     copyable?: boolean;
 }
 
-export class TextDisplayControl extends ClassicPreset.Control implements textDisplayControlI{
+export class TextDisplayControl extends ClassicPreset.Control implements TextDisplayControlI{
     value: string;
     label?: string;
     copyable?: boolean;
 
-    constructor(data: textDisplayControlI){
+    constructor(data: TextDisplayControlI){
         super();
         if(data){
             this.value = data.value;
@@ -40,16 +43,16 @@ export class TextDisplayControl extends ClassicPreset.Control implements textDis
     selector: "app-text-display-widget",
     templateUrl: "./text-display-widget.component.html",
     styleUrls: ['./text-display-widget.component.scss'],
-    standalone: false
+    imports: [IonButton, IonIcon]
 })
 export class TextDisplayWidgetComponent implements OnChanges {
     @Input() data: TextDisplayControl;
-    cdr: ChangeDetectorRef;
+    cdr = inject(ChangeDetectorRef);
   
-    constructor(cdr: ChangeDetectorRef) {
-      this.cdr = cdr;
+    constructor() {
+        addIcons({ copyOutline });
     }
-  
+
     ngOnChanges(changes: SimpleChanges): void {
       this.cdr.detectChanges();
     }

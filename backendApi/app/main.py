@@ -1,3 +1,5 @@
+import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
@@ -28,11 +30,69 @@ from app.models.interface.pdc_chain_interface import ServiceChainData
 from app.services.migration_service import MigrationService
 from app.services.reencryption_service import reencrypt_sensitive_fields
 from app.services.elastic_service import ElasticServiceError
+from app.services.mysql_service import MysqlServiceError
 from app.config.secret_keys import log_temporary_secrets
 from app.services.user_service import UserService
 
-from app.routes import datasets, elastic, workflows, ptx, output, api, auth
+from app.routes import datasets, elastic, mysql, workflows, ptx, output, api, auth
 from app.middleware.security import SecurityMiddleware
+
+def _write_json_file(path: str, content: dict) -> None:
+    with open(path, 'w') as f:
+        json.dump(content, f, indent=2, default=str)
+
+
+async def _check_database() -> None:
+    """Log the number of datasets, to show that Beanie is initialised."""
+    try:
+        count = await Dataset.count()
+        logger.info(f"Beanie test after init: {count} datasets found")
+    except Exception as e:
+        logger.error(f"Beanie test failed: {e}")
+
+
+async def _reencrypt_credentials() -> None:
+    """Encrypt plain text credentials and re-encrypt those using a previous key."""
+    try:
+        counts = await reencrypt_sensitive_fields()
+        if counts["reencrypted"]:
+            logger.info(f"{counts['reencrypted']} sensitive dataset field(s) re-encrypted with the current FIELD_ENCRYPTION_KEY")
+        if counts["failed"]:
+            logger.error(
+                f"{counts['failed']} sensitive dataset field(s) cannot be decrypted with any known key: "
+                "re-enter the credentials of these datasets"
+            )
+    except Exception as e:
+        logger.error(f"Re-encryption of sensitive dataset fields failed: {e}", exc_info=True)
+
+
+async def _ensure_admin():
+    """Return the admin user, creating the default one if no user exists. None when it cannot be obtained."""
+    logger.info("Checking for admin user...")
+    try:
+        admin = await UserService().ensure_admin_exists()
+    except Exception as e:
+        logger.error(f"Failed to ensure admin exists: {e}", exc_info=True)
+        return None
+    if admin:
+        logger.info(f"Admin user available: {admin.username}")
+    return admin
+
+
+async def _migrate_config_ini(admin) -> None:
+    """Run the migration if config.ini exists."""
+    if not os.path.exists("./app/config.ini"):
+        logger.info("No config.ini found, skipping migration")
+        return
+    if not admin:
+        logger.error("Cannot run migration: Admin user not available")
+        return
+    logger.info("Config.ini found, starting migration...")
+    if await MigrationService.migrate_from_config_ini(admin):
+        logger.info("Migration completed successfully")
+    else:
+        logger.warning("Migration completed with warnings")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,51 +113,10 @@ async def lifespan(app: FastAPI):
             ApiDataset, ElasticDataset, PTXDataset, IProject, User, PasswordResetToken,
             ServiceChainData
         ])
-            # Test Beanie après initialisation
-        try:
-            count = await Dataset.count()
-            logger.info(f"Beanie test after init: {count} datasets found")
-        except Exception as e:
-            logger.error(f"Beanie test failed: {e}")
+        await _check_database()
+        await _reencrypt_credentials()
+        await _migrate_config_ini(await _ensure_admin())
 
-        # Encrypt plain text credentials and re-encrypt those using a previous key
-        try:
-            counts = await reencrypt_sensitive_fields()
-            if counts["reencrypted"]:
-                logger.info(f"{counts['reencrypted']} sensitive dataset field(s) re-encrypted with the current FIELD_ENCRYPTION_KEY")
-            if counts["failed"]:
-                logger.error(
-                    f"{counts['failed']} sensitive dataset field(s) cannot be decrypted with any known key: "
-                    "re-enter the credentials of these datasets"
-                )
-        except Exception as e:
-            logger.error(f"Re-encryption of sensitive dataset fields failed: {e}", exc_info=True)
-        
-        # Ensure admin user exists (create default admin if no users exist)
-        logger.info("Checking for admin user...")
-        user_service = UserService()
-        admin = None
-        try:
-            admin = await user_service.ensure_admin_exists()
-            if admin:
-                logger.info(f"Admin user available: {admin.username}")
-        except Exception as e:
-            logger.error(f"Failed to ensure admin exists: {e}", exc_info=True)
-        
-        # Run migration if config.ini exists
-        if os.path.exists("./app/config.ini"):
-            if admin:
-                logger.info("Config.ini found, starting migration...")
-                migration_success = await MigrationService.migrate_from_config_ini(admin)
-                if migration_success:
-                    logger.info("Migration completed successfully")
-                else:
-                    logger.warning("Migration completed with warnings")
-            else:
-                logger.error("Cannot run migration: Admin user not available")
-        else:
-            logger.info("No config.ini found, skipping migration")
-        
         logger.info(f"{settings.app_name} startup completed successfully")
         
     except Exception as e:
@@ -123,14 +142,9 @@ app = FastAPI(
     debug=settings.debug
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
+# Middlewares run in reverse order of registration: the last one added is the outermost.
+# CORSMiddleware is added last so that every response gets the CORS headers, including the
+# errors returned by the other middlewares (429/400/413 of the security middleware).
 
 # Security middleware - Add this to monitor and limit suspicious requests
 if settings.security_enabled:
@@ -152,8 +166,17 @@ async def log_requests(request: Request, call_next):
     
     process_time = time.time() - start_time
     logger.info(f"Response: {response.status_code} - {process_time:.3f}s")
-    
+
     return response
+
+# CORS middleware - must stay the last middleware added (see above)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)
@@ -179,10 +202,17 @@ async def elastic_exception_handler(request: Request, exc: ElasticServiceError) 
     logger.warning(f"Elasticsearch error on {request.url}: {exc}")
     return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
 
+@app.exception_handler(MysqlServiceError)
+async def mysql_exception_handler(request: Request, exc: MysqlServiceError) -> JSONResponse:
+    """MySQL dashboard errors (connection, credentials, unknown table...)"""
+    logger.warning(f"MySQL error on {request.url}: {exc}")
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
+
 # Include ALL routers
 app.include_router(auth.router)
 app.include_router(datasets.router)
 app.include_router(elastic.router)
+app.include_router(mysql.router)
 app.include_router(workflows.router)
 app.include_router(ptx.router)
 app.include_router(output.router)
@@ -274,7 +304,6 @@ if settings.debug and settings.environment != "production":
         """Create config.ini from current database state"""
         try:
             from datetime import datetime
-            import json
             
             # Generate filename with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -317,8 +346,7 @@ if settings.debug and settings.environment != "production":
                 config_data["workflows"].append(workflow_dict)
             
             # Write config file as JSON
-            with open(f'./app/{filename}', 'w') as f:
-                json.dump(config_data, f, indent=2, default=str)
+            await asyncio.to_thread(_write_json_file, f'./app/{filename}', config_data)
             
             return {
                 "success": True,
@@ -339,6 +367,6 @@ if __name__ == "__main__":
         host=settings.host,
         port=settings.port,
         reload=settings.debug,   # Reload for debug
-        limit_max_request_size=10*settings.max_file_size,  # Convert to bytes
+        # The request size is limited by SecurityMiddleware (10 x MAX_FILE_SIZE)
         log_level=settings.log_level.lower()
     )

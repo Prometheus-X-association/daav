@@ -12,22 +12,14 @@ class DrupalFilterConverter:
     """
     
     # Mapping of JSON:API operators to MySQL operators
+    # Operators written the same way in SQL
+    _SQL_OPERATORS = ('=', '>', '>=', '<', '<=', 'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN', 'IS NULL', 'IS NOT NULL')
     OPERATOR_MAP = {
-        '=': '=',
+        **dict(zip(_SQL_OPERATORS, _SQL_OPERATORS)),
         '<>': '!=',
-        '>': '>',
-        '>=': '>=',
-        '<': '<',
-        '<=': '<=',
         'STARTS_WITH': 'LIKE',
         'CONTAINS': 'LIKE',
         'ENDS_WITH': 'LIKE',
-        'IN': 'IN',
-        'NOT IN': 'NOT IN',
-        'BETWEEN': 'BETWEEN',
-        'NOT BETWEEN': 'NOT BETWEEN',
-        'IS NULL': 'IS NULL',
-        'IS NOT NULL': 'IS NOT NULL',
     }
 
     # Allowed group conjunctions (inserted in the SQL, so never taken as is from the query string)
@@ -122,131 +114,134 @@ class DrupalFilterConverter:
             }
             Output: ('"model" LIKE ?', ['M%'])
         """
-        groups = {}
-        conditions_by_group = {}  # Stocker les conditions par groupe
-        root_conditions = []
-        
-        # First pass: identify groups and organize conditions
-        for label, filter_data in filters.items():
-            if 'group' in filter_data:
-                groups[label] = filter_data['group']
-                conditions_by_group[label] = []  # Initialize empty list for this group
-            elif 'condition' in filter_data:
-                condition_data = filter_data['condition']
-                member_of = condition_data.get('memberOf')
-                
-                if member_of:
-                    # This condition belongs to a group
-                    if member_of not in conditions_by_group:
-                        conditions_by_group[member_of] = []
-                    conditions_by_group[member_of].append((label, condition_data))
-                else:
-                    # This is a root condition
-                    root_conditions.append((label, condition_data))
-            else:
-                # Handle shortcut syntax like filter[field_name]=value
-                if isinstance(filter_data, dict) and 'value' in filter_data:
-                    condition_data = {'path': label, 'operator': '=', 'value': filter_data['value']}
-                else:
-                    condition_data = {'path': label, 'operator': '=', 'value': filter_data}
-                
-                root_conditions.append((label, condition_data))
-        
-        # Second pass: build conditions and collect parameters IN ORDER
+        groups, conditions_by_group, root_conditions = self._classify_filters(filters)
+
+        # Build conditions and collect parameters IN ORDER
         final_conditions = []
         parameters = []
-        
+
         # Build root conditions FIRST (they will appear first in WHERE clause)
-        for label, condition_data in root_conditions:
-            condition_sql, condition_params = self._build_condition(condition_data)
-            if condition_sql:
-                final_conditions.append(condition_sql)
-                parameters.extend(condition_params)  # Add parameters in order
-        
+        for _label, condition_data in root_conditions:
+            self._append_condition(condition_data, final_conditions, parameters)
+
         # Build group conditions AFTER root conditions
         for group_label, group_data in groups.items():
-            if group_label in conditions_by_group and conditions_by_group[group_label]:
-                conjunction = str(group_data.get('conjunction', 'AND')).upper()
-                if conjunction not in self.CONJUNCTIONS:
-                    raise ValueError(f"Unsupported filter group conjunction: {conjunction!r}")
-                group_sql_parts = []
-                
-                # Process conditions in this group
-                for label, condition_data in conditions_by_group[group_label]:
-                    condition_sql, condition_params = self._build_condition(condition_data)
-                    if condition_sql:
-                        group_sql_parts.append(condition_sql)
-                        parameters.extend(condition_params)  # Add parameters in order
-                
-                if group_sql_parts:
-                    group_sql = f"({f' {conjunction} '.join(group_sql_parts)})"
-                    final_conditions.append(group_sql)
-        
+            group_sql = self._build_group_sql(group_data, conditions_by_group.get(group_label), parameters)
+            if group_sql:
+                final_conditions.append(group_sql)
+
         # Build final WHERE clause
         if final_conditions:
-            where_clause = ' AND '.join(final_conditions)
-            return f"{where_clause}", parameters
+            return ' AND '.join(final_conditions), parameters
+        return "", []
+
+    def _classify_filters(self, filters: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, List], List]:
+        """Split the filters into groups, conditions by group label and root conditions."""
+        groups = {}
+        conditions_by_group = {}
+        root_conditions = []
+        for label, filter_data in filters.items():
+            # Only a dict can declare a group or a condition: a shortcut value is a plain string
+            is_dict = isinstance(filter_data, dict)
+            if is_dict and 'group' in filter_data:
+                groups[label] = filter_data['group']
+                # Keep the conditions already collected: a group may be declared after its members
+                conditions_by_group.setdefault(label, [])
+            elif is_dict and 'condition' in filter_data:
+                condition_data = filter_data['condition']
+                member_of = condition_data.get('memberOf')
+                if member_of:
+                    # This condition belongs to a group
+                    conditions_by_group.setdefault(member_of, []).append((label, condition_data))
+                else:
+                    root_conditions.append((label, condition_data))
+            else:
+                root_conditions.append((label, self._shortcut_condition(label, filter_data)))
+        return groups, conditions_by_group, root_conditions
+
+    @staticmethod
+    def _shortcut_condition(label: str, filter_data: Any) -> Dict[str, Any]:
+        """Condition of the shortcut syntax filter[field_name]=value."""
+        if isinstance(filter_data, dict) and 'value' in filter_data:
+            value = filter_data['value']
         else:
-            return "", []
-    
+            value = filter_data
+        return {'path': label, 'operator': '=', 'value': value}
+
+    def _build_group_sql(self, group_data: Dict[str, Any], conditions: Optional[List],
+                         parameters: List[Any]) -> Optional[str]:
+        """Build the SQL of a group, adding its parameters in order; None if the group is empty."""
+        if not conditions:
+            return None
+        conjunction = str(group_data.get('conjunction', 'AND')).upper()
+        if conjunction not in self.CONJUNCTIONS:
+            raise ValueError(f"Unsupported filter group conjunction: {conjunction!r}")
+        group_sql_parts = []
+        for _label, condition_data in conditions:
+            self._append_condition(condition_data, group_sql_parts, parameters)
+        if not group_sql_parts:
+            return None
+        return f"({f' {conjunction} '.join(group_sql_parts)})"
+
+    def _append_condition(self, condition_data: Dict[str, Any], sql_parts: List[str], parameters: List[Any]):
+        """Build a condition and append its SQL and parameters."""
+        condition_sql, condition_params = self._build_condition(condition_data)
+        if condition_sql:
+            sql_parts.append(condition_sql)
+            parameters.extend(condition_params)
+
     def _build_condition(self, condition_data: Dict[str, Any]) -> Tuple[str, List[Any]]:
         """Build a single condition from condition data."""
         path = condition_data.get('path', '')
         operator = condition_data.get('operator', '=')
         value = condition_data.get('value')
-        
+
         # Map field path to database column
         field_name = self._map_field_path(path)
-        
-        # Handle different operators
-        if operator in ['IS NULL', 'IS NOT NULL']:
+
+        if operator in ('IS NULL', 'IS NOT NULL'):
             return f"{field_name} {self.OPERATOR_MAP[operator]}", []
-        
-        elif operator in ['IN', 'NOT IN']:
-            # Handle array values
-            if isinstance(value, dict):
-                # Convert indexed dict to list
-                values = [value[key] for key in sorted(value.keys())]
-            elif isinstance(value, list):
-                values = value
-            else:
-                values = [value]
-            
+        if operator in ('IN', 'NOT IN'):
+            values = self._as_list(value, lambda scalar: [scalar])
             placeholders = ', '.join(['?'] * len(values))
             return f"{field_name} {self.OPERATOR_MAP[operator]} ({placeholders})", values
-        
-        elif operator == 'BETWEEN' or operator == 'NOT BETWEEN':
-            if isinstance(value, dict):
-                values = [value[key] for key in sorted(value.keys())]
-            elif isinstance(value, list):
-                values = value
-            else:
-                # Assume two values separated by comma or similar
-                values = str(value).split(',', 1)
-            
-            if len(values) >= 2:
-                return f"{field_name} {self.OPERATOR_MAP[operator]} ? AND ?", values[:2]
-            else:
-                return f"{field_name} {self.OPERATOR_MAP[operator]} ? AND ?", [value, value]
-        
-        elif operator in ['STARTS_WITH', 'ENDS_WITH', 'CONTAINS']:
-            # Handle LIKE operations
-            if operator == 'STARTS_WITH':
-                like_value = f"{value}%"
-            elif operator == 'ENDS_WITH':
-                like_value = f"%{value}"
-            else:  # CONTAINS
-                like_value = f"%{value}%"
-            
-            return f"{field_name} LIKE ?", [like_value]
-        
-        else:
-            # Standard comparison operators — reject any operator not in the whitelist
-            if operator not in self.OPERATOR_MAP:
-                raise ValueError(f"Unsupported filter operator: {operator!r}")
-            mysql_operator = self.OPERATOR_MAP[operator]
-            return f"{field_name} {mysql_operator} ?", [value]
-    
+        if operator in ('BETWEEN', 'NOT BETWEEN'):
+            return f"{field_name} {self.OPERATOR_MAP[operator]} ? AND ?", self._between_values(value)
+        if operator in ('STARTS_WITH', 'ENDS_WITH', 'CONTAINS'):
+            return f"{field_name} LIKE ?", [self._like_pattern(operator, value)]
+        # Standard comparison operators — reject any operator not in the whitelist
+        if operator not in self.OPERATOR_MAP:
+            raise ValueError(f"Unsupported filter operator: {operator!r}")
+        return f"{field_name} {self.OPERATOR_MAP[operator]} ?", [value]
+
+    @staticmethod
+    def _as_list(value: Any, from_scalar) -> List[Any]:
+        """Values of an indexed dict (by key order) or of a list; other values go through from_scalar."""
+        if isinstance(value, dict):
+            return [value[key] for key in sorted(value.keys())]
+        if isinstance(value, list):
+            return value
+        return from_scalar(value)
+
+    @classmethod
+    def _between_values(cls, value: Any) -> List[Any]:
+        """The two bounds of a BETWEEN; a scalar is split on its first comma."""
+        values = cls._as_list(value, lambda scalar: str(scalar).split(',', 1))
+        if len(values) >= 2:
+            return values[:2]
+        return [value, value]
+
+    # LIKE pattern of each LIKE operator
+    LIKE_PATTERNS = {
+        'STARTS_WITH': '{}%',
+        'ENDS_WITH': '%{}',
+        'CONTAINS': '%{}%',
+    }
+
+    @classmethod
+    def _like_pattern(cls, operator: str, value: Any) -> str:
+        return cls.LIKE_PATTERNS[operator].format(value)
+
     def _build_simple_condition(self, field_name: str, value: Any) -> Tuple[str, List[Any]]:
         """Build a simple condition from field name and value."""
         mapped_field = self._map_field_path(field_name)
@@ -282,7 +277,7 @@ class DrupalFilterConverter:
             mapped_field = self.field_mapping[mapped_field]
         
         # Add table prefix if provided
-        if self.table_prefix and not '.' in mapped_field:
+        if self.table_prefix and '.' not in mapped_field:
             mapped_field = f"{self.table_prefix}.{mapped_field}"
 
         # Quote each identifier part: the path comes from the query string

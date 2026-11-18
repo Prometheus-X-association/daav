@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { MatCheckboxChange } from '@angular/material/checkbox';
+import { MatCheckboxChange, MatCheckbox } from '@angular/material/checkbox';
 import { ClassicPreset } from 'rete';
 
 
@@ -30,8 +30,7 @@ export class CheckboxControl
 @Component({
     selector: 'app-checkbox-widget',
     templateUrl: './checkbox-widget.component.html',
-    styleUrls: ['./checkbox-widget.component.scss'],
-    standalone: false
+    imports: [MatCheckbox]
 })
 export class CheckboxWidgetComponent {
   @Input() data: CheckboxControl;
@@ -40,7 +39,6 @@ export class CheckboxWidgetComponent {
 
 
   onInputChange(event: MatCheckboxChange) {
-    //console.log('input change', event);
     this.data.value = event.checked
     if (this.data.callback) {
       this.data.callback(event);

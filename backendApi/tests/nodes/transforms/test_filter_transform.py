@@ -128,9 +128,12 @@ def test_filter_transform_no_data_after_filter(filter_transform, sample_datafram
     }
     # Execute the transform
     result = filter_transform.process(sample=False)
-    # Assert the result
-    assert result == StatusNode.Error
-    assert "No data matches the filter conditions" in filter_transform.statusMessage
+    # A filter that matches no row is a valid result: an empty table that keeps its columns
+    assert result == StatusNode.Valid
+    node_data = filter_transform.outputs['out'].set_node_data.call_args.args[0]
+    assert len(node_data.data) == 0
+    assert list(node_data.data.columns) == list(df.columns)
+    assert [column.name for column in node_data.nodeSchema.root] == list(df.columns)
     
 def test_filter_transform_node_parquet_data(filter_transform, parquet_files):
     """Test filtering when input is NodeDataParquet"""
@@ -175,9 +178,8 @@ def test_filter_transform_with_no_rules(filter_transform, sample_dataframe):
 
 @patch('app.nodes.transforms.filter_transform.NodeDataParquet')
 @patch('app.nodes.transforms.filter_transform.pq.ParquetFile')
-@patch('app.nodes.transforms.filter_transform.os.path.getsize')
 @patch('app.nodes.transforms.filter_transform.duckdb.connect')
-def test_filter_transform_if_parquet_process(mock_duckdb_connect, mock_getsize, mock_parquet_file, mock_node_data_parquet, filter_transform, sample_dataframe):
+def test_filter_transform_if_parquet_process(mock_duckdb_connect, mock_parquet_file, mock_node_data_parquet, filter_transform, sample_dataframe):
     """Test filtering with parquet processing mode"""
     
     # Configuration du transform pour utiliser parquet
@@ -195,9 +197,6 @@ def test_filter_transform_if_parquet_process(mock_duckdb_connect, mock_getsize, 
     # Mock de la connexion DuckDB
     mock_conn = MagicMock()
     mock_duckdb_connect.return_value = mock_conn
-    
-    # Mock que le fichier parquet généré a une taille > 0 (pas vide)
-    mock_getsize.return_value = 1000  # fichier non vide
     
     # Mock ParquetFile pour la lecture du résultat
     mock_file = Mock()
@@ -228,9 +227,6 @@ def test_filter_transform_if_parquet_process(mock_duckdb_connect, mock_getsize, 
     assert "FORMAT PARQUET" in call_args
     assert "WHERE" in call_args
     
-    # Vérifier que le fichier de sortie a été vérifié (pas vide)
-    mock_getsize.assert_called()
-    
     # Vérifier que ParquetFile a été utilisé pour lire le schéma
     mock_parquet_file.assert_called()
     
@@ -238,34 +234,53 @@ def test_filter_transform_if_parquet_process(mock_duckdb_connect, mock_getsize, 
     mock_node_data_parquet.assert_called()
 
 
-@patch('app.nodes.transforms.filter_transform.os.path.getsize')
-@patch('app.nodes.transforms.filter_transform.duckdb.connect')
-def test_filter_transform_parquet_empty_result(mock_duckdb_connect, mock_getsize, filter_transform, sample_dataframe):
-    """Test filtering with parquet mode when result is empty"""
-    
-    # Configuration
+def test_filter_transform_parquet_empty_result(filter_transform, sample_dataframe):
+    """A filter that matches no row gives a valid parquet file without rows, like the DataFrame mode"""
     filter_transform.data['parquetSave'] = {'value': True}
-    
-    # Mock des données d'entrée
-    mock_data = NodeDataPandasDf(
+    filter_transform.data['filterRules']['rules'][0]['value'] = 100  # nobody is 100 years old
+    filter_transform.inputs['datasource'].get_node_data.return_value = NodeDataPandasDf(
         data=sample_dataframe,
         dataExample=sample_dataframe.head(),
         nodeSchema=[],
         name='test_data'
     )
-    filter_transform.inputs['datasource'].get_node_data.return_value = mock_data
-    
-    # Mock de la connexion DuckDB
-    mock_conn = MagicMock()
-    mock_duckdb_connect.return_value = mock_conn
-    
-    # Mock que le fichier parquet généré est vide (taille = 0)
-    mock_getsize.return_value = 0
-    
-    # Exécution
+
     result = filter_transform.process(sample=False)
-    
-    # Vérifications
-    assert result == StatusNode.Error
-    assert "No data matches the filter conditions" in filter_transform.statusMessage
+
+    assert result == StatusNode.Valid
+    node_data = filter_transform.outputs['out'].set_node_data.call_args.args[0]
+    assert isinstance(node_data, NodeDataParquet)
+    filtered = pd.read_parquet(node_data.data)
+    os.remove(node_data.data)
+    assert len(filtered) == 0
+    assert list(filtered.columns) == list(sample_dataframe.columns)
+
+
+@pytest.mark.parametrize("value, expected_names", [
+    ("O'Brien", ["O'Brien"]),                    # a quote in the value stays in the value
+    ("x' OR '1'='1", []),                        # and cannot widen the filter
+    ("Alice", ["Alice"]),
+])
+def test_filter_value_cannot_change_the_query(filter_transform, sample_dataframe, value, expected_names):
+    df = pd.concat([sample_dataframe, pd.DataFrame([{'id': 6, 'name': "O'Brien", 'age': 50, 'city': 'Cork', 'salary': 1}])],
+                   ignore_index=True)
+    filter_transform.inputs['datasource'].get_node_data.return_value = NodeDataPandasDf(
+        data=df, dataExample=df.head(), nodeSchema=[], name='test_data')
+    filter_transform.data['filterRules'] = {'condition': 'AND', 'rules': [{'field': 'name', 'operator': '=', 'value': value}]}
+
+    assert filter_transform.process(sample=False) == StatusNode.Valid
+    node_data = filter_transform.outputs['out'].set_node_data.call_args.args[0]
+    assert node_data.data['name'].tolist() == expected_names
+
+
+@pytest.mark.parametrize("operator, value, sql", [
+    ("=", "it's", """LOWER("name") = LOWER('it''s')"""),
+    ("contains", "it's", """CONTAINS(LOWER("name"), LOWER('it''s'))"""),
+    ("like", "it's", """LOWER("name") LIKE LOWER('%it''s%')"""),
+    ("in", "a') OR 1=1 --", """"name" IN ('a'') OR 1=1 --')"""),
+    ("in", ["a'b", 3], """"name" IN ('a''b', 3)"""),
+    ("not in", ["x"], """"name" NOT IN ('x')"""),
+])
+def test_filter_string_values_are_escaped(filter_transform, operator, value, sql):
+    assert filter_transform.translateRule({'field': 'name', 'operator': operator, 'value': value}) == sql
 

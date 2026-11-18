@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { TextDisplayWidgetComponent, TextDisplayControl } from './text-display-widget.component';
 
 describe('TextDisplayWidgetComponent', () => {
@@ -8,9 +8,9 @@ describe('TextDisplayWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [TextDisplayWidgetComponent],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [TextDisplayWidgetComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(TextDisplayWidgetComponent);
     component = fixture.componentInstance;
@@ -26,10 +26,10 @@ describe('TextDisplayWidgetComponent', () => {
     const event = jasmine.createSpyObj('event', ['stopPropagation']);
     spyOn(component.data, 'copyToClipboard');
 
-    component.onCopy('hello', event as any);
+    component.onCopy('hello', event);
 
     expect(event.stopPropagation).toHaveBeenCalled();
-    expect(component.data.copyToClipboard).toHaveBeenCalledWith('hello', event as any);
+    expect(component.data.copyToClipboard).toHaveBeenCalledWith('hello', event);
   });
 
   it('should not call copyToClipboard when copyable is false', () => {
@@ -37,12 +37,12 @@ describe('TextDisplayWidgetComponent', () => {
     const event = jasmine.createSpyObj('event', ['stopPropagation']);
     spyOn(component.data, 'copyToClipboard');
 
-    component.onCopy('hello', event as any);
+    component.onCopy('hello', event);
 
     expect(component.data.copyToClipboard).not.toHaveBeenCalled();
   });
 
-  it('should use navigator.clipboard when copying text', async () => {
+  it('should use navigator.clipboard when copying text', () => {
     const event = jasmine.createSpyObj('event', ['preventDefault', 'stopPropagation']);
     const clipboard = { writeText: jasmine.createSpy('writeText').and.returnValue(Promise.resolve()) };
 
@@ -53,7 +53,7 @@ describe('TextDisplayWidgetComponent', () => {
     }
 
     component.data.copyable = true;
-    await component.data.copyToClipboard('abc', event as any);
+    component.data.copyToClipboard('abc', event);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(event.stopPropagation).toHaveBeenCalled();

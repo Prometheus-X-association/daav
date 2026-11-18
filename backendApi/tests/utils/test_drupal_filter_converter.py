@@ -5,6 +5,7 @@ import json
 import urllib.parse
 
 import pytest
+from fastapi import HTTPException
 
 from app.utils.drupal_filter_converter import DrupalFilterConverter
 from app.utils.utils import filter_data_with_duckdb
@@ -76,7 +77,7 @@ class TestDrupalFilterConverter:
             "filter[f][condition][value]": "zz",
         }))
         # The whole path is treated as an (unknown) column name, not as SQL
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             filter_data_with_duckdb(data_file, where=where, params=params)
         assert "read_text" in str(exc_info.value)
         assert "not found" in str(exc_info.value).lower()
@@ -100,15 +101,150 @@ class TestDrupalFilterConverter:
         assert sorted(row["name"] for row in rows) == ["a", "c"]
 
     def test_group_conjunction_is_whitelisted(self, converter):
+        query = self._group_query("OR 1=1 OR")
         with pytest.raises(ValueError, match="conjunction"):
-            converter.convert_query_string_to_where(self._group_query("OR 1=1 OR"))
+            converter.convert_query_string_to_where(query)
 
     def test_duckdb_query_cannot_access_files(self, data_file):
         # Defense in depth: even an injected clause cannot read files once the data is loaded
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             filter_data_with_duckdb(
                 data_file,
                 where="name IN (SELECT content FROM read_text(?))",
                 params=[data_file],
             )
         assert "disabled by configuration" in str(exc_info.value)
+
+
+class TestBuildCondition:
+
+    @pytest.mark.parametrize("operator", ["IN", "NOT IN"])
+    @pytest.mark.parametrize("value, expected", [
+        ({"2": "b", "1": "a"}, ["a", "b"]),
+        (["x", "y", "z"], ["x", "y", "z"]),
+        ("solo", ["solo"]),
+    ])
+    def test_in_operators_value_shapes(self, converter, operator, value, expected):
+        sql, params = converter._build_condition({"path": "name", "operator": operator, "value": value})
+        placeholders = ", ".join(["?"] * len(expected))
+        assert sql == f'"name" {operator} ({placeholders})'
+        assert params == expected
+
+    @pytest.mark.parametrize("operator", ["BETWEEN", "NOT BETWEEN"])
+    @pytest.mark.parametrize("value, expected", [
+        ("1,5", ["1", "5"]),
+        ("1,5,9", ["1", "5,9"]),
+        ({"2": 9, "1": 3}, [3, 9]),
+        ([1, 2, 3], [1, 2]),
+        ("7", ["7", "7"]),
+        ([4], [[4], [4]]),
+        ({"1": 4}, [{"1": 4}, {"1": 4}]),
+    ])
+    def test_between_value_shapes(self, converter, operator, value, expected):
+        sql, params = converter._build_condition({"path": "age", "operator": operator, "value": value})
+        assert sql == f'"age" {operator} ? AND ?'
+        assert params == expected
+
+    @pytest.mark.parametrize("operator, expected", [
+        ("STARTS_WITH", "ab%"), ("ENDS_WITH", "%ab"), ("CONTAINS", "%ab%"),
+    ])
+    def test_like_operators(self, converter, operator, expected):
+        assert converter._build_condition({"path": "name", "operator": operator, "value": "ab"}) == (
+            '"name" LIKE ?', [expected])
+
+    @pytest.mark.parametrize("operator", ["IS NULL", "IS NOT NULL"])
+    def test_null_operators(self, converter, operator):
+        assert converter._build_condition({"path": "name", "operator": operator, "value": "x"}) == (
+            f'"name" {operator}', [])
+
+    @pytest.mark.parametrize("operator, sql_operator", [
+        ("=", "="), ("<>", "!="), (">", ">"), (">=", ">="), ("<", "<"), ("<=", "<="),
+    ])
+    def test_comparison_operators(self, converter, operator, sql_operator):
+        assert converter._build_condition({"path": "age", "operator": operator, "value": 3}) == (
+            f'"age" {sql_operator} ?', [3])
+
+    def test_defaults(self, converter):
+        assert converter._build_condition({}) == ('"" = ?', [None])
+
+    def test_unknown_operator(self, converter):
+        with pytest.raises(ValueError, match="Unsupported filter operator"):
+            converter._build_condition({"path": "age", "operator": "LIKE", "value": 3})
+
+
+class TestConvertFiltersToWhere:
+
+    def test_no_filters(self, converter):
+        assert converter.convert_filters_to_where({}) == ("", [])
+
+    def test_shortcut_syntax(self, converter):
+        assert converter.convert_filters_to_where({"name": "a"}) == ('"name" = ?', ["a"])
+        assert converter.convert_filters_to_where({"name": {"value": "b"}}) == ('"name" = ?', ["b"])
+        assert converter.convert_filters_to_where({"name": {"other": "c"}}) == ('"name" = ?', [{"other": "c"}])
+
+    def test_unknown_conjunction(self, converter):
+        filters = {
+            "g": {"group": {"conjunction": "XOR"}},
+            "a": {"condition": {"path": "name", "value": "a", "memberOf": "g"}},
+        }
+        with pytest.raises(ValueError, match="Unsupported filter group conjunction: 'XOR'"):
+            converter.convert_filters_to_where(filters)
+
+    def test_unknown_conjunction_of_an_empty_group_is_ignored(self, converter):
+        filters = {
+            "g": {"group": {"conjunction": "XOR"}},
+            "a": {"condition": {"path": "name", "value": "a"}},
+        }
+        assert converter.convert_filters_to_where(filters) == ('"name" = ?', ["a"])
+
+    def test_default_conjunction_is_and(self, converter):
+        filters = {
+            "g": {"group": {}},
+            "a": {"condition": {"path": "name", "value": "a", "memberOf": "g"}},
+            "b": {"condition": {"path": "age", "operator": ">", "value": 1, "memberOf": "g"}},
+        }
+        assert converter.convert_filters_to_where(filters) == ('("name" = ? AND "age" > ?)', ["a", 1])
+
+    def test_empty_group(self, converter):
+        assert converter.convert_filters_to_where({"g": {"group": {"conjunction": "OR"}}}) == ("", [])
+
+    def test_member_of_an_undeclared_group_is_dropped(self, converter):
+        filters = {
+            "a": {"condition": {"path": "name", "value": "a", "memberOf": "missing"}},
+            "b": {"condition": {"path": "age", "value": 2}},
+        }
+        assert converter.convert_filters_to_where(filters) == ('"age" = ?', [2])
+
+    def test_conditions_declared_before_their_group(self, converter):
+        filters = {
+            "a": {"condition": {"path": "name", "value": "a", "memberOf": "g"}},
+            "g": {"group": {"conjunction": "OR"}},
+            "c": {"condition": {"path": "name", "value": "c", "memberOf": "g"}},
+        }
+        # The order of the query parameters must not matter
+        assert converter.convert_filters_to_where(filters) == ('("name" = ? OR "name" = ?)', ["a", "c"])
+
+    def test_root_parameters_come_before_group_parameters(self, converter):
+        filters = {
+            "g1": {"group": {"conjunction": "OR"}},
+            "a": {"condition": {"path": "name", "value": "a", "memberOf": "g1"}},
+            "b": {"condition": {"path": "name", "operator": "IN", "value": ["b", "c"], "memberOf": "g1"}},
+            "r1": {"condition": {"path": "age", "operator": ">", "value": 5}},
+            "g2": {"group": {"conjunction": "and"}},
+            "d": {"condition": {"path": "age", "operator": "BETWEEN", "value": "1,9", "memberOf": "g2"}},
+            "r2": "zz",
+        }
+        where, params = converter.convert_filters_to_where(filters)
+        assert where == ('"age" > ? AND "r2" = ? AND ("name" = ? OR "name" IN (?, ?))'
+                         ' AND ("age" BETWEEN ? AND ?)')
+        assert params == [5, "zz", "a", "b", "c", "1", "9"]
+
+
+class TestShortcutValues:
+    """A shortcut value is plain text: the words 'group' and 'condition' in it mean nothing."""
+
+    @pytest.mark.parametrize("value", ["conditional", "group", "condition", "my group name"])
+    def test_shortcut_value_containing_a_keyword(self, converter, value):
+        where, params = converter.convert_query_string_to_where(f"filter[status]={value.replace(' ', '%20')}")
+        assert where == '"status" = ?'
+        assert params == [value]

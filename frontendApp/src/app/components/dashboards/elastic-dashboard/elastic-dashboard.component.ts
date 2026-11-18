@@ -2,7 +2,9 @@ import { $localize } from '@angular/localize/init';
 import { Component, Input, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonIcon, IonInput, IonSearchbar, IonSkeletonText, IonTextarea, IonToggle } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { DashboardComponent } from '../dashboard/dashboard.component';
 import { DatasetElasticSearch } from 'src/app/models/dataset-elastic-search';
@@ -19,12 +21,12 @@ const QUERY_PAGE_SIZE = 20;
   selector: 'app-elastic-dashboard',
   templateUrl: './elastic-dashboard.component.html',
   styleUrls: ['./elastic-dashboard.component.scss'],
-  imports: [CommonModule, FormsModule, IonicModule, NgxJsonViewerModule],
+  imports: [CommonModule, FormsModule, IonButton, IonIcon, IonInput, IonSearchbar, IonSkeletonText, IonTextarea, IonToggle, NgxJsonViewerModule],
 })
 export class ElasticDashboardComponent extends DashboardComponent implements OnInit {
   @Input() override dataset: DatasetElasticSearch;
 
-  private elasticService = inject(ElasticService);
+  private readonly elasticService = inject(ElasticService);
 
   info: ElasticClusterInfo;
   infoError: string;
@@ -48,11 +50,13 @@ export class ElasticDashboardComponent extends DashboardComponent implements OnI
   newIndexName = '';
   newIndexMappings = '';
   createError: string;
+  copyFailed = false;
   createMessage: string;
   creating = false;
 
   constructor() {
     super();
+    addIcons({ chevronBackOutline, chevronForwardOutline });
   }
 
   ngOnInit() {
@@ -212,8 +216,17 @@ export class ElasticDashboardComponent extends DashboardComponent implements OnI
     return `curl -X DELETE${auth} "${url}"`;
   }
 
-  copy(text: string) {
-    navigator.clipboard?.writeText(text);
+  /** Copy a text to the clipboard; the browser can refuse (permission, page not served over HTTPS) */
+  async copy(text: string): Promise<void> {
+    try {
+      if (!navigator.clipboard) {
+        throw new Error('Clipboard not available');
+      }
+      await navigator.clipboard.writeText(text);
+      this.copyFailed = false;
+    } catch {
+      this.copyFailed = true;
+    }
   }
 
   formatSize(bytes: number): string {

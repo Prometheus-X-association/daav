@@ -1,9 +1,12 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AlertController, LoadingController, ToastController } from '@ionic/angular';
+import { AlertController, LoadingController, ToastController, IonBadge, IonButton, IonIcon, IonSpinner } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { atOutline, calendarOutline, informationCircleOutline, mailOutline, personOutline, shieldOutline, timeOutline, trashOutline } from 'ionicons/icons';
 import { AuthService } from '../../../services/auth.service';
 import { User } from '../../../models/auth.models';
 import { formatAccountDate } from '../account-utils';
+import { UpperCasePipe } from '@angular/common';
 
 /**
  * Account page section: information of the current user
@@ -12,18 +15,20 @@ import { formatAccountDate } from '../account-utils';
     selector: 'app-profile-section',
     templateUrl: './profile-section.component.html',
     styleUrls: ['./profile-section.component.scss'],
-    standalone: false
+    imports: [IonBadge, IonButton, IonIcon, IonSpinner, UpperCasePipe]
 })
 export class ProfileSectionComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
+  private readonly loadingController = inject(LoadingController);
+
   private readonly destroyRef = inject(DestroyRef);
   user: User | null = null;
 
-  constructor(
-    private authService: AuthService,
-    private toastController: ToastController,
-    private alertController: AlertController,
-    private loadingController: LoadingController
-  ) {}
+  constructor() {
+    addIcons({ atOutline, calendarOutline, informationCircleOutline, mailOutline, personOutline, shieldOutline, timeOutline, trashOutline });
+  }
 
   ngOnInit() {
     this.authService.currentUser$
@@ -61,10 +66,10 @@ export class ProfileSectionComponent implements OnInit {
           role: 'destructive',
           handler: (data) => {
             if (data.confirmation === 'DEACTIVATE') {
-              this.deactivateAccount();
+              this.deactivateAccount().catch(error => console.error('Failed to deactivate the account:', error));
               return true;
             } else {
-              this.showToast('Please type "DEACTIVATE" to confirm', 'warning');
+              void this.showToast('Please type "DEACTIVATE" to confirm', 'warning');
               return false;
             }
           }
@@ -85,23 +90,27 @@ export class ProfileSectionComponent implements OnInit {
     await loading.present();
 
     // TODO: Implement deactivation API call
-    setTimeout(async () => {
-      await loading.dismiss();
-      this.showToast('Account deactivated successfully', 'success');
-      this.authService.logout();
-    }, 1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    await loading.dismiss();
+    void this.showToast('Account deactivated successfully', 'success');
+    await this.authService.logout();
   }
 
   /**
-   * Show toast message
+   * Show toast message, a failure is only logged (the toasts are not awaited)
    */
   private async showToast(message: string, color: string = 'primary') {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      color,
-      position: 'top'
-    });
-    await toast.present();
+    try {
+      const toast = await this.toastController.create({
+        message,
+        duration: 3000,
+        color,
+        position: 'top'
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('Failed to show toast:', error);
+    }
   }
 }

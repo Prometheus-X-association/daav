@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -19,9 +19,8 @@ describe('FileDashboardComponent', () => {
     datasetServiceSpy.editDataset.and.returnValue(of({}));
 
     TestBed.configureTestingModule({
-      declarations: [FileDashboardComponent],
-      imports: [IonicModule.forRoot(), CommonModule, MatFormFieldModule, MatSelectModule, BrowserAnimationsModule, HttpClientTestingModule],
-      providers: [{ provide: DatasetService, useValue: datasetServiceSpy }]
+      imports: [FileDashboardComponent, CommonModule, MatFormFieldModule, MatSelectModule, BrowserAnimationsModule, HttpClientTestingModule],
+      providers: [provideIonicAngular(), { provide: DatasetService, useValue: datasetServiceSpy }]
     }).compileComponents();
     fixture = TestBed.createComponent(FileDashboardComponent);
     component = fixture.componentInstance;

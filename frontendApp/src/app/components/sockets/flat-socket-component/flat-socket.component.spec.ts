@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 
 import { FlatSocketComponent } from './flat-socket.component';
 
@@ -9,9 +9,9 @@ describe('FlatSocketComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ FlatSocketComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [FlatSocketComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(FlatSocketComponent);
     component = fixture.componentInstance;

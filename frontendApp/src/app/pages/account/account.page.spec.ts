@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { AlertController, IonicModule } from '@ionic/angular';
+import { AlertController, provideIonicAngular } from '@ionic/angular/standalone';
 import { provideRouter, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { AccountPage } from './account.page';
@@ -17,21 +17,22 @@ describe('AccountPage', () => {
   beforeEach(waitForAsync(() => {
     currentUser$ = new BehaviorSubject<User | null>({ id: 'user-1', username: 'jdoe', full_name: 'John Doe', role: 'user' } as any);
     authServiceSpy = jasmine.createSpyObj('AuthService', ['logout'], { currentUser$ });
+    authServiceSpy.logout.and.returnValue(Promise.resolve());
 
     const alert = { present: jasmine.createSpy('present') } as any;
     alertControllerSpy = jasmine.createSpyObj('AlertController', ['create']);
     alertControllerSpy.create.and.returnValue(Promise.resolve(alert));
 
     TestBed.configureTestingModule({
-      imports: [IonicModule.forRoot()],
-      declarations: [AccountPage],
-      schemas: [CUSTOM_ELEMENTS_SCHEMA],
-      providers: [
+    imports: [AccountPage],
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    providers: [
+        provideIonicAngular(),
         provideRouter([{ path: 'account/:section', children: [] }]),
         { provide: AuthService, useValue: authServiceSpy },
         { provide: AlertController, useValue: alertControllerSpy }
-      ]
-    }).compileComponents();
+    ]
+}).compileComponents();
 
     fixture = TestBed.createComponent(AccountPage);
     component = fixture.componentInstance;
@@ -58,9 +59,22 @@ describe('AccountPage', () => {
 
   it('should logout once confirmed', async () => {
     await component.onLogout();
-    const options = alertControllerSpy.create.calls.mostRecent().args[0]!;
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
     (options.buttons as any[]).find(button => button.role === 'destructive').handler();
 
     expect(authServiceSpy.logout).toHaveBeenCalled();
+  });
+
+  it('should log a failed logout instead of leaving the rejection unhandled', async () => {
+    const failure = new Error('Storage unavailable');
+    authServiceSpy.logout.and.callFake(() => Promise.reject(failure));
+    const consoleError = spyOn(console, 'error');
+
+    await component.onLogout();
+    const options = alertControllerSpy.create.calls.mostRecent().args[0];
+    (options.buttons as any[]).find(button => button.role === 'destructive').handler();
+    await fixture.whenStable();
+
+    expect(consoleError).toHaveBeenCalledWith('Logout failed:', failure);
   });
 });

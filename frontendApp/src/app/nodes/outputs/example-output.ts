@@ -5,7 +5,6 @@ import { StatusNode } from "src/app/enums/status-node";
 import { ClassicPreset } from "rete";
 import { FlatObjectSocket, SimpleFieldSocket } from "src/app/core/sockets/sockets";
 import { Node } from "src/app/models/interfaces/node";
-import { daavBlock } from "../node-block";
 
 //@daavBlock('output')
 export class ExampleOutput extends OutputDataBlock{

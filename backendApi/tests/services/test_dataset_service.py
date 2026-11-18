@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from datetime import datetime, timezone
 from contextvars import copy_context
 import asyncio
+import threading
 import pytest_asyncio
 
 from app.services.dataset_service import DatasetService, pdc_chain_data_var, pdc_chain_headers_var
@@ -99,7 +100,7 @@ async def test_edit_ptx_dataset_preserves_sensitive_fields(dataset_service):
         url="https://pdc.example.com",
     )
 
-    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=AsyncMock(return_value=True)):
+    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=Mock(return_value=True)):
         result = await dataset_service.edit_dataset(updated_dataset, Mock(username="testuser"))
 
     assert result is True
@@ -110,6 +111,34 @@ async def test_edit_ptx_dataset_preserves_sensitive_fields(dataset_service):
     assert saved.refreshToken == "secret-refresh"
     assert saved.url == "https://pdc.example.com"
 
+
+
+@pytest.mark.asyncio
+async def test_edit_ptx_dataset_logs_in_to_the_pdc_outside_event_loop_thread(dataset_service):
+    """The synchronous PDC login (connect_pdc) of a PTX dataset runs in a worker thread"""
+    dataset = PTXDataset(id="dataset-ptx-login", name="test_ptx", type="ptx", url="https://pdc.example.com")
+    await dataset.insert()
+    updated_dataset = PTXDataset(
+        id=dataset.id, name="test_ptx", type="ptx", url="https://pdc.example.com/",
+        service_key="service", secret_key="secret",
+    )
+    login_threads = []
+
+    def fake_connect_pdc(url, service_key, secret_key):
+        login_threads.append(threading.current_thread())
+        return {"content": {"token": "new-token", "refreshToken": "new-refresh"}}
+
+    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=Mock(return_value=True)), \
+         patch.object(dataset_service, 'connect_pdc', side_effect=fake_connect_pdc) as connect_pdc:
+        result = await dataset_service.edit_dataset(updated_dataset, Mock(username="testuser"))
+
+    assert result is True
+    connect_pdc.assert_called_once_with("https://pdc.example.com", "service", "secret")
+    assert login_threads
+    assert login_threads[0] is not threading.current_thread()
+    saved = await PTXDataset.get(dataset.id)
+    assert saved.token == "new-token"
+    assert saved.refreshToken == "new-refresh"
 
 @pytest.mark.asyncio
 async def test_edit_mysql_dataset_preserves_sensitive_password(dataset_service):
@@ -135,7 +164,7 @@ async def test_edit_mysql_dataset_preserves_sensitive_password(dataset_service):
         user="test_user",
     )
 
-    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=AsyncMock(return_value=True)):
+    with patch.object(dataset_service.user_service, 'can_modify_dataset', new=Mock(return_value=True)):
         result = await dataset_service.edit_dataset(updated_dataset, Mock(username="testuser"))
 
     assert result is True

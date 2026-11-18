@@ -60,8 +60,9 @@ def test_plain_text_value_is_encrypted():
 
 
 def test_value_encrypted_with_unknown_key_raises():
+    value = _encrypt_with(Fernet.generate_key(), "lost")
     with pytest.raises(InvalidToken):
-        reencrypt_field(_encrypt_with(Fernet.generate_key(), "lost"))
+        reencrypt_field(value)
 
 
 @pytest.mark.asyncio

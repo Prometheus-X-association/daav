@@ -94,4 +94,66 @@ describe('DataMapperUtils', () => {
     expect(DataMapperUtils.detectTypeFieldMysql('tinyint(1)', '1', 'is_active')).toBe('number');
     expect(DataMapperUtils.detectTypeFieldMysql('varchar', 'some text', 'description')).toBe('string');
   });
+
+  it('should detect currency, empty text and other MySQL types', () => {
+    expect(DataMapperUtils.detectTypeFieldMysql('decimal(10,2)', '9.99', 'price')).toBe('currency');
+    expect(DataMapperUtils.detectTypeFieldMysql('double', '9.99', 'cost')).toBe('currency');
+    expect(DataMapperUtils.detectTypeFieldMysql('float', '9.99', 'total_price')).toBe('number');
+    expect(DataMapperUtils.detectTypeFieldMysql('bigint', '3', 'quantity')).toBe('number');
+    expect(DataMapperUtils.detectTypeFieldMysql('text', '', 'email')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldMysql('char(2)', 'FR', 'country')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldMysql('blob', 'abc', 'telephone')).toBe('phone');
+    expect(DataMapperUtils.detectTypeFieldMysql('varchar', '10 %', 'ratio')).toBe('percentage');
+    expect(DataMapperUtils.detectTypeFieldMysql('varchar', '10', 'percent_done')).toBe('percentage');
+    expect(DataMapperUtils.detectTypeFieldMysql('timestamp', '2023-01-01', 'updated')).toBe('date');
+    expect(DataMapperUtils.detectTypeFieldMysql('date', '2023-01-01', 'day')).toBe('date');
+    expect(DataMapperUtils.detectTypeFieldMysql('boolean', 'true', 'active')).toBe('boolean');
+    expect(DataMapperUtils.detectTypeFieldMysql('json', '{}', 'payload')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldMysql('varchar', 'x', 'user_id')).toBe('id');
+    expect(DataMapperUtils.detectTypeFieldMysql('varchar', 'ftp://files.example.com/a', 'link')).toBe('url');
+  });
+
+  it('should detect correct DataType for Pandas fields', () => {
+    expect(DataMapperUtils.detectTypeFieldPandas('int', '1', 'id')).toBe('id');
+    expect(DataMapperUtils.detectTypeFieldPandas('int', '1', 'quantity')).toBe('number');
+    expect(DataMapperUtils.detectTypeFieldPandas('float', '1.5', 'ratio')).toBe('number');
+    expect(DataMapperUtils.detectTypeFieldPandas('int', '3', 'price')).toBe('currency');
+    expect(DataMapperUtils.detectTypeFieldPandas('float', '3.5', 'cost')).toBe('currency');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', 'john@example.com', 'contact')).toBe('email');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', 'https://example.com', 'site')).toBe('url');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', '0102030405', 'phone')).toBe('phone');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', '50%', 'ratio')).toBe('percentage');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', '50', 'percentage')).toBe('percentage');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', 'some text', 'description')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', '', 'email')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldPandas('datetime64[ns]', '2023-01-01', 'created_at')).toBe('date');
+    expect(DataMapperUtils.detectTypeFieldPandas('bool', 'true', 'is_active')).toBe('boolean');
+    expect(DataMapperUtils.detectTypeFieldPandas('int64', '1', 'quantity')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldPandas('constructor', '1', 'quantity')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldPandas('toString', '1', 'quantity')).toBe('string');
+  });
+
+  it('should detect Pandas object fields whose value is not text', () => {
+    const value = 42 as unknown as string;
+    expect(DataMapperUtils.detectTypeFieldPandas('object', value, 'amount')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', value, 'percent')).toBe('percentage');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', value, 'tel')).toBe('phone');
+    const list = ['a@b.co'] as unknown as string;
+    expect(DataMapperUtils.detectTypeFieldPandas('object', list, 'contacts')).toBe('email');
+    expect(DataMapperUtils.detectTypeFieldPandas('object', null, 'amount')).toBe('string');
+  });
+
+  it('should detect the DataType from the value type', () => {
+    expect(DataMapperUtils.detectTypeFieldFromValueType(1, 'id')).toBe('id');
+    expect(DataMapperUtils.detectTypeFieldFromValueType(1, 'quantity')).toBe('number');
+    expect(DataMapperUtils.detectTypeFieldFromValueType(1, 'price')).toBe('currency');
+    expect(DataMapperUtils.detectTypeFieldFromValueType('a@b.co', 'contact')).toBe('email');
+    expect(DataMapperUtils.detectTypeFieldFromValueType('http://a.b', 'site')).toBe('url');
+    expect(DataMapperUtils.detectTypeFieldFromValueType('1', 'phone')).toBe('phone');
+    expect(DataMapperUtils.detectTypeFieldFromValueType('5%', 'ratio')).toBe('percentage');
+    expect(DataMapperUtils.detectTypeFieldFromValueType('', 'label')).toBe('string');
+    expect(DataMapperUtils.detectTypeFieldFromValueType(true, 'active')).toBe('boolean');
+    expect(DataMapperUtils.detectTypeFieldFromValueType(new Date(), 'day')).toBe('date');
+    expect(DataMapperUtils.detectTypeFieldFromValueType(null, 'other')).toBe('string');
+  });
 });

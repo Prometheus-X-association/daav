@@ -1,5 +1,6 @@
 from typing import Dict, List, Any, Optional
 from bson import ObjectId
+from bson.errors import InvalidId
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_serializer
 from beanie import Document
 from datetime import datetime
@@ -36,7 +37,6 @@ class NodeControl(BaseModel):
     id: str
     readonly: bool
     value: Any
-    __type: Any    
 
 class INode(BaseModel):
     id: str
@@ -88,7 +88,7 @@ class IProject(Document):
             try:
                 ObjectId(v)  # Vérifier si c'est un ObjectId valide
                 return v  # Garder les ObjectId valides fournis par l'utilisateur
-            except:
+            except InvalidId:
                 return None
         return v
 

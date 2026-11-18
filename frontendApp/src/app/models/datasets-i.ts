@@ -1,9 +1,7 @@
-import { Component } from '@angular/core';
 import { DatasetType } from './../enums/dataset-type';
 
 
 import { Folder } from "./folder";
-import { PTXDashboardComponent } from '../components/dashboards/ptxdashboard/ptxdashboard.component';
 
 export interface DatasetsI {
     id: string;

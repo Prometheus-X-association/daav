@@ -1,5 +1,4 @@
 import asyncio
-import traceback
 from typing import Literal, Optional, Any
 
 import pandas as pd
@@ -43,76 +42,65 @@ class MongoOutput(OutputNode):
             StatusNode: The status of the node after processing.
         """
         try:
-            dataset, database, collection, ifExist ,createIndex,indexTable = await self._retreiveDatabase()
-
-            try:
-                # Connect to the MongoDB database
-                client = MongoClient(dataset.uri)
-                db = client[database]
-
-                # Handle collection existence based on ifExist parameter
-                collection_exists = collection in db.list_collection_names()
-                if collection_exists:
-                    if ifExist == 'fail':
-                        raise ValueError(f"Collection '{collection}' already exists and ifExist is set to 'fail'")
-                    elif ifExist == 'replace':
-                        print(f"Dropping existing collection '{collection}' because ifExist is set to 'replace'")
-                        db.drop_collection(collection)
-                        print(f"Creating new collection '{collection}'")
-                        db.create_collection(collection)
-                    # For 'append', we don't need to do anything special
-                else:
-                    # Collection doesn't exist, create it
-                    print(f"Collection '{collection}' does not exist. Creating it now.")
-                    db.create_collection(collection)
-                    print(f"Collection '{collection}' created successfully.")
-                
-                col = db[collection]
-                
-                for input in self.inputs.values():
-                    if (input.get_connected_node()):
-                        data = input.get_node_data()
-                        if isinstance(data, NodeDataPandasDf):
-                            if (sample) :
-                                df = data.dataExample
-                            else:
-                                df = data.data
-                            if not isinstance(df, pd.DataFrame):
-                                raise ValueError("Input data is not a pandas DataFrame")
-                            for df_chunk in utils.slice_generator(df):
-                                records = df_chunk.to_dict(orient='records')
-                                col.insert_many(records)
-                        elif isinstance(data, NodeDataParquet):
-                            chunkSize = 1000 
-                            isFistChunk = True
-                            parquetFile = pq.ParquetFile(data.data)
-
-                            for batch in parquetFile.iter_batches(batch_size=chunkSize):
-                                df_chunk = batch.to_pandas()
-                                if sample and isFistChunk:
-                                    records = df_chunk.to_dict(orient='records')
-                                    col.insert_many(records)
-                                    break
-                                if_exists = ifExist if isFistChunk else 'append'
-                                records = df_chunk.to_dict(orient='records')
-                                col.insert_many(records)
-                                isFistChunk = False
-                        else:
-                            raise TypeError("Unsupported data type: {}".format(type(data)))
-                client.close() 
-            except Exception as e:
-                client.close()  # Ensure the connection is closed in case of an error
-                traceback.print_exc()
-                self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-                self.statusMessage = e.__str__()
-                return StatusNode.Error        
+            dataset, database, collection, if_exist, _, _ = await self._retreiveDatabase()
+            return self._write(dataset, database, collection, if_exist, sample)
         except ValueError as e:
-            traceback.print_exc()
-            self.errorStackTrace = traceback.TracebackException.from_exception(e).format()
-            self.statusMessage = e.__str__()
-            return StatusNode.Error
+            return self._fail(e)
+
+    def _write(self, dataset: MongoDataset, database: str, collection: str, if_exist: str, sample: bool) -> StatusNode:
+        """Insert the connected input data into the collection; the client is always closed."""
+        client = None
+        try:
+            # Connect to the MongoDB database
+            client = MongoClient(dataset.uri)
+            col = self._prepare_collection(client[database], collection, if_exist)
+            for data in self._connected_data():
+                if isinstance(data, NodeDataPandasDf):
+                    self._insert_dataframe(col, self._input_dataframe(data, sample))
+                elif isinstance(data, NodeDataParquet):
+                    self._insert_parquet(col, data.data, sample)
+                else:
+                    raise TypeError("Unsupported data type: {}".format(type(data)))
+        except Exception as e:
+            return self._fail(e)
+        finally:
+            if client is not None:
+                client.close()
         return StatusNode.Valid
-    
+
+    @staticmethod
+    def _prepare_collection(db, collection: str, if_exist: str):
+        """Create, keep or recreate the collection according to the ifExist parameter, and return it."""
+        if collection not in db.list_collection_names():
+            # Collection doesn't exist, create it
+            print(f"Collection '{collection}' does not exist. Creating it now.")
+            db.create_collection(collection)
+            print(f"Collection '{collection}' created successfully.")
+        elif if_exist == 'fail':
+            raise ValueError(f"Collection '{collection}' already exists and ifExist is set to 'fail'")
+        elif if_exist == 'replace':
+            print(f"Dropping existing collection '{collection}' because ifExist is set to 'replace'")
+            db.drop_collection(collection)
+            print(f"Creating new collection '{collection}'")
+            db.create_collection(collection)
+        # For 'append', we don't need to do anything special
+        return db[collection]
+
+    @staticmethod
+    def _insert_dataframe(col, df: pd.DataFrame) -> None:
+        for df_chunk in utils.slice_generator(df):
+            col.insert_many(df_chunk.to_dict(orient='records'))
+
+    @staticmethod
+    def _insert_parquet(col, path: str, sample: bool) -> None:
+        """Insert a parquet file by batches; a sample only inserts the first batch."""
+        chunk_size = 1000
+        parquet_file = pq.ParquetFile(path)
+        for batch in parquet_file.iter_batches(batch_size=chunk_size):
+            col.insert_many(batch.to_pandas().to_dict(orient='records'))
+            if sample:
+                break
+
     async def _retreiveDatabase(self) -> tuple[MongoDataset, str, str, Literal['fail', 'replace', 'append']]:
         """Retrieve the database configuration.
 
@@ -122,22 +110,22 @@ class MongoOutput(OutputNode):
         Raises:
             ValueError: If no data source, database, or table is selected.
         """
-        datasetId : str 
+        dataset_id : str 
         if self.data.get('selectDataSource') and self.data['selectDataSource']['value']:
-            datasetId = self.data['selectDataSource']['value']
+            dataset_id = self.data['selectDataSource']['value']
         else:
             raise ValueError("No data source selected")
-        dataset : MongoDataset  = await self.datasetService.get_dataset(datasetId)
-        database = self.data['selectDatabaseDataSource']['value'] if self.data.get('selectDatabaseDataSource') and self.data['selectDatabaseDataSource'].get('value') else dataset.database
-        collection = self.data.get('collectionAutoComplete').get('value') if self.data.get('collectionAutoComplete') and self.data.get('collectionAutoComplete').get('value')   else dataset.table
-        ifExist = self.data.get('selectExist')['value'] if self.data.get('selectExist') and self.data.get('selectExist').get('value') else "fail"
-        createIndex = self.data.get('createIndex')['value'] if self.data.get('createIndex') and self.data.get('createIndex').get('value') else False
-        indexTable = self.data.get('indexTable')['value'] if self.data.get('indexTable') and self.data.get('indexTable').get('value') else 'id'
+        dataset : MongoDataset  = await self.datasetService.get_dataset(dataset_id)
+        database = self._param('selectDatabaseDataSource') or dataset.database
+        collection = self._param('collectionAutoComplete') or dataset.table
+        if_exist = self._param('selectExist', "fail")
+        create_index = self._param('createIndex', False)
+        index_table = self._param('indexTable', 'id')
         if (collection is None or collection == ""):
             raise ValueError("No collection selected")
         if (database is None or database == ""):
             raise ValueError("No database selected")
-        return dataset, database, collection, ifExist,createIndex,indexTable
+        return dataset, database, collection, if_exist,create_index,index_table
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,

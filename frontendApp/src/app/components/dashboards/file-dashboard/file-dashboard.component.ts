@@ -1,4 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { DashboardComponent } from '../dashboard/dashboard.component';
 import { DatasetFile } from 'src/app/models/dataset-file';
 
@@ -6,7 +8,7 @@ import { DatasetFile } from 'src/app/models/dataset-file';
     selector: 'app-file-dashboard',
     templateUrl: './file-dashboard.component.html',
     styleUrls: ['./file-dashboard.component.scss'],
-    standalone: false
+    imports: [MatFormFieldModule, MatSelectModule]
 })
 export class FileDashboardComponent extends DashboardComponent implements OnInit {
 
@@ -37,8 +39,6 @@ export class FileDashboardComponent extends DashboardComponent implements OnInit
     this.datasetService.editDataset(this.dataset).subscribe({
       next: (updatedDataset) => {
         console.log('Dataset updated successfully:', updatedDataset);
-        // Optionnel : mettre à jour le dataset local avec la réponse du serveur
-        // this.dataset = updatedDataset;
       },
       error: (error) => {
         console.error('Error updating dataset:', error);
@@ -51,7 +51,7 @@ export class FileDashboardComponent extends DashboardComponent implements OnInit
     switch(delimiter) {
       case ',': return 'Comma (,)';
       case ';': return 'Semicolon (;)';
-      case '\t': return 'Tab (\\t)';
+      case '\t': return String.raw`Tab (\t)`;
       case '|': return 'Pipe (|)';
       default: return delimiter;
     }

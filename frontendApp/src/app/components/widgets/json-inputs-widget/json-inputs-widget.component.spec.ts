@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { JsonInputsWidgetComponent, JsonInputsControl } from './json-inputs-widget.component';
 
 describe('JsonInputsWidgetComponent', () => {
@@ -8,9 +8,9 @@ describe('JsonInputsWidgetComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ JsonInputsWidgetComponent ],
-      imports: [IonicModule.forRoot()]
-    }).compileComponents();
+    imports: [JsonInputsWidgetComponent],
+    providers: [provideIonicAngular()]
+}).compileComponents();
 
     fixture = TestBed.createComponent(JsonInputsWidgetComponent);
     component = fixture.componentInstance;
@@ -42,7 +42,7 @@ describe('JsonInputsWidgetComponent', () => {
     component.data = new JsonInputsControl([]);
     component.hasChanged = false;
     component.addInputExample();
-    expect(component.data.inputsDataExample.length).toBe(1);
+    expect(component.data.inputsDataExample).toHaveSize(1);
     expect(component.hasChanged).toBeTrue();
   });
 
@@ -61,7 +61,7 @@ describe('JsonInputsWidgetComponent', () => {
     component.hasChanged = true;
 
     const event: any = { detail: { data: undefined } };
-    component.onWillDismiss(event as any);
+    component.onWillDismiss(event);
 
     expect(event.detail.data).toBeTrue();
     expect(component.isModalOpen).toBeFalse();

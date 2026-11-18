@@ -1,0 +1,190 @@
+<div class="mysql-dashboard">
+  <!-- Server -->
+  <section class="card">
+    <div class="section-title">
+      <h3 i18n>Server</h3>
+      <ion-button fill="clear" size="small" (click)="loadInfo()" i18n>Refresh</ion-button>
+    </div>
+    @if (infoError) {
+      <p class="error" role="alert">{{ infoError }}</p>
+    } @else if (info) {
+      <div class="stats-grid">
+        <div class="stat"><span class="label" i18n>Version</span><span [title]="info.versionComment">{{ info.version }}</span></div>
+        <div class="stat"><span class="label" i18n>Host</span><span>{{ info.host }}</span></div>
+        <div class="stat"><span class="label" i18n>User</span><span>{{ info.currentUser }}</span></div>
+        <div class="stat"><span class="label" i18n>Uptime</span><span>{{ formatUptime(info.uptimeSeconds) }}</span></div>
+        <div class="stat"><span class="label" i18n>Connections</span><span>{{ info.threadsConnected ?? '-' }}</span></div>
+        <div class="stat"><span class="label" i18n>Charset</span><span [title]="info.collation">{{ info.charset }}</span></div>
+        @if (singleTable) {
+          <div class="stat"><span class="label" i18n>Database</span><span>{{ dataset.database }}</span></div>
+          <div class="stat"><span class="label" i18n>Table</span><span>{{ dataset.table }}</span></div>
+        } @else {
+          <div class="stat"><span class="label" i18n>Databases</span><span>{{ info.databases.length }}</span></div>
+          <div class="stat"><span class="label" i18n>Tables</span><span>{{ totalTables | number }}</span></div>
+          <div class="stat"><span class="label" i18n>Size</span><span>{{ formatSize(totalSize) }}</span></div>
+        }
+      </div>
+      @if (info.versionComment) {
+        <p class="subtitle">{{ info.versionComment }}</p>
+      }
+    } @else {
+      <ion-skeleton-text [animated]="true" style="width: 60%"></ion-skeleton-text>
+    }
+  </section>
+
+  <!-- Databases -->
+  @if (info && !singleTable) {
+    <section class="card">
+      <div class="section-title">
+        <h3 i18n>Databases</h3>
+      </div>
+      <div class="table-wrapper">
+        <table class="selectable databases">
+          <thead>
+            <tr>
+              <th i18n>Database</th>
+              <th class="num" i18n>Tables</th>
+              <th class="num" i18n>Rows (approx.)</th>
+              <th class="num" i18n>Size</th>
+              <th i18n>Charset</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (database of info.databases; track database.name) {
+              <!-- the row stays clickable with the mouse; the button inside makes it reachable with the keyboard -->
+              <tr (click)="selectDatabase(database)" [class.selected]="selectedDatabase?.name === database.name">
+                <td><button type="button" class="row-button" [attr.aria-current]="selectedDatabase?.name === database.name ? 'true' : null">{{ database.name }}</button></td>
+                <td class="num">{{ database.tables | number }}</td>
+                <td class="num">{{ database.approxRows | number }}</td>
+                <td class="num">{{ formatSize(database.sizeBytes) }}</td>
+                <td [title]="database.collation">{{ database.charset }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="empty" i18n>No database visible with these credentials</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- Tables of the selected database -->
+  @if (selectedDatabase && !singleTable) {
+    <section class="card">
+      <div class="section-title">
+        <h3>{{ selectedDatabase.name }}</h3>
+      </div>
+      @if (tables.length > 10) {
+        <ion-searchbar [(ngModel)]="tableFilter" placeholder="Filter tables" i18n-placeholder aria-label="Filter tables" i18n-aria-label [debounce]="150"></ion-searchbar>
+      }
+      @if (tablesError) {
+        <p class="error" role="alert">{{ tablesError }}</p>
+      }
+      <div class="table-wrapper">
+        <table class="selectable tables">
+          <thead>
+            <tr>
+              <th i18n>Table</th>
+              <th i18n>Engine</th>
+              <th class="num" i18n>Columns</th>
+              <th class="num" i18n>Rows (approx.)</th>
+              <th class="num" i18n>Size</th>
+              <th i18n>Last update</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (table of filteredTables; track table.name) {
+              <tr (click)="selectTable(table)" [class.selected]="selectedTable?.name === table.name">
+                <td [title]="table.comment">
+                  <button type="button" class="row-button" [attr.aria-current]="selectedTable?.name === table.name ? 'true' : null">{{ table.name }}</button>
+                  @if (table.type === 'view') { <span class="badge" i18n>view</span> }
+                </td>
+                <td>{{ table.engine ?? '-' }}</td>
+                <td class="num">{{ table.columns }}</td>
+                <td class="num">{{ table.approxRows === null ? '-' : (table.approxRows | number) }}</td>
+                <td class="num">{{ formatSize(table.sizeBytes) }}</td>
+                <td>{{ (table.updatedAt ?? table.createdAt) ? ((table.updatedAt ?? table.createdAt) | date: 'short') : '-' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="empty">
+                @if (loadingTables) { <span i18n>Loading…</span> } @else { <span i18n>No table</span> }
+              </td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" i18n>Row counts and sizes are the estimates kept by MySQL; they can differ from the exact values.</p>
+    </section>
+  }
+
+  <!-- Single table dataset: its table could not be loaded -->
+  @if (singleTable && (tablesError || tableNotFound)) {
+    <section class="card">
+      <div class="section-title">
+        <h3>{{ dataset.database }}.{{ dataset.table }}</h3>
+      </div>
+      <p class="error" role="alert">
+        @if (tablesError) { {{ tablesError }} } @else { <span i18n>This table does not exist or is not visible with the dataset credentials.</span> }
+      </p>
+    </section>
+  }
+
+  <!-- Columns of the selected table -->
+  @if (selectedTable) {
+    <section class="card">
+      <div class="section-title">
+        <h3>{{ selectedDatabase.name }}.{{ selectedTable.name }}</h3>
+        @if (selectedTable.type === 'view') { <span class="badge" i18n>view</span> }
+      </div>
+      @if (singleTable) {
+        <!-- single table dataset: the table details replace the database and table lists -->
+        <div class="stats-grid">
+          <div class="stat"><span class="label" i18n>Engine</span><span>{{ selectedTable.engine ?? '-' }}</span></div>
+          <div class="stat"><span class="label" i18n>Rows (approx.)</span><span>{{ selectedTable.approxRows === null ? '-' : (selectedTable.approxRows | number) }}</span></div>
+          <div class="stat"><span class="label" i18n>Size</span><span>{{ formatSize(selectedTable.sizeBytes) }}</span></div>
+          <div class="stat"><span class="label" i18n>Columns</span><span>{{ selectedTable.columns }}</span></div>
+          <div class="stat"><span class="label" i18n>Collation</span><span>{{ selectedTable.collation ?? '-' }}</span></div>
+          <div class="stat"><span class="label" i18n>Created</span><span>{{ selectedTable.createdAt ? (selectedTable.createdAt | date: 'short') : '-' }}</span></div>
+          <div class="stat"><span class="label" i18n>Last update</span><span>{{ selectedTable.updatedAt ? (selectedTable.updatedAt | date: 'short') : '-' }}</span></div>
+        </div>
+        @if (selectedTable.comment && selectedTable.type !== 'view') {
+          <p class="subtitle">{{ selectedTable.comment }}</p>
+        }
+        <p class="hint" i18n>Row counts and sizes are the estimates kept by MySQL; they can differ from the exact values.</p>
+        <h4 i18n>Columns</h4>
+      }
+      @if (columnsError) {
+        <p class="error" role="alert">{{ columnsError }}</p>
+      } @else if (columns) {
+        <div class="table-wrapper">
+          <table class="columns">
+            <thead>
+              <tr>
+                <th i18n>Column</th>
+                <th i18n>Type</th>
+                <th i18n>Null</th>
+                <th i18n>Key</th>
+                <th i18n>Default</th>
+                <th i18n>Extra</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (column of columns; track column.name) {
+                <tr>
+                  <td [title]="column.comment">{{ column.name }}</td>
+                  <td class="mono">{{ column.type }}</td>
+                  <td>{{ column.nullable ? 'YES' : 'NO' }}</td>
+                  <td>@if (column.key) { <span class="badge" [class.primary]="column.key === 'PRI'">{{ column.key }}</span> }</td>
+                  <td class="mono">{{ column.default ?? '' }}</td>
+                  <td>{{ column.extra }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <ion-skeleton-text [animated]="true" style="width: 40%"></ion-skeleton-text>
+      }
+    </section>
+  }
+</div>

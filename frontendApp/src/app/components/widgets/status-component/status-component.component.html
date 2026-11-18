@@ -1,23 +1,26 @@
-<div class="circle" role="img" [attr.aria-label]="statusLabel()" [matTooltip]="data.statusMessage" (pointerdown)="$event.stopPropagation()"
-(dblclick)="$event.stopPropagation()"
+<svg class="circle" role="img" [attr.aria-label]="statusLabel()" [matTooltip]="data.statusMessage" (pointerdown)="$event.stopPropagation()"
+  (dblclick)="$event.stopPropagation()"
   [ngClass]="{red: data.status === enumStatus.Error, green: data.status === enumStatus.Valid, yellow: data.status === enumStatus.Incomplete,orange: data.status === enumStatus.Complete}">
-</div>
-<div *ngIf="data.status === enumStatus.Error && data.errorStacktrace?.length > 0">
-  <ion-button  (click)="setOpen(true)" expand="block" (pointerdown)="$event.stopPropagation()"
-  (dblclick)="$event.stopPropagation()">Stack Trace</ion-button>
-  <ion-modal [isOpen]="isModalOpen" (willDismiss)="onWillDismiss($event)">
-    <ng-template>
-      <ion-header>
-        <ion-title i18n>Error Stack trace of execution</ion-title>
-
-      </ion-header>
-      <ion-content class="ion-padding">
-        <ion-list [inset]="true">
-          <ion-item *ngFor="let error of data?.errorStacktrace">
-            <ion-label>{{error}}</ion-label>
-          </ion-item>
-        </ion-list>
-      </ion-content>
-    </ng-template>
-  </ion-modal>
-</div>
+</svg>
+@if (data.status === enumStatus.Error && data.errorStacktrace?.length > 0) {
+  <div>
+    <ion-button  (click)="setOpen(true)" expand="block" (pointerdown)="$event.stopPropagation()"
+    (dblclick)="$event.stopPropagation()">Stack Trace</ion-button>
+    <ion-modal [isOpen]="isModalOpen" (willDismiss)="onWillDismiss($event)">
+      <ng-template>
+        <ion-header>
+          <ion-title i18n>Error Stack trace of execution</ion-title>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <ion-list [inset]="true">
+            @for (error of data?.errorStacktrace; track error) {
+              <ion-item>
+                <ion-label>{{error}}</ion-label>
+              </ion-item>
+            }
+          </ion-list>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+  </div>
+}

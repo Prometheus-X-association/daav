@@ -24,14 +24,16 @@
           placeholder="Enter your username or email"
           autocomplete="username"
           [class.invalid]="loginForm.get('username')?.touched && loginForm.get('username')?.invalid"
-        >
+          >
           <ion-icon name="person-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
         </ion-input>
       </ion-item>
-      <div class="error-message" role="alert" *ngIf="getFieldError('username')">
-        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-        <span>{{ getFieldError('username') }}</span>
-      </div>
+      @if (getFieldError('username')) {
+        <div class="error-message" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ getFieldError('username') }}</span>
+        </div>
+      }
 
       <!-- Password Field -->
       <ion-item class="input-item" lines="none">
@@ -44,15 +46,17 @@
           placeholder="Enter your password"
           autocomplete="current-password"
           [class.invalid]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
-        >
+          >
           <ion-icon name="lock-closed-outline" slot="start" class="input-icon" aria-hidden="true"></ion-icon>
           <ion-input-password-toggle slot="end"></ion-input-password-toggle>
         </ion-input>
       </ion-item>
-      <div class="error-message" role="alert" *ngIf="getFieldError('password')">
-        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
-        <span>{{ getFieldError('password') }}</span>
-      </div>
+      @if (getFieldError('password')) {
+        <div class="error-message" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span>{{ getFieldError('password') }}</span>
+        </div>
+      }
 
       <!-- Remember Me & Forgot Password -->
       <div class="options-row">
@@ -66,7 +70,7 @@
           (click)="goToForgotPassword()"
           type="button"
           class="forgot-password-btn"
-        >
+          >
           Forgot Password?
         </ion-button>
       </div>
@@ -77,8 +81,10 @@
         type="submit"
         [disabled]="loading"
         class="login-btn"
-      >
-        <ion-spinner *ngIf="loading" name="crescent" aria-hidden="true"></ion-spinner>
+        >
+        @if (loading) {
+          <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+        }
         <span [class.sr-only]="loading">Sign In</span>
       </ion-button>
 
@@ -96,7 +102,7 @@
           (click)="goToRegister()"
           type="button"
           class="register-btn"
-        >
+          >
           Create Account
         </ion-button>
       </div>

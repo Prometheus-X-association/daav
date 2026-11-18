@@ -1,10 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { ToastController } from '@ionic/angular';
+import { ToastController } from '@ionic/angular/standalone';
 
 // Error detail returned by the API while the user must change their password
 const PASSWORD_CHANGE_REQUIRED_DETAIL = 'Password change required';
@@ -18,13 +18,11 @@ const PASSWORD_CHANGE_REQUIRED_DETAIL = 'Password change required';
  */
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly toastController = inject(ToastController);
 
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-    private toastController: ToastController
-  ) {}
+  private isRefreshing = false;
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     return next.handle(request).pipe(
@@ -35,16 +33,16 @@ export class ErrorInterceptor implements HttpInterceptor {
 
         if (error.status === 403) {
           if (error.error?.detail === PASSWORD_CHANGE_REQUIRED_DETAIL) {
-            this.router.navigate(['/change-password'], {
+            void this.router.navigate(['/change-password'], {
               queryParams: { returnUrl: this.router.url }
             });
           } else {
-            this.handle403Error();
+            void this.handle403Error();
           }
         }
 
         if (error.status >= 500) {
-          this.handle500Error(error);
+          void this.handle500Error(error);
         }
 
         return throwError(() => error);
@@ -79,19 +77,19 @@ export class ErrorInterceptor implements HttpInterceptor {
             }
           });
 
-          next.handle(clonedRequest).subscribe(
-            event => observer.next(event),
-            error => observer.error(error),
-            () => observer.complete()
-          );
+          next.handle(clonedRequest).subscribe({
+            next: event => observer.next(event),
+            error: error => observer.error(error),
+            complete: () => observer.complete()
+          });
         } else {
           // Refresh failed, redirect to login
-          this.redirectToLogin();
+          void this.redirectToLogin();
           observer.error(new Error('Session expired'));
         }
       }).catch(error => {
         this.isRefreshing = false;
-        this.redirectToLogin();
+        void this.redirectToLogin();
         observer.error(error);
       });
     });
@@ -126,21 +124,32 @@ export class ErrorInterceptor implements HttpInterceptor {
   }
 
   /**
-   * Redirect to login page
+   * Redirect to login page. A failing logout or message must not prevent the redirection.
    */
   private async redirectToLogin(): Promise<void> {
-    await this.authService.logout();
+    const returnUrl = this.router.url;
+    try {
+      await this.authService.logout();
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
 
-    const toast = await this.toastController.create({
-      message: 'Your session has expired. Please login again.',
-      duration: 3000,
-      color: 'warning',
-      position: 'top'
-    });
-    await toast.present();
+    try {
+      const toast = await this.toastController.create({
+        message: 'Your session has expired. Please login again.',
+        duration: 3000,
+        color: 'warning',
+        position: 'top'
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('Failed to show the session expired message:', error);
+    }
 
-    this.router.navigate(['/login'], {
-      queryParams: { returnUrl: this.router.url }
-    });
+    try {
+      await this.router.navigate(['/login'], { queryParams: { returnUrl } });
+    } catch (error) {
+      console.error('Failed to navigate to the login page:', error);
+    }
   }
 }

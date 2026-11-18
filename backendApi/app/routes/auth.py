@@ -3,7 +3,7 @@ Authentication and user management routes
 """
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -22,8 +22,11 @@ from app.middleware.auth import (
     PASSWORD_CHANGE_REQUIRED_DETAIL
 )
 from app.config.settings import settings
+from app.routes.responses import error_responses
 
 logger = logging.getLogger(__name__)
+
+USER_NOT_FOUND = "User not found"
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -76,10 +79,10 @@ async def conditional_admin_check(
     return current_user
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, responses=error_responses(401, 403, 500))
 async def register(
     user_data: UserCreate,
-    admin_user: Optional[User] = Depends(conditional_admin_check)
+    admin_user: Annotated[Optional[User], Depends(conditional_admin_check)]
 ):
     """
     Register a new user
@@ -108,15 +111,17 @@ async def register(
         user = await user_service.create_user(user_data)
         logger.info(f"New user registered: {user.username}")
         return UserResponse.model_validate(user)
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Registration error: {e}", exc_info=True)
+        logger.exception(f"Registration error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed"
         )
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, responses=error_responses(500))
 async def login(login_data: LoginRequest):
     """
     Login with username/email and password
@@ -133,14 +138,14 @@ async def login(login_data: LoginRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Login error: {e}", exc_info=True)
+        logger.exception(f"Login error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
         )
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh", response_model=Token, responses=error_responses(401))
 async def refresh_token(refresh_data: RefreshTokenRequest):
     """
     Refresh access token using refresh token
@@ -155,7 +160,7 @@ async def refresh_token(refresh_data: RefreshTokenRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Token refresh error: {e}", exc_info=True)
+        logger.exception(f"Token refresh error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not refresh token"
@@ -180,14 +185,14 @@ async def forgot_password(request: ForgotPasswordRequest):
             "message": "If the email exists, a password reset link has been sent. Please check your inbox."
         }
     except Exception as e:
-        logger.error(f"Forgot password error: {e}", exc_info=True)
+        logger.exception(f"Forgot password error: {e}")
         # Still return success to prevent email enumeration
         return {
             "message": "If the email exists, a password reset link has been sent. Please check your inbox."
         }
 
 
-@router.post("/reset-password", status_code=status.HTTP_200_OK)
+@router.post("/reset-password", status_code=status.HTTP_200_OK, responses=error_responses(500))
 async def reset_password(request: ResetPasswordRequest):
     """
     Reset password using reset token
@@ -210,7 +215,7 @@ async def reset_password(request: ResetPasswordRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Reset password error: {e}", exc_info=True)
+        logger.exception(f"Reset password error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to reset password"
@@ -228,7 +233,7 @@ async def get_current_user_info(current_user: CurrentUserPendingPasswordChange):
     return UserResponse.model_validate(current_user)
 
 
-@router.put("/me", response_model=UserResponse)
+@router.put("/me", response_model=UserResponse, responses=error_responses(400, 500))
 async def update_current_user(
     user_update: UserUpdate,
     current_user: CurrentUser
@@ -257,14 +262,14 @@ async def update_current_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"User update error: {e}", exc_info=True)
+        logger.exception(f"User update error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user"
         )
 
 
-@router.post("/change-password")
+@router.post("/change-password", responses=error_responses(400, 500))
 async def change_password(
     password_data: ChangePasswordRequest,
     current_user: CurrentUserPendingPasswordChange
@@ -299,14 +304,14 @@ async def change_password(
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Password change error: {e}", exc_info=True)
+        logger.exception(f"Password change error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to change password"
         )
 
 
-@router.put("/me/config", response_model=UserResponse)
+@router.put("/me/config", response_model=UserResponse, responses=error_responses(500))
 async def update_user_configuration(
     config_update: UserConfigUpdate,
     current_user: CurrentUser
@@ -326,7 +331,7 @@ async def update_user_configuration(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Config update error: {e}", exc_info=True)
+        logger.exception(f"Config update error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update configuration"
@@ -335,7 +340,7 @@ async def update_user_configuration(
 
 # ==================== ADMIN ROUTES ====================
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=List[UserResponse], responses=error_responses(500))
 async def get_all_users(admin_user: AdminUser):
     """
     Get all users (Admin only)
@@ -346,14 +351,14 @@ async def get_all_users(admin_user: AdminUser):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get users error: {e}", exc_info=True)
+        logger.exception(f"Get users error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve users"
         )
 
 
-@router.get("/users/{user_id}", response_model=UserResponse)
+@router.get("/users/{user_id}", response_model=UserResponse, responses=error_responses(404, 500))
 async def get_user_by_id(user_id: str, admin_user: AdminUser):
     """
     Get user by ID (Admin only)
@@ -363,20 +368,20 @@ async def get_user_by_id(user_id: str, admin_user: AdminUser):
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail=USER_NOT_FOUND
             )
         return UserResponse.model_validate(user)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get user error: {e}", exc_info=True)
+        logger.exception(f"Get user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve user"
         )
 
 
-@router.put("/users/{user_id}", response_model=UserResponse)
+@router.put("/users/{user_id}", response_model=UserResponse, responses=error_responses(500))
 async def update_user(
     user_id: str,
     user_update: UserUpdate,
@@ -397,14 +402,14 @@ async def update_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Update user error: {e}", exc_info=True)
+        logger.exception(f"Update user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user"
         )
 
 
-@router.delete("/users/{user_id}")
+@router.delete("/users/{user_id}", responses=error_responses(500))
 async def delete_user(user_id: str, admin_user: AdminUser):
     """
     Delete a user (Admin only)
@@ -417,14 +422,14 @@ async def delete_user(user_id: str, admin_user: AdminUser):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Delete user error: {e}", exc_info=True)
+        logger.exception(f"Delete user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete user"
         )
 
 
-@router.post("/users/{user_id}/deactivate")
+@router.post("/users/{user_id}/deactivate", responses=error_responses(400, 404, 500))
 async def deactivate_user(
     user_id: str,
     admin_user: AdminUser,
@@ -447,7 +452,7 @@ async def deactivate_user(
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail=USER_NOT_FOUND
             )
         
         # Check if already inactive
@@ -493,14 +498,14 @@ async def deactivate_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Deactivate user error: {e}", exc_info=True)
+        logger.exception(f"Deactivate user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to deactivate user"
         )
 
 
-@router.post("/users/{user_id}/activate")
+@router.post("/users/{user_id}/activate", responses=error_responses(400, 404, 500))
 async def activate_user(
     user_id: str,
     admin_user: AdminUser
@@ -518,7 +523,7 @@ async def activate_user(
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail=USER_NOT_FOUND
             )
         
         # Check if already active
@@ -556,7 +561,7 @@ async def activate_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Activate user error: {e}", exc_info=True)
+        logger.exception(f"Activate user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to activate user"
@@ -565,7 +570,7 @@ async def activate_user(
 
 # ==================== SHARING ROUTES ====================
 
-@router.post("/share")
+@router.post("/share", responses=error_responses(400, 500))
 async def share_resource(
     share_request: ShareResourceRequest,
     current_user: CurrentUser
@@ -602,14 +607,14 @@ async def share_resource(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Share resource error: {e}", exc_info=True)
+        logger.exception(f"Share resource error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to share resource"
         )
 
 
-@router.post("/unshare")
+@router.post("/unshare", responses=error_responses(400, 500))
 async def unshare_resource(
     unshare_request: UnshareResourceRequest,
     current_user: CurrentUser
@@ -646,7 +651,7 @@ async def unshare_resource(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unshare resource error: {e}", exc_info=True)
+        logger.exception(f"Unshare resource error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to unshare resource"

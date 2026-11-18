@@ -1,27 +1,29 @@
-import { NodeComponent } from "rete-angular-plugin/19";
 
 import {
   Component,
   Input,
   HostBinding,
   ChangeDetectorRef,
-  OnChanges
+  OnChanges,
+  inject
 } from "@angular/core";
 import { ClassicPreset } from "rete";
-import { KeyValue } from "@angular/common";
+import { KeyValue, KeyValuePipe } from "@angular/common";
+import { RefDirective } from "rete-angular-plugin/21";
 
 @Component({
     selector: 'app-output-node',
     templateUrl: 'nodes.component.html',
     styleUrls: ['nodes.component.scss'],
-    // eslint-disable-next-line @angular-eslint/no-host-metadata-property
     host: {
         "data-testid": "node",
         "class": "node output-node"
     },
-    standalone: false
+    imports: [RefDirective, KeyValuePipe]
 })
 export class OutputNodeComponent implements OnChanges {
+  private readonly cdr = inject(ChangeDetectorRef);
+
   @Input() data!: ClassicPreset.Node;
   @Input() emit!: (data: any) => void;
   @Input() rendered!: () => void;
@@ -32,7 +34,7 @@ export class OutputNodeComponent implements OnChanges {
     return this.data.selected;
   }
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor() {
     this.cdr.detach();
   }
 

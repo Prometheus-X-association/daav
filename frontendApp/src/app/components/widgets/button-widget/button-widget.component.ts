@@ -1,5 +1,8 @@
-import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Input } from '@angular/core';
 import { ClassicPreset } from 'rete';
+import { MatIconButton } from '@angular/material/button';
+import { NgClass } from '@angular/common';
+import { MatIcon } from '@angular/material/icon';
 
 export class ButtonControl extends ClassicPreset.Control {
   constructor(
@@ -18,11 +21,9 @@ export class ButtonControl extends ClassicPreset.Control {
 @Component({
     selector: 'app-button-widget',
     templateUrl: './button-widget.component.html',
-    styleUrls: ['./button-widget.component.scss'],
-    standalone: false
+    imports: [MatIconButton, NgClass, MatIcon]
 })
 export class ButtonWidgetComponent  {
   @Input() data: ButtonControl;
   cdr: ChangeDetectorRef;
-  constructor(cdr: ChangeDetectorRef) {}
 }

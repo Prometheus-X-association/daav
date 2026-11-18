@@ -8,7 +8,7 @@ import { Node } from 'src/app/models/interfaces/node';
 import { daavBlock } from '../node-block';
 import {
   SelectControl,
-  selectControlI,
+  SelectControlI,
 } from 'src/app/components/widgets/select-widget/select-widget.component';
 import { DatasetMySQL } from 'src/app/models/dataset-my-sql';
 import { MatSelectChange } from '@angular/material/select';
@@ -16,7 +16,7 @@ import { MySQLContentResponse } from 'src/app/models/dataset-content-response';
 import { ClassicPreset } from 'rete';
 import {
   InputAutoCompleteControl,
-  inputAutoCompleteControlI,
+  InputAutoCompleteControlI,
 } from 'src/app/components/widgets/auto-complete-widget/input-auto-complete-widget.component';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { CheckboxControl, CheckboxControlI } from 'src/app/components/widgets/checkbox-widget/checkbox-widget.component';
@@ -24,7 +24,7 @@ import { CheckboxControl, CheckboxControlI } from 'src/app/components/widgets/ch
 export class MysqlOutput extends OutputDataBlock {
   override width = 350;
   override height = 156;
-  private node: Node;
+  private readonly node: Node;
   selectControlDatabase: SelectControl;
   tableAutoCompleteControl: InputAutoCompleteControl;
   selectExistControl: SelectControl;
@@ -52,7 +52,6 @@ export class MysqlOutput extends OutputDataBlock {
         this.dataBaseChange.bind(this)
       );
       this.addControl('dataDatabaseSource', this.selectControlDatabase);
-      this.area.update('control', this.selectControlDatabase.id);
     }
     if (node?.data?.tableAutoComplete) {
       this.addInputTable(null,node);
@@ -60,11 +59,10 @@ export class MysqlOutput extends OutputDataBlock {
     if (node?.data?.selectExist) {
       this.addSelectExist(node);
     }
-    this.area.update('node', this.id);
   }
 
   addInputTable(data: MySQLContentResponse, node: Node, table?: string) {
-    let tableAutoComplete: inputAutoCompleteControlI;
+    let tableAutoComplete: InputAutoCompleteControlI;
     if (node?.data?.tableAutoComplete) {
       //if node is given it's an import and we report content from json
       tableAutoComplete = node.data?.tableAutoComplete;
@@ -90,8 +88,8 @@ export class MysqlOutput extends OutputDataBlock {
       }
     );
     this.addControl('table', this.tableAutoCompleteControl);
-    this.area.update('control', this.tableAutoCompleteControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.tableAutoCompleteControl.id);
+    void this.area.update('node', this.id);
   }
 
 
@@ -105,7 +103,7 @@ export class MysqlOutput extends OutputDataBlock {
   }
 
   addSelectExist(node: Node) {
-    let selectExist: selectControlI;
+    let selectExist: SelectControlI;
     if (node?.data?.selectExist) {
       //if node is given it's an import and we report content from json
       selectExist = node.data?.selectExist;
@@ -121,8 +119,8 @@ export class MysqlOutput extends OutputDataBlock {
       selectExist
     );
     this.addControl('exist', this.selectExistControl);
-    this.area.update('control', this.selectExistControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectExistControl.id);
+    void this.area.update('node', this.id);
     let createIndex: CheckboxControlI;
     if (node?.data?.createIndex){
       createIndex = node.data?.createIndex;
@@ -139,8 +137,8 @@ export class MysqlOutput extends OutputDataBlock {
       }
     );
     this.addControl('createIndex', this.indexCheckbox );
-    this.area.update('control', this.indexCheckbox.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.indexCheckbox.id);
+    void this.area.update('node', this.id);
   }
 
   removeSelectExist() {
@@ -154,11 +152,11 @@ export class MysqlOutput extends OutputDataBlock {
     if (this.node?.data?.createIndex) {
       this.node.data.createIndex = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
   addIndexTable(node: Node){
-    let indexTable: inputAutoCompleteControlI;
+    let indexTable: InputAutoCompleteControlI;
     if (node?.data?.indexTable) {
       //if node is given it's an import and we report content from json
       indexTable = node.data?.indexTable;
@@ -174,8 +172,8 @@ export class MysqlOutput extends OutputDataBlock {
       indexTable
     );
     this.addControl('indexTable', this.indexTableControl);
-    this.area.update('control', this.indexTableControl.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.indexTableControl.id);
+    void this.area.update('node', this.id);
   }
 
   removeIndexTable() {
@@ -184,12 +182,12 @@ export class MysqlOutput extends OutputDataBlock {
     if (this.node?.data?.indexTable) {
       this.node.data.indexTable = null;
     }
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
   }
 
 
   addSelectDatabase(data: MySQLContentResponse, node: Node) {
-    let selectDatabaseSource: selectControlI;
+    let selectDatabaseSource: SelectControlI;
     if (node?.data?.selectDatabaseDataSource) {
       //if node is given it's an import and we report content from json
       selectDatabaseSource = node.data?.selectDatabaseDataSource;
@@ -209,7 +207,7 @@ export class MysqlOutput extends OutputDataBlock {
     }
     if (
       selectDatabaseSource.value &&
-      !selectDatabaseSource.list.find(
+      !selectDatabaseSource.list.some(
         (database) => database.value === selectDatabaseSource.value
       )
     ) {
@@ -220,8 +218,8 @@ export class MysqlOutput extends OutputDataBlock {
       this.dataBaseChange.bind(this)
     );
     this.addControl('dataDatabaseSource', this.selectControlDatabase);
-    this.area.update('control', this.selectControlDatabase.id);
-    this.area.update('node', this.id);
+    void this.area.update('control', this.selectControlDatabase.id);
+    void this.area.update('node', this.id);
   }
 
   override dataSourceChange(event: MatSelectChange) {
@@ -256,7 +254,7 @@ export class MysqlOutput extends OutputDataBlock {
   removeControlDatabase() {
     this.removeControl('dataDatabaseSource');
     this.selectControlDatabase = null;
-    this.area.update('node', this.id);
+    void this.area.update('node', this.id);
     if (this.node?.data?.selectTableDataSource) {
       this.node.data.selectTableDataSource = null;
     }

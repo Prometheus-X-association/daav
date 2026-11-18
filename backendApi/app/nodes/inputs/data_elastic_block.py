@@ -5,7 +5,6 @@ from typing import Any, List, Optional
 from pydantic import ConfigDict
 from app.enums.status_node import StatusNode
 from app.models.interface.dataset_interface import ElasticDataset, _validate_es_index
-from app.models.interface.node_data import NodeDataPandasDf
 from app.nodes.inputs.input_node import InputNode
 from app.services.dataset_service import DatasetService
 from app.services.elastic_service import ElasticService
@@ -54,20 +53,8 @@ class DataElasticBlock(InputNode):
                 )
             schema = generate_pandas_schema(df)
 
-            for key, output in self.outputs.items():
-                if output.get_node_data():
-                    output.get_node_data().nodeSchema = schema
-                    if sample:
-                        output.get_node_data().dataExample = df
-                    else:
-                        output.get_node_data().data = df
-                else:
-                    node_data = NodeDataPandasDf(nodeSchema=schema, name=index)
-                    if sample:
-                        node_data.dataExample = df
-                    else:
-                        node_data.data = df
-                    output.set_node_data(node_data, self)
+            for output in self.outputs.values():
+                self._publish_dataframe(output, index, schema, df, sample)
             return StatusNode.Valid
         except Exception as e:
             traceback.print_exc()
@@ -88,10 +75,10 @@ class DataElasticBlock(InputNode):
         Raises:
             ValueError: If no data source or index is selected, or a parameter is invalid.
         """
-        datasetId = self._value('selectDataSource')
-        if not datasetId:
+        dataset_id = self._value('selectDataSource')
+        if not dataset_id:
             raise ValueError("No data source selected")
-        dataset: ElasticDataset = await self.datasetService.get_dataset(datasetId)
+        dataset: ElasticDataset = await self.datasetService.get_dataset(dataset_id)
         if not isinstance(dataset, ElasticDataset):
             raise ValueError("The data source is not an Elasticsearch dataset")
 

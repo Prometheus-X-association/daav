@@ -29,11 +29,45 @@
 @font-face {
   font-family: 'poppins';
   src: url(assets/font/Poppins-Variable.ttf);
+  // Text stays readable in the fallback font while the font downloads
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'OpenDyslexic';
   src: url(assets/font/OpenDyslexic-Regular.otf);
+  font-display: swap;
+}
+
+// Material Icons, self-hosted (Apache-2.0, see assets/font/MaterialIcons-LICENSE.txt).
+// Same rules as the Google Fonts stylesheet; used by <mat-icon> through the
+// default `material-icons` font set class.
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url(assets/font/MaterialIcons-Regular.woff2) format('woff2');
+}
+
+.material-icons {
+  // The generic family only matters if the icon font cannot be loaded
+  font-family: 'Material Icons', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 // Hides content visually while keeping it available to screen readers
@@ -142,17 +176,17 @@
 }
 
 body {
-  font-family: 'poppins' !important;
+  font-family: 'poppins', sans-serif;
 }
 
 .poppins {
   --ion-default-font: 'poppins' !important;
-  --ion-font-family: 'poppins' !important;
+  --ion-font-family: 'poppins';
 }
 
 .OpenDyslexic {
   --ion-default-font: 'OpenDyslexic' !important;
-  --ion-font-family: 'OpenDyslexic' !important;
+  --ion-font-family: 'OpenDyslexic';
 }
 
 ion-item {

@@ -170,16 +170,14 @@ def test_merge_parquet_files(merge_transform, parquet_files):
     assert len(result_df) == 6
 
 
-@patch('app.nodes.transforms.merge_transform.NodeDataParquet')
-@patch('app.nodes.transforms.merge_transform.pq.ParquetWriter')
-@patch('app.nodes.transforms.merge_transform.pq.ParquetFile')
-def test_process_if_parquet(mock_parquet_file, mock_parquet_writer, mock_node_data_parquet, merge_transform, sample_dataframes):
+def test_process_if_parquet(merge_transform, sample_dataframes, tmp_path, monkeypatch):
     """Test parquet processing mode"""
     df1, df2 = sample_dataframes
-    
+    monkeypatch.setattr("app.nodes.transforms.merge_transform.settings.upload_dir", str(tmp_path))
+
     # Setup parquet save mode
     merge_transform.data['parquetSave']['value'] = True
-    
+
     mock_data1 = NodeDataPandasDf(
         data=df1,
         dataExample=df1.head(),
@@ -192,31 +190,19 @@ def test_process_if_parquet(mock_parquet_file, mock_parquet_writer, mock_node_da
         nodeSchema=[],
         name="dataset2"
     )
-    
+
     merge_transform.inputs['dataset1'].get_node_data.return_value = mock_data1
     merge_transform.inputs['dataset2'].get_node_data.return_value = mock_data2
-    
-    # Mock ParquetWriter
-    mock_writer = Mock()
-    mock_parquet_writer.return_value = mock_writer
-    
-    # Mock ParquetFile for the final file reading
-    mock_file = Mock()
-    mock_file.schema = pa.schema([('merged_column', pa.string())])
-    mock_parquet_file.return_value = mock_file
-    
-    # Mock NodeDataParquet creation
-    mock_node_data_instance = Mock()
-    mock_node_data_parquet.return_value = mock_node_data_instance
-    
+
     # Execute
     result = merge_transform.process(sample=False)
-    
+
     # Assert
     assert result == StatusNode.Valid
-    mock_parquet_writer.assert_called()
-    mock_writer.write_table.assert_called()
-    mock_writer.close.assert_called()
+    node_data = merge_transform.outputs['out'].set_node_data.call_args[0][0]
+    assert isinstance(node_data, NodeDataParquet)
+    assert node_data.data == str(tmp_path / "merged_data_test_merge.parquet")
+    assert list(pd.read_parquet(node_data.data)['merged_column']) == ['A', 'B', 'C', 'X', 'Y', 'Z']
 
 
 def test_multiple_mappings(merge_transform, sample_dataframes):

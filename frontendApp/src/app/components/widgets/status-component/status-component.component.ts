@@ -1,8 +1,9 @@
-import { NgClass, NgStyle } from '@angular/common';
-import { ChangeDetectorRef, Component, Input } from '@angular/core';
-import { OverlayEventDetail } from '@ionic/core';
+import { ChangeDetectorRef, Component, Input, inject } from '@angular/core';
 import { ClassicPreset } from 'rete';
 import { StatusNode } from 'src/app/enums/status-node';
+import { MatTooltip } from '@angular/material/tooltip';
+import { NgClass } from '@angular/common';
+import { IonButton, IonContent, IonHeader, IonItem, IonLabel, IonList, IonModal, IonTitle } from '@ionic/angular/standalone';
 
 export class StatusControl extends ClassicPreset.Control {
   constructor(
@@ -18,19 +19,14 @@ export class StatusControl extends ClassicPreset.Control {
     selector: 'app-status-component',
     templateUrl: './status-component.component.html',
     styleUrls: ['./status-component.component.scss'],
-    standalone: false
+    imports: [MatTooltip, NgClass, IonButton, IonContent, IonHeader, IonItem, IonLabel, IonList, IonModal, IonTitle]
 })
 export class StatusComponentComponent {
   @Input() data: StatusControl;
   enumStatus = StatusNode;
 
   isModalOpen = false;
-  cdr: ChangeDetectorRef;
-
-
-  constructor(cdr: ChangeDetectorRef) {
-    this.cdr = cdr;
-  }
+  cdr = inject(ChangeDetectorRef);
 
   /** Text alternative for the status color */
   statusLabel(): string {
@@ -44,6 +40,5 @@ export class StatusComponentComponent {
 
   onWillDismiss(event: Event) {
     this.isModalOpen = false;
-    const ev = event as CustomEvent<OverlayEventDetail<string>>;
   }
 }

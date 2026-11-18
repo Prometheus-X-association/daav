@@ -29,7 +29,7 @@ export class ThemeService {
   currentTheme = "";
   currentFont = "";
 
-  private htmlClassList = document.documentElement.classList;
+  private readonly htmlClassList = document.documentElement.classList;
 
   constructor() {
     this.applyTheme(localStorage.getItem("theme"));

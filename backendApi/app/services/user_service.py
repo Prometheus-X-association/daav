@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
@@ -12,11 +13,36 @@ from app.models.interface.workflow_interface import IProject
 from app.utils.auth_utils import get_password_hash, verify_password
 from app.utils.singleton import SingletonMeta
 from app.enums.user_role import UserRole
+from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
-# Password of the admin account created on first startup; it must be changed on first login
-DEFAULT_ADMIN_PASSWORD = "Admin123!"
+USER_NOT_FOUND = "User not found"
+
+ADMIN_PASSWORD_GENERATION_HINT = (
+    "Generate it with: python3 -c \"import secrets; print(secrets.token_urlsafe(16) + '-Aa1')\" "
+    "> secrets/admin_firstlaunch"
+)
+
+
+def read_initial_admin_password() -> str:
+    """
+    Read the password of the admin account created on first start from ADMIN_PASSWORD_FILE
+    (the Docker secret /run/secrets/admin_firstlaunch by default).
+
+    Raises:
+        RuntimeError: If the file is missing, unreadable or empty
+    """
+    path = Path(settings.admin_password_file)
+    try:
+        password = path.read_text(encoding="utf-8").strip()
+    except OSError as e:
+        raise RuntimeError(
+            f"Cannot read the initial admin password from {path} ({e.strerror}). {ADMIN_PASSWORD_GENERATION_HINT}"
+        ) from e
+    if not password:
+        raise RuntimeError(f"The initial admin password file {path} is empty. {ADMIN_PASSWORD_GENERATION_HINT}")
+    return password
 
 
 class UserService(metaclass=SingletonMeta):
@@ -75,7 +101,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error creating user: {e}", exc_info=True)
+            logger.exception(f"Error creating user: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create user"
@@ -86,7 +112,7 @@ class UserService(metaclass=SingletonMeta):
         try:
             return await User.get(user_id)
         except Exception as e:
-            logger.error(f"Error getting user by ID {user_id}: {e}")
+            logger.exception(f"Error getting user by ID {user_id}: {e}")
             return None
     
     async def get_user_by_username(self, username: str) -> Optional[User]:
@@ -94,7 +120,7 @@ class UserService(metaclass=SingletonMeta):
         try:
             return await User.find_one(User.username == username.lower())
         except Exception as e:
-            logger.error(f"Error getting user by username {username}: {e}")
+            logger.exception(f"Error getting user by username {username}: {e}")
             return None
     
     async def get_user_by_email(self, email: str) -> Optional[User]:
@@ -102,7 +128,7 @@ class UserService(metaclass=SingletonMeta):
         try:
             return await User.find_one(User.email == email)
         except Exception as e:
-            logger.error(f"Error getting user by email {email}: {e}")
+            logger.exception(f"Error getting user by email {email}: {e}")
             return None
     
     async def get_user_by_username_or_email(self, identifier: str) -> Optional[User]:
@@ -116,7 +142,7 @@ class UserService(metaclass=SingletonMeta):
             # Try email
             return await self.get_user_by_email(identifier)
         except Exception as e:
-            logger.error(f"Error getting user by identifier {identifier}: {e}")
+            logger.exception(f"Error getting user by identifier {identifier}: {e}")
             return None
     
     async def get_all_users(self) -> List[User]:
@@ -124,7 +150,7 @@ class UserService(metaclass=SingletonMeta):
         try:
             return await User.find_all().to_list()
         except Exception as e:
-            logger.error(f"Error getting all users: {e}", exc_info=True)
+            logger.exception(f"Error getting all users: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to retrieve users"
@@ -150,7 +176,7 @@ class UserService(metaclass=SingletonMeta):
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
+                    detail=USER_NOT_FOUND
                 )
             
             # Only admin can update other users, users can only update themselves
@@ -186,7 +212,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error updating user {user_id}: {e}", exc_info=True)
+            logger.exception(f"Error updating user {user_id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update user"
@@ -217,7 +243,7 @@ class UserService(metaclass=SingletonMeta):
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
+                    detail=USER_NOT_FOUND
                 )
             
             # Don't allow deleting the last admin
@@ -236,7 +262,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error deleting user {user_id}: {e}", exc_info=True)
+            logger.exception(f"Error deleting user {user_id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete user"
@@ -250,7 +276,7 @@ class UserService(metaclass=SingletonMeta):
                 user.last_login = datetime.now(timezone.utc)
                 await user.save()
         except Exception as e:
-            logger.error(f"Error updating last login for user {user_id}: {e}")
+            logger.exception(f"Error updating last login for user {user_id}: {e}")
     
     async def change_password(self, user_id: str, current_password: str, new_password: str) -> bool:
         """
@@ -272,7 +298,7 @@ class UserService(metaclass=SingletonMeta):
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
+                    detail=USER_NOT_FOUND
                 )
             
             # Verify current password
@@ -301,7 +327,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error changing password for user {user_id}: {e}", exc_info=True)
+            logger.exception(f"Error changing password for user {user_id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to change password"
@@ -323,7 +349,7 @@ class UserService(metaclass=SingletonMeta):
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
+                    detail=USER_NOT_FOUND
                 )
             
             # Update credentials if provided
@@ -343,7 +369,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error updating config for user {user_id}: {e}", exc_info=True)
+            logger.exception(f"Error updating config for user {user_id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update user configuration"
@@ -363,22 +389,30 @@ class UserService(metaclass=SingletonMeta):
             
             if user_count == 0:
                 logger.info("No users found, creating default admin user")
-                
-                # Create default admin
-                admin_data = UserCreate(
-                    username="admin",
-                    email="admin@example.com",
-                    full_name="System Administrator",
-                    password=DEFAULT_ADMIN_PASSWORD,
-                    role=UserRole.ADMIN
-                )
+
+                password = read_initial_admin_password()
+                try:
+                    admin_data = UserCreate(
+                        username="admin",
+                        email="admin@example.com",
+                        full_name="System Administrator",
+                        password=password,
+                        role=UserRole.ADMIN
+                    )
+                except ValueError:
+                    # Do not include the validation error: it would print the password in the logs
+                    raise RuntimeError(
+                        f"The initial admin password in {settings.admin_password_file} does not meet the "
+                        "password policy (at least 8 characters, one uppercase letter, one lowercase letter "
+                        f"and one special character). {ADMIN_PASSWORD_GENERATION_HINT}"
+                    ) from None
 
                 admin = await self.create_user(admin_data)
                 admin.must_change_password = True
                 await admin.save()
                 logger.warning(
-                    f"⚠️ DEFAULT ADMIN CREATED - Username: admin, Password: {DEFAULT_ADMIN_PASSWORD} "
-                    "- A password change will be required on first login"
+                    f"⚠️ DEFAULT ADMIN CREATED - Username: admin, Password: the content of "
+                    f"{settings.admin_password_file} - A password change will be required on first login"
                 )
                 return admin
             
@@ -397,10 +431,10 @@ class UserService(metaclass=SingletonMeta):
             return admin
         
         except Exception as e:
-            logger.error(f"Error ensuring admin exists: {e}", exc_info=True)
+            logger.exception(f"Error ensuring admin exists: {e}")
             raise
     
-    async def can_access_dataset(self, user: User, dataset_id: str) -> bool:
+    def can_access_dataset(self, user: User, dataset_id: str) -> bool:
         """
         Check if user can access a dataset
         
@@ -425,7 +459,7 @@ class UserService(metaclass=SingletonMeta):
         
         return False
     
-    async def can_modify_dataset(self, user: User, dataset_id: str) -> bool:
+    def can_modify_dataset(self, user: User, dataset_id: str) -> bool:
         """
         Check if user can modify/delete a dataset
         Only owner can modify
@@ -444,7 +478,7 @@ class UserService(metaclass=SingletonMeta):
         # Only owner can modify
         return dataset_id in user.owned_datasets
     
-    async def can_access_workflow(self, user: User, workflow_id: str) -> bool:
+    def can_access_workflow(self, user: User, workflow_id: str) -> bool:
         """
         Check if user can access a workflow
         
@@ -469,7 +503,7 @@ class UserService(metaclass=SingletonMeta):
         
         return False
     
-    async def can_modify_workflow(self, user: User, workflow_id: str) -> bool:
+    def can_modify_workflow(self, user: User, workflow_id: str) -> bool:
         """
         Check if user can modify/delete a workflow
         Only owner can modify
@@ -495,7 +529,7 @@ class UserService(metaclass=SingletonMeta):
             target_user = await self.get_user_by_id(target_user_id)
             
             if not owner or not target_user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise HTTPException(status_code=404, detail=USER_NOT_FOUND)
             
             # Check if owner owns the dataset
             if dataset_id not in owner.owned_datasets and owner.role != UserRole.ADMIN:
@@ -521,7 +555,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error sharing dataset: {e}", exc_info=True)
+            logger.exception(f"Error sharing dataset: {e}")
             raise HTTPException(status_code=500, detail="Failed to share dataset")
     
     async def unshare_dataset(self, owner_id: str, dataset_id: str, target_user_id: str) -> bool:
@@ -531,7 +565,7 @@ class UserService(metaclass=SingletonMeta):
             target_user = await self.get_user_by_id(target_user_id)
             
             if not owner or not target_user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise HTTPException(status_code=404, detail=USER_NOT_FOUND)
             
             # Check if owner owns the dataset
             if dataset_id not in owner.owned_datasets and owner.role != UserRole.ADMIN:
@@ -557,7 +591,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error unsharing dataset: {e}", exc_info=True)
+            logger.exception(f"Error unsharing dataset: {e}")
             raise HTTPException(status_code=500, detail="Failed to unshare dataset")
     
     async def share_workflow(self, owner_id: str, workflow_id: str, target_user_id: str) -> bool:
@@ -567,7 +601,7 @@ class UserService(metaclass=SingletonMeta):
             target_user = await self.get_user_by_id(target_user_id)
             
             if not owner or not target_user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise HTTPException(status_code=404, detail=USER_NOT_FOUND)
             
             # Check if owner owns the workflow
             if workflow_id not in owner.owned_workflows and owner.role != UserRole.ADMIN:
@@ -593,7 +627,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error sharing workflow: {e}", exc_info=True)
+            logger.exception(f"Error sharing workflow: {e}")
             raise HTTPException(status_code=500, detail="Failed to share workflow")
     
     async def unshare_workflow(self, owner_id: str, workflow_id: str, target_user_id: str) -> bool:
@@ -603,7 +637,7 @@ class UserService(metaclass=SingletonMeta):
             target_user = await self.get_user_by_id(target_user_id)
             
             if not owner or not target_user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise HTTPException(status_code=404, detail=USER_NOT_FOUND)
             
             # Check if owner owns the workflow
             if workflow_id not in owner.owned_workflows and owner.role != UserRole.ADMIN:
@@ -629,7 +663,7 @@ class UserService(metaclass=SingletonMeta):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error unsharing workflow: {e}", exc_info=True)
+            logger.exception(f"Error unsharing workflow: {e}")
             raise HTTPException(status_code=500, detail="Failed to unshare workflow")
     
     async def assign_dataset_ownership(self, user: User, dataset: Dataset) -> None:
@@ -650,7 +684,7 @@ class UserService(metaclass=SingletonMeta):
             logger.info(f"Dataset {dataset.id} ownership assigned to user {user.username}")
             
         except Exception as e:
-            logger.error(f"Error assigning dataset ownership: {e}", exc_info=True)
+            logger.exception(f"Error assigning dataset ownership: {e}")
             raise HTTPException(status_code=500, detail="Failed to assign dataset ownership")
     
     async def assign_workflow_ownership(self, user: User, workflow: IProject) -> None:
@@ -671,7 +705,7 @@ class UserService(metaclass=SingletonMeta):
             logger.info(f"Workflow {workflow.id} ownership assigned to user {user.username}")
             
         except Exception as e:
-            logger.error(f"Error assigning workflow ownership: {e}", exc_info=True)
+            logger.exception(f"Error assigning workflow ownership: {e}")
             raise HTTPException(status_code=500, detail="Failed to assign workflow ownership")
     
     async def remove_dataset_ownership(self, dataset_id: str) -> None:
@@ -702,7 +736,7 @@ class UserService(metaclass=SingletonMeta):
             logger.info(f"Dataset {dataset_id} ownership and sharing removed (bidirectional)")
             
         except Exception as e:
-            logger.error(f"Error removing dataset ownership: {e}", exc_info=True)
+            logger.exception(f"Error removing dataset ownership: {e}")
             raise HTTPException(status_code=500, detail="Failed to remove dataset ownership")
     
     async def remove_workflow_ownership(self, workflow_id: str) -> None:
@@ -733,7 +767,7 @@ class UserService(metaclass=SingletonMeta):
             logger.info(f"Workflow {workflow_id} ownership and sharing removed (bidirectional)")
             
         except Exception as e:
-            logger.error(f"Error removing workflow ownership: {e}", exc_info=True)
+            logger.exception(f"Error removing workflow ownership: {e}")
             raise HTTPException(status_code=500, detail="Failed to remove workflow ownership")
         
 

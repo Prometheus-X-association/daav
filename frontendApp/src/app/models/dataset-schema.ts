@@ -1,7 +1,7 @@
 /**
- * Represents a dataset schema which can be of type MysqlSchema, PandasSchema or any other type.
+ * Represents a dataset schema: MysqlSchema, PandasSchema or ParquetSchema.
  */
-export type DatasetSchema = MysqlSchema | PandasSchema | ParquetSchema | any
+export type DatasetSchema = MysqlSchema | PandasSchema | ParquetSchema
 
 /**
  * Represents a MySQL schema as an array of field definitions.

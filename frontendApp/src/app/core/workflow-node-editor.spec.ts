@@ -1,4 +1,3 @@
-import { NodeEditor } from 'rete';
 import { WorkflowNodeEditor } from './workflow-node-editor';
 import { Injector } from "@angular/core";
 import { WorkflowEditor } from './workflow-editor';

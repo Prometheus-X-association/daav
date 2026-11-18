@@ -62,10 +62,6 @@ def setup_logging(settings : Settings):
     # watchfiles logs to logs/app.log, which is in the watched directory: each
     # "change detected" line would trigger the next one in an endless loop.
     logging.getLogger("watchfiles").setLevel(logging.WARNING)
-    #logging.getLogger("beanie").setLevel(logging.DEBUG)
-    #logging.getLogger("motor").setLevel(logging.DEBUG)
-    #logging.getLogger("pymongo").setLevel(logging.DEBUG)
-    #logging.getLogger("pymongo.command").setLevel(logging.DEBUG)
     
     return root_logger
 
